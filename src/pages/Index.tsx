@@ -12,6 +12,7 @@ import SettingsPage from '@/components/pages/SettingsPage';
 import AuthPage from '@/components/pages/AuthPage';
 import FullscreenMode from '@/components/FullscreenMode';
 import RefinePromptDialog from '@/components/RefinePromptDialog';
+import OnboardingGuide from '@/components/OnboardingGuide';
 import { modes, ModeKey, LanguageKey, NavigationId } from '@/config/minimind';
 import AIService from '@/services/aiService';
 import { downloadPDF, sharePDF } from '@/utils/pdfGenerator';
@@ -60,6 +61,9 @@ const Index = () => {
   // Fullscreen state
   const [fullscreenMode, setFullscreenMode] = useState<ModeKey | null>(null);
   
+  // Onboarding state
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  
   // Chat inputs per mode
   const [chatInputs, setChatInputs] = useState<Record<ModeKey, string>>({
     beginner: '', thinker: '', story: '', mastery: '',
@@ -88,10 +92,16 @@ const Index = () => {
     const savedLanguage = localStorage.getItem('minimind-language') as LanguageKey || 'en';
     const savedHistory = localStorage.getItem('minimind-history');
     const savedStats = localStorage.getItem('minimind-stats');
+    const hasSeenOnboarding = localStorage.getItem('minimind-onboarding-seen');
     
     setTheme(savedTheme);
     setSelectedLanguage(savedLanguage);
     document.documentElement.classList.toggle('dark', savedTheme === 'dark');
+    
+    // Show onboarding for first-time users
+    if (!hasSeenOnboarding) {
+      setShowOnboarding(true);
+    }
     
     if (savedHistory) {
       try {
@@ -113,6 +123,11 @@ const Index = () => {
     });
     
     return () => subscription.unsubscribe();
+  }, []);
+  
+  const handleCloseOnboarding = useCallback(() => {
+    setShowOnboarding(false);
+    localStorage.setItem('minimind-onboarding-seen', 'true');
   }, []);
   
   useEffect(() => { if (history.length > 0) localStorage.setItem('minimind-history', JSON.stringify(history)); }, [history]);
@@ -235,8 +250,10 @@ const Index = () => {
   }, [currentQuestion]);
   
   const handleShare = useCallback(async (text: string, mode: string, q: string) => {
-    await sharePDF(text, mode as ModeKey, q || currentQuestion);
-    toast.success('Shared!');
+    const shared = await sharePDF(text, mode as ModeKey, q || currentQuestion);
+    if (shared) {
+      toast.success('Shared successfully!');
+    }
   }, [currentQuestion]);
   
   const handleGetOneWord = useCallback(async (mode: string) => {
@@ -277,7 +294,7 @@ const Index = () => {
   return (
     <div className="app-container">
       <MobileHeader onMenuClick={() => setIsMenuOpen(true)} onProfileClick={() => user ? handleSignOut() : setCurrentPage('auth')} />
-      <SideMenu isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} currentPage={currentPage as NavigationId} onNavigate={setCurrentPage} theme={theme} onToggleTheme={toggleTheme} />
+      <SideMenu isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} currentPage={currentPage as NavigationId} onNavigate={setCurrentPage} theme={theme} onToggleTheme={toggleTheme} onShowGuide={() => setShowOnboarding(true)} />
       
       <main className="page-content px-4 custom-scrollbar">
         <AnimatePresence mode="wait">
@@ -302,6 +319,8 @@ const Index = () => {
       {fullscreenMode && <FullscreenMode isOpen={!!fullscreenMode} modeKey={fullscreenMode} answer={answers[fullscreenMode]} onClose={() => setFullscreenMode(null)} onSpeak={handleSpeak} onCopy={handleCopy} onDownload={handleDownload} onShare={handleShare} onChatSubmit={handleChatSubmit} isSpeaking={isSpeaking} chatInputValue={chatInputs[fullscreenMode]} onChatInputChange={handleChatInputChange} currentQuestion={currentQuestion} />}
       
       <RefinePromptDialog isOpen={showRefineDialog} originalPrompt={originalPrompt} refinedPrompt={refinedPrompt} onAccept={handleAcceptRefinedPrompt} onReject={() => setShowRefineDialog(false)} onReRefine={handleReRefine} isRefining={isRefining} />
+      
+      <OnboardingGuide isOpen={showOnboarding} onClose={handleCloseOnboarding} />
     </div>
   );
 };
