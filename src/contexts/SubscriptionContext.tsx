@@ -1,72 +1,103 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
 import { toast } from 'sonner';
 
-export type SubscriptionTier = 'free' | 'pro';
+export type SubscriptionTier = 'free' | 'pro' | 'ultimate';
 
 export interface SubscriptionLimits {
-  questionsPerDay: number;
-  historyItems: number;
-  modes: ('beginner' | 'thinker' | 'story' | 'mastery')[];
+  creditsPerMonth: number;
   features: {
-    ekaksharAdvanced: boolean;
-    learningPaths: boolean;
     truthMode: boolean;
+    learningPaths: boolean;
     multiPerspective: boolean;
+    ekaksharAdvanced: boolean;
     offlineNotes: boolean;
     weeklyReports: boolean;
     mentorPersonas: boolean;
     adaptiveDifficulty: boolean;
     memoryGraph: boolean;
+    priorityResponses: boolean;
   };
 }
 
 const FREE_LIMITS: SubscriptionLimits = {
-  questionsPerDay: 10,
-  historyItems: 20,
-  modes: ['beginner', 'thinker'],
+  creditsPerMonth: 50,
   features: {
-    ekaksharAdvanced: false,
-    learningPaths: false,
     truthMode: false,
+    learningPaths: false,
     multiPerspective: false,
+    ekaksharAdvanced: false,
     offlineNotes: false,
     weeklyReports: false,
     mentorPersonas: false,
     adaptiveDifficulty: false,
     memoryGraph: false,
+    priorityResponses: false,
   },
 };
 
 const PRO_LIMITS: SubscriptionLimits = {
-  questionsPerDay: Infinity,
-  historyItems: Infinity,
-  modes: ['beginner', 'thinker', 'story', 'mastery'],
+  creditsPerMonth: 500,
   features: {
-    ekaksharAdvanced: true,
-    learningPaths: true,
     truthMode: true,
+    learningPaths: true,
     multiPerspective: true,
+    ekaksharAdvanced: true,
+    offlineNotes: true,
+    weeklyReports: true,
+    mentorPersonas: true,
+    adaptiveDifficulty: false,
+    memoryGraph: false,
+    priorityResponses: false,
+  },
+};
+
+const ULTIMATE_LIMITS: SubscriptionLimits = {
+  creditsPerMonth: Infinity,
+  features: {
+    truthMode: true,
+    learningPaths: true,
+    multiPerspective: true,
+    ekaksharAdvanced: true,
     offlineNotes: true,
     weeklyReports: true,
     mentorPersonas: true,
     adaptiveDifficulty: true,
     memoryGraph: true,
+    priorityResponses: true,
   },
+};
+
+export type MentorPersona = 'default' | 'calm' | 'hardcore' | 'friendly' | 'expert';
+
+export const mentorPersonas: Record<MentorPersona, { name: string; description: string; icon: string }> = {
+  default: { name: 'Default', description: 'Balanced and helpful', icon: '🤖' },
+  calm: { name: 'Calm Teacher', description: 'Patient and reassuring', icon: '🧘' },
+  hardcore: { name: 'Hardcore Mentor', description: 'Challenging and demanding', icon: '💪' },
+  friendly: { name: 'Friendly Guide', description: 'Warm and encouraging', icon: '😊' },
+  expert: { name: 'No-Nonsense Expert', description: 'Direct and efficient', icon: '🎯' },
 };
 
 interface SubscriptionContextType {
   tier: SubscriptionTier;
   limits: SubscriptionLimits;
-  questionsUsedToday: number;
+  creditsUsed: number;
+  creditsRemaining: number;
   isProFeature: (feature: keyof SubscriptionLimits['features']) => boolean;
-  isModeAvailable: (mode: string) => boolean;
-  canAskQuestion: () => boolean;
-  useQuestion: () => boolean;
+  hasFeature: (feature: keyof SubscriptionLimits['features']) => boolean;
+  canUseCredits: (amount?: number) => boolean;
+  useCredits: (amount?: number) => boolean;
   upgradeToPro: () => void;
+  upgradeToUltimate: () => void;
+  downgradeToFree: () => void;
   showUpgradePrompt: (feature: string) => void;
   isUpgradeModalOpen: boolean;
   setUpgradeModalOpen: (open: boolean) => void;
   upgradeFeature: string;
+  // Pro features state
+  truthModeEnabled: boolean;
+  setTruthModeEnabled: (enabled: boolean) => void;
+  selectedMentor: MentorPersona;
+  setSelectedMentor: (mentor: MentorPersona) => void;
 }
 
 const SubscriptionContext = createContext<SubscriptionContextType | undefined>(undefined);
@@ -85,67 +116,110 @@ interface SubscriptionProviderProps {
 
 export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({ children }) => {
   const [tier, setTier] = useState<SubscriptionTier>('free');
-  const [questionsUsedToday, setQuestionsUsedToday] = useState(0);
+  const [creditsUsed, setCreditsUsed] = useState(0);
   const [isUpgradeModalOpen, setUpgradeModalOpen] = useState(false);
   const [upgradeFeature, setUpgradeFeature] = useState('');
+  
+  // Pro feature states
+  const [truthModeEnabled, setTruthModeEnabled] = useState(false);
+  const [selectedMentor, setSelectedMentor] = useState<MentorPersona>('default');
 
-  const limits = tier === 'pro' ? PRO_LIMITS : FREE_LIMITS;
+  const limits = tier === 'ultimate' ? ULTIMATE_LIMITS : tier === 'pro' ? PRO_LIMITS : FREE_LIMITS;
+  const creditsRemaining = Math.max(0, limits.creditsPerMonth - creditsUsed);
 
   // Load subscription state from localStorage
   useEffect(() => {
     const savedTier = localStorage.getItem('minimind-tier') as SubscriptionTier;
-    const savedQuestions = localStorage.getItem('minimind-questions-today');
-    const savedDate = localStorage.getItem('minimind-questions-date');
+    const savedCredits = localStorage.getItem('minimind-credits-used');
+    const savedMonth = localStorage.getItem('minimind-credits-month');
+    const savedTruthMode = localStorage.getItem('minimind-truth-mode');
+    const savedMentor = localStorage.getItem('minimind-mentor') as MentorPersona;
     
-    if (savedTier === 'pro') {
-      setTier('pro');
+    if (savedTier && ['free', 'pro', 'ultimate'].includes(savedTier)) {
+      setTier(savedTier);
     }
     
-    // Reset questions count if it's a new day
-    const today = new Date().toDateString();
-    if (savedDate === today && savedQuestions) {
-      setQuestionsUsedToday(parseInt(savedQuestions, 10));
+    if (savedTruthMode === 'true') {
+      setTruthModeEnabled(true);
+    }
+    
+    if (savedMentor && Object.keys(mentorPersonas).includes(savedMentor)) {
+      setSelectedMentor(savedMentor);
+    }
+    
+    // Reset credits if it's a new month
+    const currentMonth = new Date().toISOString().slice(0, 7);
+    if (savedMonth === currentMonth && savedCredits) {
+      setCreditsUsed(parseInt(savedCredits, 10));
     } else {
-      localStorage.setItem('minimind-questions-date', today);
-      localStorage.setItem('minimind-questions-today', '0');
+      localStorage.setItem('minimind-credits-month', currentMonth);
+      localStorage.setItem('minimind-credits-used', '0');
     }
   }, []);
 
-  // Save questions count
+  // Save credits
   useEffect(() => {
-    localStorage.setItem('minimind-questions-today', questionsUsedToday.toString());
-  }, [questionsUsedToday]);
+    localStorage.setItem('minimind-credits-used', creditsUsed.toString());
+  }, [creditsUsed]);
+
+  // Save tier
+  useEffect(() => {
+    localStorage.setItem('minimind-tier', tier);
+  }, [tier]);
+
+  // Save truth mode
+  useEffect(() => {
+    localStorage.setItem('minimind-truth-mode', truthModeEnabled.toString());
+  }, [truthModeEnabled]);
+
+  // Save mentor
+  useEffect(() => {
+    localStorage.setItem('minimind-mentor', selectedMentor);
+  }, [selectedMentor]);
 
   const isProFeature = useCallback((feature: keyof SubscriptionLimits['features']) => {
     return !FREE_LIMITS.features[feature];
   }, []);
 
-  const isModeAvailable = useCallback((mode: string) => {
-    return limits.modes.includes(mode as any);
-  }, [limits.modes]);
+  const hasFeature = useCallback((feature: keyof SubscriptionLimits['features']) => {
+    return limits.features[feature];
+  }, [limits.features]);
 
-  const canAskQuestion = useCallback(() => {
-    if (tier === 'pro') return true;
-    return questionsUsedToday < limits.questionsPerDay;
-  }, [tier, questionsUsedToday, limits.questionsPerDay]);
+  const canUseCredits = useCallback((amount: number = 1) => {
+    if (tier === 'ultimate') return true;
+    return creditsUsed + amount <= limits.creditsPerMonth;
+  }, [tier, creditsUsed, limits.creditsPerMonth]);
 
-  const useQuestion = useCallback(() => {
-    if (!canAskQuestion()) {
-      showUpgradePrompt('Unlimited Questions');
+  const useCredits = useCallback((amount: number = 1) => {
+    if (!canUseCredits(amount)) {
+      showUpgradePrompt('More Credits');
       return false;
     }
-    setQuestionsUsedToday(prev => prev + 1);
+    setCreditsUsed(prev => prev + amount);
     return true;
-  }, [canAskQuestion]);
+  }, [canUseCredits]);
 
   const upgradeToPro = useCallback(() => {
-    // Demo mode: just toggle the tier
     setTier('pro');
-    localStorage.setItem('minimind-tier', 'pro');
     toast.success('🎉 Welcome to MiniMind Pro!', {
-      description: 'All premium features are now unlocked.',
+      description: 'You now have 500 credits/month and premium features.',
     });
     setUpgradeModalOpen(false);
+  }, []);
+
+  const upgradeToUltimate = useCallback(() => {
+    setTier('ultimate');
+    toast.success('🚀 Welcome to MiniMind Ultimate!', {
+      description: 'Unlimited credits and all features unlocked!',
+    });
+    setUpgradeModalOpen(false);
+  }, []);
+
+  const downgradeToFree = useCallback(() => {
+    setTier('free');
+    setTruthModeEnabled(false);
+    setSelectedMentor('default');
+    toast.info('You are now on the Free plan');
   }, []);
 
   const showUpgradePrompt = useCallback((feature: string) => {
@@ -153,21 +227,44 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({ chil
     setUpgradeModalOpen(true);
   }, []);
 
+  const handleSetTruthMode = useCallback((enabled: boolean) => {
+    if (enabled && !hasFeature('truthMode')) {
+      showUpgradePrompt('Truth Mode');
+      return;
+    }
+    setTruthModeEnabled(enabled);
+  }, [hasFeature, showUpgradePrompt]);
+
+  const handleSetMentor = useCallback((mentor: MentorPersona) => {
+    if (mentor !== 'default' && !hasFeature('mentorPersonas')) {
+      showUpgradePrompt('AI Mentor Personas');
+      return;
+    }
+    setSelectedMentor(mentor);
+  }, [hasFeature, showUpgradePrompt]);
+
   return (
     <SubscriptionContext.Provider
       value={{
         tier,
         limits,
-        questionsUsedToday,
+        creditsUsed,
+        creditsRemaining,
         isProFeature,
-        isModeAvailable,
-        canAskQuestion,
-        useQuestion,
+        hasFeature,
+        canUseCredits,
+        useCredits,
         upgradeToPro,
+        upgradeToUltimate,
+        downgradeToFree,
         showUpgradePrompt,
         isUpgradeModalOpen,
         setUpgradeModalOpen,
         upgradeFeature,
+        truthModeEnabled,
+        setTruthModeEnabled: handleSetTruthMode,
+        selectedMentor,
+        setSelectedMentor: handleSetMentor,
       }}
     >
       {children}

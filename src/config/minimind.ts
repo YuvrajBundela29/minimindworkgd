@@ -91,6 +91,7 @@ export const suggestedPrompts = [
 export const navigationItems = [
   { id: 'home', label: 'Learn', icon: 'Home' },
   { id: 'profile', label: 'Profile', icon: 'User' },
+  { id: 'subscription', label: 'Subscription', icon: 'CreditCard' },
   { id: 'progress', label: 'Progress', icon: 'BarChart3' },
   { id: 'oneword', label: 'Ekakshar', icon: 'Zap' },
   { id: 'history', label: 'History', icon: 'History' },
