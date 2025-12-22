@@ -32,12 +32,34 @@ export const modes = {
 
 export type ModeKey = keyof typeof modes;
 
+// All Indian languages (22 Scheduled Languages) + Popular International
 export const languages = {
+  // Major Indian Languages
   en: { name: 'English', flag: '🇺🇸', nativeName: 'English' },
   hi: { name: 'Hindi', flag: '🇮🇳', nativeName: 'हिंदी' },
-  ta: { name: 'Tamil', flag: '🇮🇳', nativeName: 'தமிழ்' },
+  bn: { name: 'Bengali', flag: '🇮🇳', nativeName: 'বাংলা' },
   te: { name: 'Telugu', flag: '🇮🇳', nativeName: 'తెలుగు' },
-  bn: { name: 'Bengali', flag: '🇧🇩', nativeName: 'বাংলা' },
+  mr: { name: 'Marathi', flag: '🇮🇳', nativeName: 'मराठी' },
+  ta: { name: 'Tamil', flag: '🇮🇳', nativeName: 'தமிழ்' },
+  gu: { name: 'Gujarati', flag: '🇮🇳', nativeName: 'ગુજરાતી' },
+  kn: { name: 'Kannada', flag: '🇮🇳', nativeName: 'ಕನ್ನಡ' },
+  ml: { name: 'Malayalam', flag: '🇮🇳', nativeName: 'മലയാളം' },
+  or: { name: 'Odia', flag: '🇮🇳', nativeName: 'ଓଡ଼ିଆ' },
+  pa: { name: 'Punjabi', flag: '🇮🇳', nativeName: 'ਪੰਜਾਬੀ' },
+  as: { name: 'Assamese', flag: '🇮🇳', nativeName: 'অসমীয়া' },
+  mai: { name: 'Maithili', flag: '🇮🇳', nativeName: 'मैथिली' },
+  ur: { name: 'Urdu', flag: '🇮🇳', nativeName: 'اردو' },
+  sa: { name: 'Sanskrit', flag: '🇮🇳', nativeName: 'संस्कृतम्' },
+  ne: { name: 'Nepali', flag: '🇳🇵', nativeName: 'नेपाली' },
+  sd: { name: 'Sindhi', flag: '🇮🇳', nativeName: 'سنڌي' },
+  ks: { name: 'Kashmiri', flag: '🇮🇳', nativeName: 'कॉशुर' },
+  kok: { name: 'Konkani', flag: '🇮🇳', nativeName: 'कोंकणी' },
+  mni: { name: 'Manipuri', flag: '🇮🇳', nativeName: 'মৈতৈলোন্' },
+  doi: { name: 'Dogri', flag: '🇮🇳', nativeName: 'डोगरी' },
+  sat: { name: 'Santali', flag: '🇮🇳', nativeName: 'ᱥᱟᱱᱛᱟᱲᱤ' },
+  bho: { name: 'Bhojpuri', flag: '🇮🇳', nativeName: 'भोजपुरी' },
+  raj: { name: 'Rajasthani', flag: '🇮🇳', nativeName: 'राजस्थानी' },
+  // International Languages
   es: { name: 'Spanish', flag: '🇪🇸', nativeName: 'Español' },
   fr: { name: 'French', flag: '🇫🇷', nativeName: 'Français' },
 } as const;
@@ -56,7 +78,7 @@ export const suggestedPrompts = [
 export const navigationItems = [
   { id: 'home', label: 'Learn', icon: 'Home' },
   { id: 'progress', label: 'Progress', icon: 'BarChart3' },
-  { id: 'oneword', label: 'Ekakshar', icon: 'Brain' },
+  { id: 'oneword', label: 'Ekakshar', icon: 'Zap' },
   { id: 'history', label: 'History', icon: 'History' },
   { id: 'settings', label: 'Settings', icon: 'Cog' },
 ] as const;

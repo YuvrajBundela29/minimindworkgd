@@ -1,12 +1,12 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Home, BarChart3, Brain, History, Settings, Sun, Moon, Globe } from 'lucide-react';
+import { X, Home, BarChart3, Zap, History, Settings, Sun, Moon, Globe } from 'lucide-react';
 import { navigationItems, NavigationId, languages, LanguageKey } from '@/config/minimind';
 
 const iconMap: Record<string, React.FC<{ className?: string }>> = {
   Home,
   BarChart3,
-  Brain,
+  Zap,
   History,
   Cog: Settings,
 };
