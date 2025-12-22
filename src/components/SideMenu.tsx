@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Home, BarChart3, Zap, History, Settings, Sun, Moon } from 'lucide-react';
+import { X, Home, BarChart3, Zap, History, Settings, Sun, Moon, HelpCircle } from 'lucide-react';
 import { navigationItems, NavigationId } from '@/config/minimind';
 
 const iconMap: Record<string, React.FC<{ className?: string }>> = {
@@ -18,6 +18,7 @@ interface SideMenuProps {
   onNavigate: (page: NavigationId) => void;
   theme: 'light' | 'dark';
   onToggleTheme: () => void;
+  onShowGuide?: () => void;
 }
 
 const SideMenu: React.FC<SideMenuProps> = ({
@@ -27,6 +28,7 @@ const SideMenu: React.FC<SideMenuProps> = ({
   onNavigate,
   theme,
   onToggleTheme,
+  onShowGuide,
 }) => {
   return (
     <AnimatePresence>
@@ -101,7 +103,7 @@ const SideMenu: React.FC<SideMenuProps> = ({
             <div className="mx-4 h-px bg-border" />
             
             {/* Theme Toggle */}
-            <div className="p-4">
+            <div className="p-4 space-y-1">
               <motion.button
                 className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-muted transition-colors"
                 onClick={onToggleTheme}
@@ -119,6 +121,20 @@ const SideMenu: React.FC<SideMenuProps> = ({
                   </>
                 )}
               </motion.button>
+              
+              {onShowGuide && (
+                <motion.button
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-muted transition-colors text-primary"
+                  onClick={() => {
+                    onShowGuide();
+                    onClose();
+                  }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <HelpCircle className="w-5 h-5" />
+                  <span className="font-medium">App Guide</span>
+                </motion.button>
+              )}
             </div>
           </motion.div>
         </>

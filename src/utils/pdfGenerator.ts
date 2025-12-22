@@ -220,7 +220,7 @@ export function downloadPDF(content: string, modeKey: ModeKey, question: string)
   doc.save(filename);
 }
 
-export async function sharePDF(content: string, modeKey: ModeKey, question: string): Promise<void> {
+export async function sharePDF(content: string, modeKey: ModeKey, question: string): Promise<boolean> {
   const doc = generatePDF(content, modeKey, question);
   const filename = generateFilename(modeKey, question);
   
@@ -228,25 +228,49 @@ export async function sharePDF(content: string, modeKey: ModeKey, question: stri
   const pdfBlob = doc.output('blob');
   const file = new File([pdfBlob], filename, { type: 'application/pdf' });
   
-  // Try Web Share API with files
-  if (navigator.canShare && navigator.canShare({ files: [file] })) {
-    try {
-      await navigator.share({
-        title: `MiniMind ${modes[modeKey].name} - ${question.substring(0, 50)}`,
-        text: `Check out this explanation from MiniMind!`,
-        files: [file],
-      });
-      return;
-    } catch (error: any) {
-      // User cancelled or share failed
-      if (error.name !== 'AbortError') {
-        console.log('Share failed, falling back to download');
+  // Check if Web Share API with files is supported
+  if (navigator.share && navigator.canShare) {
+    const shareData = {
+      title: `MiniMind ${modes[modeKey].name}`,
+      text: `Check out this ${modes[modeKey].name} explanation from MiniMind: "${question.substring(0, 50)}..."`,
+      files: [file],
+    };
+    
+    // Check if we can share files
+    if (navigator.canShare(shareData)) {
+      try {
+        await navigator.share(shareData);
+        return true; // Successfully shared
+      } catch (error: any) {
+        if (error.name === 'AbortError') {
+          // User cancelled - that's okay
+          return false;
+        }
+        console.error('Share failed:', error);
       }
     }
   }
   
-  // Fallback to download if sharing not supported
+  // Try sharing without files as fallback (for browsers that support share but not file sharing)
+  if (navigator.share) {
+    try {
+      await navigator.share({
+        title: `MiniMind ${modes[modeKey].name}`,
+        text: `Check out this ${modes[modeKey].name} explanation from MiniMind: "${question.substring(0, 50)}..."`,
+      });
+      // Also download the PDF since we couldn't share the file
+      downloadPDF(content, modeKey, question);
+      return true;
+    } catch (error: any) {
+      if (error.name === 'AbortError') {
+        return false;
+      }
+    }
+  }
+  
+  // Final fallback: just download
   downloadPDF(content, modeKey, question);
+  return false;
 }
 
 function generateFilename(modeKey: ModeKey, question: string): string {
