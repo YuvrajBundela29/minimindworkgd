@@ -237,6 +237,11 @@ const Index = () => {
   }, [selectedLanguage]);
   
   const handleSpeak = useCallback(async (text: string, mode: string) => {
+    if (!text || text.includes('Ready to explain')) {
+      toast.error('No content to speak');
+      return;
+    }
+
     if (isSpeaking && currentSpeech) {
       speechService.stop();
       setIsSpeaking(false);
@@ -253,16 +258,19 @@ const Index = () => {
           setIsSpeaking(false);
           setCurrentSpeech(null);
         },
-        onError: () => {
+        onError: (error) => {
           setIsSpeaking(false);
           setCurrentSpeech(null);
-          toast.error('Speech synthesis failed');
+          console.error('Speech error:', error);
+          toast.error('Speech not available. Try a different browser.');
         },
       });
-      setCurrentSpeech(utterance);
+      if (utterance) {
+        setCurrentSpeech(utterance);
+      }
     } catch (error) {
       console.error('Speech error:', error);
-      toast.error('Failed to speak text');
+      toast.error('Speech synthesis not available');
     }
   }, [isSpeaking, currentSpeech, selectedLanguage]);
   
