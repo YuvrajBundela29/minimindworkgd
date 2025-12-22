@@ -5,8 +5,21 @@ import MobileHeader from '@/components/MobileHeader';
 import BottomInputBar from '@/components/BottomInputBar';
 import ModeCard from '@/components/ModeCard';
 import SideMenu from '@/components/SideMenu';
+import ProgressPage from '@/components/pages/ProgressPage';
+import EkaksharPage from '@/components/pages/EkaksharPage';
+import HistoryPage from '@/components/pages/HistoryPage';
+import SettingsPage from '@/components/pages/SettingsPage';
 import { modes, ModeKey, languages, LanguageKey, suggestedPrompts, NavigationId } from '@/config/minimind';
 import AIService from '@/services/aiService';
+
+// Types for history
+export interface HistoryItem {
+  id: string;
+  question: string;
+  answers: Record<ModeKey, string>;
+  timestamp: Date;
+  language: LanguageKey;
+}
 
 // Default welcome messages for each mode
 const defaultAnswers: Record<ModeKey, string> = {
@@ -24,7 +37,7 @@ const Index = () => {
   const [selectedLanguage, setSelectedLanguage] = useState<LanguageKey>('en');
   const [hasAskedQuestion, setHasAskedQuestion] = useState(false);
   
-  // Question & Answers - Start with default answers
+  // Question & Answers
   const [question, setQuestion] = useState('');
   const [answers, setAnswers] = useState<Record<ModeKey, string | null>>(defaultAnswers);
   const [loadingModes, setLoadingModes] = useState<Record<ModeKey, boolean>>({
@@ -34,6 +47,9 @@ const Index = () => {
     mastery: false,
   });
   
+  // Refining state
+  const [isRefining, setIsRefining] = useState(false);
+  
   // Chat inputs per mode
   const [chatInputs, setChatInputs] = useState<Record<ModeKey, string>>({
     beginner: '',
@@ -42,16 +58,77 @@ const Index = () => {
     mastery: '',
   });
   
+  // Chat history per mode
+  const [chatHistories, setChatHistories] = useState<Record<ModeKey, Array<{ role: string; content: string }>>>({
+    beginner: [],
+    thinker: [],
+    story: [],
+    mastery: [],
+  });
+  
   // Speech state
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [currentSpeech, setCurrentSpeech] = useState<SpeechSynthesisUtterance | null>(null);
   
-  // Load theme from localStorage
+  // History
+  const [history, setHistory] = useState<HistoryItem[]>([]);
+  
+  // Progress stats
+  const [stats, setStats] = useState({
+    totalQuestions: 0,
+    todayQuestions: 0,
+    favoriteMode: 'beginner' as ModeKey,
+    streak: 0,
+  });
+  
+  // Load saved data
   useEffect(() => {
     const savedTheme = localStorage.getItem('minimind-theme') as 'light' | 'dark' || 'light';
+    const savedLanguage = localStorage.getItem('minimind-language') as LanguageKey || 'en';
+    const savedHistory = localStorage.getItem('minimind-history');
+    const savedStats = localStorage.getItem('minimind-stats');
+    
     setTheme(savedTheme);
+    setSelectedLanguage(savedLanguage);
     document.documentElement.classList.toggle('dark', savedTheme === 'dark');
+    
+    if (savedHistory) {
+      try {
+        const parsed = JSON.parse(savedHistory);
+        setHistory(parsed.map((item: any) => ({
+          ...item,
+          timestamp: new Date(item.timestamp)
+        })));
+      } catch (e) {
+        console.error('Error parsing history:', e);
+      }
+    }
+    
+    if (savedStats) {
+      try {
+        setStats(JSON.parse(savedStats));
+      } catch (e) {
+        console.error('Error parsing stats:', e);
+      }
+    }
   }, []);
+  
+  // Save history
+  useEffect(() => {
+    if (history.length > 0) {
+      localStorage.setItem('minimind-history', JSON.stringify(history));
+    }
+  }, [history]);
+  
+  // Save stats
+  useEffect(() => {
+    localStorage.setItem('minimind-stats', JSON.stringify(stats));
+  }, [stats]);
+  
+  // Save language preference
+  useEffect(() => {
+    localStorage.setItem('minimind-language', selectedLanguage);
+  }, [selectedLanguage]);
   
   const toggleTheme = useCallback(() => {
     const newTheme = theme === 'light' ? 'dark' : 'light';
@@ -60,32 +137,85 @@ const Index = () => {
     document.documentElement.classList.toggle('dark', newTheme === 'dark');
   }, [theme]);
   
+  // Handle prompt refining
+  const handleRefinePrompt = useCallback(async () => {
+    if (!question.trim() || isRefining) return;
+    
+    setIsRefining(true);
+    try {
+      const refined = await AIService.refinePrompt(question, selectedLanguage);
+      setQuestion(refined);
+      toast.success('✨ Prompt refined!');
+    } catch (error) {
+      console.error('Error refining prompt:', error);
+      toast.error('Failed to refine prompt');
+    } finally {
+      setIsRefining(false);
+    }
+  }, [question, selectedLanguage, isRefining]);
+  
   // Handle question submission
   const handleSubmit = useCallback(async () => {
     if (!question.trim()) return;
     
+    const currentQuestion = question;
     setHasAskedQuestion(true);
     
     // Reset answers and set loading for all modes
     setAnswers({ beginner: null, thinker: null, story: null, mastery: null });
     setLoadingModes({ beginner: true, thinker: true, story: true, mastery: true });
     
+    // Initialize chat histories
+    setChatHistories({
+      beginner: [{ role: 'user', content: currentQuestion }],
+      thinker: [{ role: 'user', content: currentQuestion }],
+      story: [{ role: 'user', content: currentQuestion }],
+      mastery: [{ role: 'user', content: currentQuestion }],
+    });
+    
     // Fetch answers for all modes in parallel
     const modeKeys = Object.keys(modes) as ModeKey[];
+    const newAnswers: Record<ModeKey, string> = {} as Record<ModeKey, string>;
     
     await Promise.all(
       modeKeys.map(async (modeKey) => {
         try {
-          const response = await AIService.getExplanation(question, modeKey, selectedLanguage);
+          const response = await AIService.getExplanation(currentQuestion, modeKey, selectedLanguage);
           setAnswers(prev => ({ ...prev, [modeKey]: response }));
+          newAnswers[modeKey] = response;
+          
+          // Update chat history
+          setChatHistories(prev => ({
+            ...prev,
+            [modeKey]: [...prev[modeKey], { role: 'assistant', content: response }]
+          }));
         } catch (error) {
           console.error(`Error for ${modeKey}:`, error);
-          setAnswers(prev => ({ ...prev, [modeKey]: 'Sorry, something went wrong. Please try again.' }));
+          const errorMsg = 'Sorry, something went wrong. Please try again.';
+          setAnswers(prev => ({ ...prev, [modeKey]: errorMsg }));
+          newAnswers[modeKey] = errorMsg;
         } finally {
           setLoadingModes(prev => ({ ...prev, [modeKey]: false }));
         }
       })
     );
+    
+    // Add to history
+    const historyItem: HistoryItem = {
+      id: Date.now().toString(),
+      question: currentQuestion,
+      answers: newAnswers,
+      timestamp: new Date(),
+      language: selectedLanguage,
+    };
+    setHistory(prev => [historyItem, ...prev.slice(0, 49)]);
+    
+    // Update stats
+    setStats(prev => ({
+      ...prev,
+      totalQuestions: prev.totalQuestions + 1,
+      todayQuestions: prev.todayQuestions + 1,
+    }));
     
     // Clear input after submission
     setQuestion('');
@@ -181,27 +311,75 @@ const Index = () => {
   
   // Get one word summary
   const handleGetOneWord = useCallback(async (mode: string) => {
+    const answer = answers[mode as ModeKey];
+    if (!answer) return;
+    
     toast.promise(
-      AIService.getOneWordAnswer(question || 'general topic', selectedLanguage),
+      AIService.getOneWordAnswer(answer, selectedLanguage),
       {
         loading: 'Getting summary...',
         success: (data) => `One-word summary: ${data}`,
         error: 'Failed to get summary',
       }
     );
-  }, [question, selectedLanguage]);
+  }, [answers, selectedLanguage]);
   
   // Chat submit handler
-  const handleChatSubmit = useCallback((message: string, mode: string) => {
-    toast.info(`Continuing chat in ${mode} mode...`);
-    setChatInputs(prev => ({ ...prev, [mode as ModeKey]: '' }));
-  }, []);
+  const handleChatSubmit = useCallback(async (message: string, mode: string) => {
+    const modeKey = mode as ModeKey;
+    if (!message.trim()) return;
+    
+    // Add user message to history
+    setChatHistories(prev => ({
+      ...prev,
+      [modeKey]: [...prev[modeKey], { role: 'user', content: message }]
+    }));
+    
+    // Set loading
+    setLoadingModes(prev => ({ ...prev, [modeKey]: true }));
+    
+    try {
+      const response = await AIService.continueConversation(
+        [...chatHistories[modeKey], { role: 'user', content: message }],
+        modeKey,
+        selectedLanguage
+      );
+      
+      setAnswers(prev => ({ ...prev, [modeKey]: response }));
+      setChatHistories(prev => ({
+        ...prev,
+        [modeKey]: [...prev[modeKey], { role: 'assistant', content: response }]
+      }));
+    } catch (error) {
+      console.error('Error in chat:', error);
+      toast.error('Failed to get response');
+    } finally {
+      setLoadingModes(prev => ({ ...prev, [modeKey]: false }));
+    }
+    
+    setChatInputs(prev => ({ ...prev, [modeKey]: '' }));
+  }, [chatHistories, selectedLanguage]);
   
   // Update chat input
   const handleChatInputChange = useCallback((mode: string, value: string) => {
     setChatInputs(prev => ({ ...prev, [mode as ModeKey]: value }));
   }, []);
   
+  // Load history item
+  const handleLoadHistory = useCallback((item: HistoryItem) => {
+    setAnswers(item.answers);
+    setHasAskedQuestion(true);
+    setCurrentPage('home');
+    toast.success('Loaded from history!');
+  }, []);
+  
+  // Clear history
+  const handleClearHistory = useCallback(() => {
+    setHistory([]);
+    localStorage.removeItem('minimind-history');
+    toast.success('History cleared!');
+  }, []);
+
   const hasAnswers = Object.values(answers).some(a => a !== null);
   const isAnyLoading = Object.values(loadingModes).some(l => l);
 
@@ -227,13 +405,14 @@ const Index = () => {
       
       {/* Main Content */}
       <main className="page-content px-4 custom-scrollbar">
-        {currentPage === 'home' && (
-          <div className="space-y-4">
-            {/* Mode Cards - Always visible with default or actual answers */}
+        <AnimatePresence mode="wait">
+          {currentPage === 'home' && (
             <motion.div
+              key="home"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
               className="space-y-4"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
             >
               {(Object.keys(modes) as ModeKey[]).map((modeKey, index) => (
                 <motion.div
@@ -259,41 +438,63 @@ const Index = () => {
                 </motion.div>
               ))}
             </motion.div>
-          </div>
-        )}
-        
-        {/* Other Pages */}
-        {currentPage === 'progress' && (
-          <div className="py-8 text-center">
-            <div className="text-5xl mb-4">📊</div>
-            <h2 className="text-xl font-heading font-semibold mb-2">Progress</h2>
-            <p className="text-muted-foreground text-sm">Track your learning journey</p>
-          </div>
-        )}
-        
-        {currentPage === 'oneword' && (
-          <div className="py-8 text-center">
-            <div className="text-5xl mb-4">⚡</div>
-            <h2 className="text-xl font-heading font-semibold mb-2">Ekakshar</h2>
-            <p className="text-muted-foreground text-sm">Quick one-word answers</p>
-          </div>
-        )}
-        
-        {currentPage === 'history' && (
-          <div className="py-8 text-center">
-            <div className="text-5xl mb-4">📜</div>
-            <h2 className="text-xl font-heading font-semibold mb-2">History</h2>
-            <p className="text-muted-foreground text-sm">Your past questions</p>
-          </div>
-        )}
-        
-        {currentPage === 'settings' && (
-          <div className="py-8 text-center">
-            <div className="text-5xl mb-4">⚙️</div>
-            <h2 className="text-xl font-heading font-semibold mb-2">Settings</h2>
-            <p className="text-muted-foreground text-sm">Customize your experience</p>
-          </div>
-        )}
+          )}
+          
+          {currentPage === 'progress' && (
+            <motion.div
+              key="progress"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+            >
+              <ProgressPage stats={stats} history={history} />
+            </motion.div>
+          )}
+          
+          {currentPage === 'oneword' && (
+            <motion.div
+              key="oneword"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+            >
+              <EkaksharPage language={selectedLanguage} />
+            </motion.div>
+          )}
+          
+          {currentPage === 'history' && (
+            <motion.div
+              key="history"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+            >
+              <HistoryPage 
+                history={history} 
+                onLoadItem={handleLoadHistory}
+                onClearHistory={handleClearHistory}
+              />
+            </motion.div>
+          )}
+          
+          {currentPage === 'settings' && (
+            <motion.div
+              key="settings"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+            >
+              <SettingsPage
+                theme={theme}
+                onToggleTheme={toggleTheme}
+                selectedLanguage={selectedLanguage}
+                onLanguageSelect={setSelectedLanguage}
+                onClearHistory={handleClearHistory}
+                stats={stats}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
       </main>
       
       {/* Bottom Input Bar - only on home */}
@@ -303,8 +504,10 @@ const Index = () => {
           onChange={setQuestion}
           onSubmit={handleSubmit}
           onVoiceInput={handleVoiceInput}
+          onRefinePrompt={handleRefinePrompt}
           placeholder="Ask anything... MiniMind explains it 4 ways!"
           isLoading={isAnyLoading}
+          isRefining={isRefining}
         />
       )}
     </div>
