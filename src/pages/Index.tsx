@@ -16,6 +16,7 @@ import RefinePromptDialog from '@/components/RefinePromptDialog';
 import OnboardingGuide from '@/components/OnboardingGuide';
 import { modes, ModeKey, LanguageKey, NavigationId } from '@/config/minimind';
 import AIService from '@/services/aiService';
+import speechService from '@/services/speechService';
 import { downloadPDF, sharePDF } from '@/utils/pdfGenerator';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -235,13 +236,35 @@ const Index = () => {
     } else { toast.error('Voice input not supported in your browser'); }
   }, [selectedLanguage]);
   
-  const handleSpeak = useCallback((text: string, mode: string) => {
-    if (isSpeaking && currentSpeech) { speechSynthesis.cancel(); setIsSpeaking(false); setCurrentSpeech(null); return; }
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = 0.9; utterance.pitch = 1;
-    utterance.onend = () => { setIsSpeaking(false); setCurrentSpeech(null); };
-    setCurrentSpeech(utterance); setIsSpeaking(true); speechSynthesis.speak(utterance);
-  }, [isSpeaking, currentSpeech]);
+  const handleSpeak = useCallback(async (text: string, mode: string) => {
+    if (isSpeaking && currentSpeech) {
+      speechService.stop();
+      setIsSpeaking(false);
+      setCurrentSpeech(null);
+      return;
+    }
+    
+    try {
+      const utterance = await speechService.speak(text, selectedLanguage, {
+        rate: 0.9,
+        pitch: 1,
+        onStart: () => setIsSpeaking(true),
+        onEnd: () => {
+          setIsSpeaking(false);
+          setCurrentSpeech(null);
+        },
+        onError: () => {
+          setIsSpeaking(false);
+          setCurrentSpeech(null);
+          toast.error('Speech synthesis failed');
+        },
+      });
+      setCurrentSpeech(utterance);
+    } catch (error) {
+      console.error('Speech error:', error);
+      toast.error('Failed to speak text');
+    }
+  }, [isSpeaking, currentSpeech, selectedLanguage]);
   
   const handleCopy = useCallback((text: string) => { navigator.clipboard.writeText(text); toast.success('Copied to clipboard!'); }, []);
   
