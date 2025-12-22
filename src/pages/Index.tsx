@@ -11,14 +11,18 @@ import HistoryPage from '@/components/pages/HistoryPage';
 import SettingsPage from '@/components/pages/SettingsPage';
 import AuthPage from '@/components/pages/AuthPage';
 import ProfilePage from '@/components/pages/ProfilePage';
+import SubscriptionPage from '@/components/pages/SubscriptionPage';
+import LearningPathPage from '@/components/pages/LearningPathPage';
 import FullscreenMode from '@/components/FullscreenMode';
 import RefinePromptDialog from '@/components/RefinePromptDialog';
 import OnboardingGuide from '@/components/OnboardingGuide';
+import QuestionLimitBanner from '@/components/QuestionLimitBanner';
 import { modes, ModeKey, LanguageKey, NavigationId } from '@/config/minimind';
 import AIService from '@/services/aiService';
 import speechService from '@/services/speechService';
 import { downloadPDF, sharePDF } from '@/utils/pdfGenerator';
 import { supabase } from '@/integrations/supabase/client';
+import { useSubscription, CREDIT_COSTS } from '@/contexts/SubscriptionContext';
 
 // Types for history
 export interface HistoryItem {
@@ -344,8 +348,12 @@ const Index = () => {
           {currentPage === 'oneword' && <motion.div key="oneword" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}><EkaksharPage language={selectedLanguage} /></motion.div>}
           {currentPage === 'history' && <motion.div key="history" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}><HistoryPage history={history} onLoadItem={handleLoadHistory} onClearHistory={handleClearHistory} /></motion.div>}
           {currentPage === 'settings' && <motion.div key="settings" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}><SettingsPage theme={theme} onToggleTheme={toggleTheme} selectedLanguage={selectedLanguage} onLanguageSelect={setSelectedLanguage} onClearHistory={handleClearHistory} stats={stats} /></motion.div>}
+          {currentPage === 'subscription' && <motion.div key="subscription" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}><SubscriptionPage /></motion.div>}
+          {currentPage === 'learningpath' && <motion.div key="learningpath" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}><LearningPathPage /></motion.div>}
         </AnimatePresence>
       </main>
+      
+      <QuestionLimitBanner />
       
       {currentPage === 'home' && <BottomInputBar value={question} onChange={setQuestion} onSubmit={handleSubmit} onVoiceInput={handleVoiceInput} onRefinePrompt={handleRefinePrompt} placeholder="Ask anything... MiniMind explains it 4 ways!" isLoading={isAnyLoading} isRefining={isRefining} />}
       

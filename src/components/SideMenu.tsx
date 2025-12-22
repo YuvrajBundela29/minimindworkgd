@@ -1,7 +1,9 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Home, BarChart3, Zap, History, Settings, Sun, Moon, HelpCircle, User } from 'lucide-react';
+import { X, Home, BarChart3, Zap, History, Settings, Sun, Moon, HelpCircle, User, BookOpen, Crown } from 'lucide-react';
 import { navigationItems, NavigationId } from '@/config/minimind';
+import { useSubscription } from '@/contexts/SubscriptionContext';
+import CreditDisplay from './CreditDisplay';
 
 const iconMap: Record<string, React.FC<{ className?: string }>> = {
   Home,
@@ -10,6 +12,8 @@ const iconMap: Record<string, React.FC<{ className?: string }>> = {
   Zap,
   History,
   Cog: Settings,
+  BookOpen,
+  Crown,
 };
 
 interface SideMenuProps {
@@ -31,11 +35,12 @@ const SideMenu: React.FC<SideMenuProps> = ({
   onToggleTheme,
   onShowGuide,
 }) => {
+  const { tier } = useSubscription();
+
   return (
     <AnimatePresence>
       {isOpen && (
         <>
-          {/* Backdrop */}
           <motion.div
             className="fixed inset-0 z-50 bg-black/50"
             initial={{ opacity: 0 }}
@@ -44,7 +49,6 @@ const SideMenu: React.FC<SideMenuProps> = ({
             onClick={onClose}
           />
           
-          {/* Side Panel */}
           <motion.div
             className="fixed left-0 top-0 bottom-0 z-50 w-72 bg-card border-r border-border overflow-y-auto"
             initial={{ x: '-100%' }}
@@ -52,7 +56,6 @@ const SideMenu: React.FC<SideMenuProps> = ({
             exit={{ x: '-100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 300 }}
           >
-            {/* Header */}
             <div className="flex items-center justify-between p-4 border-b border-border">
               <div className="flex items-center gap-2">
                 <img 
@@ -61,6 +64,11 @@ const SideMenu: React.FC<SideMenuProps> = ({
                   className="w-8 h-8"
                 />
                 <span className="logo-text">MiniMind</span>
+                {tier === 'pro' && (
+                  <span className="px-2 py-0.5 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-semibold">
+                    PRO
+                  </span>
+                )}
               </div>
               <motion.button
                 className="icon-btn icon-btn-ghost"
@@ -70,8 +78,12 @@ const SideMenu: React.FC<SideMenuProps> = ({
                 <X className="w-5 h-5" />
               </motion.button>
             </div>
+
+            {/* Credit Display */}
+            <div className="p-4 border-b border-border">
+              <CreditDisplay variant="compact" />
+            </div>
             
-            {/* Navigation */}
             <nav className="p-4">
               <div className="space-y-1">
                 {navigationItems.map((item) => {
@@ -100,10 +112,8 @@ const SideMenu: React.FC<SideMenuProps> = ({
               </div>
             </nav>
             
-            {/* Divider */}
             <div className="mx-4 h-px bg-border" />
             
-            {/* Theme Toggle */}
             <div className="p-4 space-y-1">
               <motion.button
                 className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-muted transition-colors"
