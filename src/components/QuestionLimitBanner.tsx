@@ -1,19 +1,18 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Zap, Crown, CreditCard } from 'lucide-react';
+import { Zap, Crown } from 'lucide-react';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { Progress } from '@/components/ui/progress';
 
 const QuestionLimitBanner: React.FC = () => {
-  const { tier, creditsUsed, creditsRemaining, limits, showUpgradePrompt } = useSubscription();
+  const { tier, questionsUsedToday, limits, showUpgradePrompt } = useSubscription();
 
-  if (tier === 'ultimate') return null;
+  if (tier === 'pro') return null;
 
-  const percentage = limits.creditsPerMonth === Infinity 
-    ? 0 
-    : (creditsUsed / limits.creditsPerMonth) * 100;
-  const isLow = creditsRemaining <= 10;
-  const isExhausted = creditsRemaining === 0;
+  const remaining = Math.max(0, limits.questionsPerDay - questionsUsedToday);
+  const percentage = (questionsUsedToday / limits.questionsPerDay) * 100;
+  const isLow = remaining <= 3;
+  const isExhausted = remaining === 0;
 
   return (
     <motion.div
@@ -29,23 +28,21 @@ const QuestionLimitBanner: React.FC = () => {
     >
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
-          <CreditCard className={`w-4 h-4 ${isExhausted ? 'text-destructive' : isLow ? 'text-amber-500' : 'text-primary'}`} />
+          <Zap className={`w-4 h-4 ${isExhausted ? 'text-destructive' : isLow ? 'text-amber-500' : 'text-primary'}`} />
           <span className="text-sm font-medium">
             {isExhausted 
-              ? 'Credits exhausted' 
-              : `${creditsRemaining} credits remaining`
+              ? 'Daily limit reached' 
+              : `${remaining} questions left today`
             }
           </span>
         </div>
-        {tier === 'free' && (
-          <button
-            onClick={() => showUpgradePrompt('More Credits')}
-            className="flex items-center gap-1 px-2 py-1 text-xs font-semibold text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/30 rounded-full hover:bg-amber-200 dark:hover:bg-amber-900/50 transition-colors"
-          >
-            <Crown className="w-3 h-3" />
-            Upgrade
-          </button>
-        )}
+        <button
+          onClick={() => showUpgradePrompt('Unlimited Questions')}
+          className="flex items-center gap-1 px-2 py-1 text-xs font-semibold text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/30 rounded-full hover:bg-amber-200 dark:hover:bg-amber-900/50 transition-colors"
+        >
+          <Crown className="w-3 h-3" />
+          Go Pro
+        </button>
       </div>
       <Progress 
         value={percentage} 
