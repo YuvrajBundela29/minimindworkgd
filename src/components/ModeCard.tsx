@@ -1,8 +1,10 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Volume2, Copy, Download, Share2, Send, Wand2, Languages, Maximize2 } from 'lucide-react';
+import { Volume2, Copy, Download, Share2, Send, Wand2, Maximize2, Lock } from 'lucide-react';
 import { modes, ModeKey } from '@/config/minimind';
 import MarkdownRenderer from './MarkdownRenderer';
+import { useSubscription } from '@/contexts/SubscriptionContext';
+import ProBadge from './ProBadge';
 
 interface ModeCardProps {
   modeKey: ModeKey;
@@ -38,25 +40,53 @@ const ModeCard: React.FC<ModeCardProps> = ({
   currentQuestion,
 }) => {
   const mode = modes[modeKey];
+  const { isModeAvailable, showUpgradePrompt, tier } = useSubscription();
+  
+  const isLocked = !isModeAvailable(modeKey);
   
   const handleChatSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (isLocked) {
+      showUpgradePrompt(`${mode.name} Mode`);
+      return;
+    }
     if (chatInputValue.trim()) {
       onChatSubmit(chatInputValue, modeKey);
     }
   };
 
+  const handleLockedClick = () => {
+    if (isLocked) {
+      showUpgradePrompt(`${mode.name} Mode`);
+    }
+  };
+
   return (
     <motion.div
-      className="mode-card"
+      className={`mode-card relative ${isLocked ? 'cursor-pointer' : ''}`}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
+      onClick={isLocked ? handleLockedClick : undefined}
     >
+      {/* Locked Overlay */}
+      {isLocked && (
+        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-background/80 backdrop-blur-[2px] rounded-2xl border-2 border-dashed border-amber-500/30">
+          <div className="flex flex-col items-center gap-3 p-4">
+            <div className="p-3 rounded-full bg-gradient-to-br from-amber-500 to-orange-500 shadow-lg">
+              <Lock className="w-5 h-5 text-white" />
+            </div>
+            <ProBadge size="md" variant="glow" />
+            <p className="text-sm font-medium text-foreground">{mode.name} Mode</p>
+            <p className="text-xs text-muted-foreground">Tap to unlock</p>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-3">
-          <span className="text-2xl animate-float">{mode.icon}</span>
+          <span className={`text-2xl ${isLocked ? 'grayscale' : 'animate-float'}`}>{mode.icon}</span>
           <h3 className="font-heading font-semibold text-lg text-foreground">
             {mode.name}
           </h3>
@@ -67,17 +97,21 @@ const ModeCard: React.FC<ModeCardProps> = ({
             {mode.badge}
           </span>
           
-          {/* Fullscreen button - always visible */}
-          <motion.button
-            className="action-btn bg-muted hover:bg-primary hover:text-primary-foreground"
-            onClick={() => onFullscreen(modeKey)}
-            whileTap={{ scale: 0.95 }}
-            aria-label="Fullscreen"
-          >
-            <Maximize2 className="w-4 h-4" />
-          </motion.button>
+          {isLocked && <ProBadge size="sm" variant="subtle" />}
           
-          {answer && (
+          {/* Fullscreen button - always visible */}
+          {!isLocked && (
+            <motion.button
+              className="action-btn bg-muted hover:bg-primary hover:text-primary-foreground"
+              onClick={() => onFullscreen(modeKey)}
+              whileTap={{ scale: 0.95 }}
+              aria-label="Fullscreen"
+            >
+              <Maximize2 className="w-4 h-4" />
+            </motion.button>
+          )}
+          
+          {answer && !isLocked && (
             <>
               <motion.button
                 className="action-btn bg-muted hover:bg-primary hover:text-primary-foreground"
@@ -87,14 +121,13 @@ const ModeCard: React.FC<ModeCardProps> = ({
               >
                 <Volume2 className={`w-4 h-4 ${isSpeaking ? 'text-primary animate-pulse-glow' : ''}`} />
               </motion.button>
-              
             </>
           )}
         </div>
       </div>
       
       {/* Content */}
-      <div className="card-content-scroll custom-scrollbar mb-3">
+      <div className={`card-content-scroll custom-scrollbar mb-3 ${isLocked ? 'opacity-40' : ''}`}>
         {isLoading ? (
           <div className="flex items-center gap-2 py-4">
             <div className="typing-indicator">
@@ -108,13 +141,13 @@ const ModeCard: React.FC<ModeCardProps> = ({
           <MarkdownRenderer content={answer} className="text-sm" />
         ) : (
           <p className="text-sm text-muted-foreground/60 italic py-4">
-            Ready to explain...
+            {isLocked ? 'Unlock to access this mode...' : 'Ready to explain...'}
           </p>
         )}
       </div>
       
       {/* Action Buttons */}
-      {answer && (
+      {answer && !isLocked && (
         <div className="flex items-center gap-2 mb-3 flex-wrap">
           <motion.button
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-gradient-to-r from-primary to-accent text-primary-foreground"
@@ -155,23 +188,25 @@ const ModeCard: React.FC<ModeCardProps> = ({
       )}
       
       {/* Chat Input */}
-      <form onSubmit={handleChatSubmit} className="capsule-input">
-        <input
-          type="text"
-          value={chatInputValue}
-          onChange={(e) => onChatInputChange(modeKey, e.target.value)}
-          placeholder={`Chat with ${mode.name}...`}
-          className="flex-1 bg-transparent border-none outline-none text-foreground text-sm"
-        />
-        <motion.button
-          type="submit"
-          className="w-8 h-8 rounded-full flex items-center justify-center bg-primary text-primary-foreground"
-          whileTap={{ scale: 0.95 }}
-          disabled={!chatInputValue.trim()}
-        >
-          <Send className="w-4 h-4" />
-        </motion.button>
-      </form>
+      {!isLocked && (
+        <form onSubmit={handleChatSubmit} className="capsule-input">
+          <input
+            type="text"
+            value={chatInputValue}
+            onChange={(e) => onChatInputChange(modeKey, e.target.value)}
+            placeholder={`Chat with ${mode.name}...`}
+            className="flex-1 bg-transparent border-none outline-none text-foreground text-sm"
+          />
+          <motion.button
+            type="submit"
+            className="w-8 h-8 rounded-full flex items-center justify-center bg-primary text-primary-foreground"
+            whileTap={{ scale: 0.95 }}
+            disabled={!chatInputValue.trim()}
+          >
+            <Send className="w-4 h-4" />
+          </motion.button>
+        </form>
+      )}
     </motion.div>
   );
 };

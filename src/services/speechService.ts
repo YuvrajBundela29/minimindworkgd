@@ -83,26 +83,34 @@ class SpeechService {
     if (this.loadPromise) return this.loadPromise;
 
     this.loadPromise = new Promise((resolve) => {
+      // Check if speech synthesis is available
+      if (typeof speechSynthesis === 'undefined') {
+        console.warn('Speech synthesis not supported');
+        resolve();
+        return;
+      }
+
       const setVoices = () => {
-        this.voices = speechSynthesis.getVoices();
-        this.voicesLoaded = this.voices.length > 0;
-        if (this.voicesLoaded) {
-          resolve();
+        try {
+          this.voices = speechSynthesis.getVoices();
+          this.voicesLoaded = this.voices.length > 0;
+          console.log(`Loaded ${this.voices.length} voices`);
+        } catch (e) {
+          console.warn('Error loading voices:', e);
         }
+        resolve();
       };
 
+      // Try loading immediately
       setVoices();
 
+      // If no voices, wait for the event
       if (!this.voicesLoaded) {
-        speechSynthesis.onvoiceschanged = () => {
-          setVoices();
-          resolve();
-        };
+        if (speechSynthesis.onvoiceschanged !== undefined) {
+          speechSynthesis.onvoiceschanged = setVoices;
+        }
         // Fallback timeout
-        setTimeout(() => {
-          setVoices();
-          resolve();
-        }, 1000);
+        setTimeout(setVoices, 1000);
       }
     });
 
@@ -113,6 +121,11 @@ class SpeechService {
     await this.loadVoices();
 
     const langCodes = languageVoiceCodes[language] || ['en-US'];
+    
+    // If no voices available, return null voice with language
+    if (this.voices.length === 0) {
+      return { voice: null, lang: langCodes[0] };
+    }
     
     // Try each language code in order of preference
     for (const langCode of langCodes) {
@@ -162,6 +175,10 @@ class SpeechService {
     });
   }
 
+  isSupported(): boolean {
+    return typeof speechSynthesis !== 'undefined' && 'speak' in speechSynthesis;
+  }
+
   async speak(
     text: string,
     language: LanguageKey,
@@ -171,56 +188,127 @@ class SpeechService {
       volume?: number;
       onStart?: () => void;
       onEnd?: () => void;
-      onError?: (error: SpeechSynthesisErrorEvent) => void;
+      onError?: (error: Error) => void;
     }
-  ): Promise<SpeechSynthesisUtterance> {
+  ): Promise<SpeechSynthesisUtterance | null> {
+    // Check if speech synthesis is available
+    if (!this.isSupported()) {
+      console.warn('Speech synthesis not supported in this browser');
+      options?.onError?.(new Error('Speech synthesis not supported'));
+      return null;
+    }
+
     // Cancel any ongoing speech
-    speechSynthesis.cancel();
+    try {
+      speechSynthesis.cancel();
+    } catch (e) {
+      console.warn('Error cancelling speech:', e);
+    }
+
+    // Wait a brief moment after cancel before starting new speech
+    await new Promise(resolve => setTimeout(resolve, 100));
 
     const { voice, lang } = await this.getVoiceForLanguage(language);
     
-    const utterance = new SpeechSynthesisUtterance(text);
+    // Clean up text - remove markdown and special characters
+    const cleanText = text
+      .replace(/[#*_`~]/g, '')
+      .replace(/\n+/g, '. ')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    if (!cleanText) {
+      console.warn('No text to speak');
+      return null;
+    }
+
+    const utterance = new SpeechSynthesisUtterance(cleanText);
     
     if (voice) {
       utterance.voice = voice;
+      console.log(`Using voice: ${voice.name} (${voice.lang})`);
     }
     utterance.lang = lang;
     utterance.rate = options?.rate ?? 0.9;
     utterance.pitch = options?.pitch ?? 1;
     utterance.volume = options?.volume ?? 1;
 
-    if (options?.onStart) {
-      utterance.onstart = options.onStart;
-    }
-    if (options?.onEnd) {
-      utterance.onend = options.onEnd;
-    }
-    if (options?.onError) {
-      utterance.onerror = options.onError;
+    // Set up event handlers
+    utterance.onstart = () => {
+      console.log('Speech started');
+      options?.onStart?.();
+    };
+    
+    utterance.onend = () => {
+      console.log('Speech ended');
+      options?.onEnd?.();
+    };
+    
+    utterance.onerror = (event) => {
+      // Ignore 'interrupted' and 'canceled' errors as they're expected
+      if (event.error === 'interrupted' || event.error === 'canceled') {
+        console.log(`Speech ${event.error}`);
+        options?.onEnd?.();
+        return;
+      }
+      console.error('Speech error:', event.error);
+      options?.onError?.(new Error(`Speech synthesis error: ${event.error}`));
+    };
+
+    try {
+      speechSynthesis.speak(utterance);
+      
+      // Chrome bug workaround: resume if paused
+      if (speechSynthesis.paused) {
+        speechSynthesis.resume();
+      }
+    } catch (e) {
+      console.error('Error starting speech:', e);
+      options?.onError?.(new Error('Failed to start speech synthesis'));
+      return null;
     }
 
-    speechSynthesis.speak(utterance);
     return utterance;
   }
 
   stop(): void {
-    speechSynthesis.cancel();
+    try {
+      speechSynthesis.cancel();
+    } catch (e) {
+      console.warn('Error stopping speech:', e);
+    }
   }
 
   pause(): void {
-    speechSynthesis.pause();
+    try {
+      speechSynthesis.pause();
+    } catch (e) {
+      console.warn('Error pausing speech:', e);
+    }
   }
 
   resume(): void {
-    speechSynthesis.resume();
+    try {
+      speechSynthesis.resume();
+    } catch (e) {
+      console.warn('Error resuming speech:', e);
+    }
   }
 
   isSpeaking(): boolean {
-    return speechSynthesis.speaking;
+    try {
+      return speechSynthesis.speaking;
+    } catch (e) {
+      return false;
+    }
   }
 
   isPaused(): boolean {
-    return speechSynthesis.paused;
+    try {
+      return speechSynthesis.paused;
+    } catch (e) {
+      return false;
+    }
   }
 }
 
