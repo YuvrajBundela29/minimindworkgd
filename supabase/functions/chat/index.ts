@@ -1,9 +1,23 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+// Input validation constants
+const MAX_PROMPT_LENGTH = 5000;
+const MAX_MESSAGE_LENGTH = 10000;
+const MAX_MESSAGES_COUNT = 50;
+const VALID_MODES = ["beginner", "thinker", "story", "mastery"];
+const VALID_TYPES = ["explain", "ekakshar", "oneword", "refine", "continue"];
+const VALID_LANGUAGES = [
+  "en", "hi", "hinglish", "ta", "te", "bn", "gu", "kn", "ml", "mr", "or", "pa",
+  "as", "ur", "sd", "ks", "ne", "sa", "kok", "mni", "doi", "sat", "mai", "bho",
+  "raj", "es", "fr", "hi-roman", "ta-roman", "te-roman", "bn-roman", "gu-roman",
+  "kn-roman", "ml-roman", "mr-roman", "pa-roman", "ur-roman", "sa-roman"
+];
 
 // Enhanced pre-prompts for each MiniMind mode
 const modePrompts: Record<string, string> = {
@@ -96,7 +110,6 @@ const languagePrompts: Record<string, string> = {
   raj: "Respond in Rajasthani (राजस्थानी).",
   es: "Respond in Spanish (Español).",
   fr: "Respond in French (Français).",
-  // Roman mode languages - respond in English transliteration
   "hi-roman": "Respond in Hindi but written in Roman/English script (transliteration). Example: 'Namaste' instead of 'नमस्ते'.",
   "ta-roman": "Respond in Tamil but written in Roman/English script (transliteration). Example: 'Vanakkam' instead of 'வணக்கம்'.",
   "te-roman": "Respond in Telugu but written in Roman/English script (transliteration).",
@@ -110,28 +123,158 @@ const languagePrompts: Record<string, string> = {
   "sa-roman": "Respond in Sanskrit but written in Roman/English script (transliteration).",
 };
 
+// Input validation functions
+function validateString(value: unknown, maxLength: number, fieldName: string): string | null {
+  if (value === undefined || value === null) {
+    return null;
+  }
+  if (typeof value !== "string") {
+    throw new Error(`${fieldName} must be a string`);
+  }
+  if (value.length > maxLength) {
+    throw new Error(`${fieldName} must be less than ${maxLength} characters`);
+  }
+  return value.trim();
+}
+
+function validateEnum(value: unknown, validValues: string[], fieldName: string, defaultValue: string): string {
+  if (value === undefined || value === null) {
+    return defaultValue;
+  }
+  if (typeof value !== "string") {
+    throw new Error(`${fieldName} must be a string`);
+  }
+  if (!validValues.includes(value)) {
+    throw new Error(`${fieldName} must be one of: ${validValues.join(", ")}`);
+  }
+  return value;
+}
+
+function validateMessages(messages: unknown): Array<{ role: string; content: string }> | null {
+  if (messages === undefined || messages === null) {
+    return null;
+  }
+  if (!Array.isArray(messages)) {
+    throw new Error("messages must be an array");
+  }
+  if (messages.length > MAX_MESSAGES_COUNT) {
+    throw new Error(`messages cannot exceed ${MAX_MESSAGES_COUNT} items`);
+  }
+  
+  return messages.map((msg, index) => {
+    if (typeof msg !== "object" || msg === null) {
+      throw new Error(`messages[${index}] must be an object`);
+    }
+    const { role, content } = msg as { role: unknown; content: unknown };
+    
+    if (typeof role !== "string" || !["user", "assistant", "system"].includes(role)) {
+      throw new Error(`messages[${index}].role must be 'user', 'assistant', or 'system'`);
+    }
+    if (typeof content !== "string") {
+      throw new Error(`messages[${index}].content must be a string`);
+    }
+    if (content.length > MAX_MESSAGE_LENGTH) {
+      throw new Error(`messages[${index}].content exceeds maximum length of ${MAX_MESSAGE_LENGTH}`);
+    }
+    
+    return { role, content: content.trim() };
+  });
+}
+
+// Extract user ID from JWT token
+function getUserIdFromAuthHeader(authHeader: string | null): string | null {
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return null;
+  }
+  
+  try {
+    const token = authHeader.substring(7);
+    // Decode JWT payload (second part)
+    const payloadBase64 = token.split(".")[1];
+    if (!payloadBase64) return null;
+    
+    const payload = JSON.parse(atob(payloadBase64));
+    return payload.sub || null;
+  } catch {
+    return null;
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const { prompt, mode, language, type, messages } = await req.json();
+    // Verify authentication
+    const authHeader = req.headers.get("Authorization");
+    const userId = getUserIdFromAuthHeader(authHeader);
+    
+    if (!userId) {
+      console.error("Authentication required - no valid user ID in token");
+      return new Response(
+        JSON.stringify({ error: "Authentication required" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Parse and validate input
+    let requestBody: unknown;
+    try {
+      requestBody = await req.json();
+    } catch {
+      return new Response(
+        JSON.stringify({ error: "Invalid JSON body" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (typeof requestBody !== "object" || requestBody === null) {
+      return new Response(
+        JSON.stringify({ error: "Request body must be an object" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const body = requestBody as Record<string, unknown>;
+    
+    // Validate all inputs
+    const prompt = validateString(body.prompt, MAX_PROMPT_LENGTH, "prompt");
+    const mode = validateEnum(body.mode, VALID_MODES, "mode", "beginner");
+    const language = validateEnum(body.language, VALID_LANGUAGES, "language", "en");
+    const type = validateEnum(body.type, VALID_TYPES, "type", "explain");
+    const messages = validateMessages(body.messages);
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     
     if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
+      console.error("LOVABLE_API_KEY is not configured");
+      return new Response(
+        JSON.stringify({ error: "Service configuration error" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     let systemPrompt = "";
-    let userMessage = prompt;
+    let userMessage = prompt || "";
 
     // Handle different request types
     if (type === "refine") {
+      if (!prompt) {
+        return new Response(
+          JSON.stringify({ error: "prompt is required for refine type" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
       systemPrompt = `You are a prompt refiner. Take the user's question and enhance it to be more specific, detailed, and likely to yield a comprehensive answer. Add context, clarify intent, and suggest follow-up angles. Return ONLY the refined prompt, nothing else.`;
       userMessage = `Refine this prompt: "${prompt}"`;
     } else if (type === "ekakshar") {
-      // Ekakshar mode - Flashcard style concise points
+      if (!prompt) {
+        return new Response(
+          JSON.stringify({ error: "prompt is required for ekakshar type" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
       systemPrompt = `You are MiniMind Ekakshar - a master of condensing knowledge into flash-card style insights.
 
 STYLE GUIDELINES:
@@ -153,14 +296,31 @@ Remember: Flash cards are for FAST learning. Keep it tight!`;
       const langPrompt = languagePrompts[language] || languagePrompts.en;
       systemPrompt = `${systemPrompt}\n\n${langPrompt}`;
     } else if (type === "oneword") {
+      if (!prompt) {
+        return new Response(
+          JSON.stringify({ error: "prompt is required for oneword type" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
       systemPrompt = `You are a one-word summary expert. Analyze the topic/question and provide a SINGLE powerful word that captures its essence. Return ONLY one word, nothing else.`;
     } else if (type === "continue") {
-      // For continuing conversation
+      if (!messages || messages.length === 0) {
+        return new Response(
+          JSON.stringify({ error: "messages are required for continue type" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
       systemPrompt = modePrompts[mode] || modePrompts.beginner;
       const langPrompt = languagePrompts[language] || languagePrompts.en;
       systemPrompt = `${systemPrompt}\n\n${langPrompt}`;
     } else {
       // Standard explanation request
+      if (!prompt) {
+        return new Response(
+          JSON.stringify({ error: "prompt is required" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
       systemPrompt = modePrompts[mode] || modePrompts.beginner;
       const langPrompt = languagePrompts[language] || languagePrompts.en;
       systemPrompt = `${systemPrompt}\n\n${langPrompt}`;
@@ -173,7 +333,7 @@ Remember: Flash cards are for FAST learning. Keep it tight!`;
           { role: "user", content: userMessage },
         ];
 
-    console.log(`Processing ${type || 'explanation'} request for mode: ${mode}, language: ${language}`);
+    console.log(`User ${userId} - Processing ${type} request, mode: ${mode}, language: ${language}`);
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -202,8 +362,11 @@ Remember: Flash cards are for FAST learning. Keep it tight!`;
         );
       }
       const errorText = await response.text();
-      console.error("AI gateway error:", response.status, errorText);
-      throw new Error(`AI gateway error: ${response.status}`);
+      console.error(`User ${userId} - AI gateway error:`, response.status, errorText);
+      return new Response(
+        JSON.stringify({ error: "AI service temporarily unavailable" }),
+        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     const data = await response.json();
@@ -214,10 +377,17 @@ Remember: Flash cards are for FAST learning. Keep it tight!`;
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
-    console.error("Chat function error:", error);
+    // Log error details server-side only
+    console.error("Chat function error:", error instanceof Error ? error.message : "Unknown error");
+    
+    // Return generic error to client
+    const errorMessage = error instanceof Error && error.message.includes("must be")
+      ? error.message  // Validation errors are safe to show
+      : "An error occurred processing your request";
+    
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error occurred" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      JSON.stringify({ error: errorMessage }),
+      { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });
