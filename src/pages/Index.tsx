@@ -11,9 +11,12 @@ import HistoryPage from '@/components/pages/HistoryPage';
 import SettingsPage from '@/components/pages/SettingsPage';
 import AuthPage from '@/components/pages/AuthPage';
 import ProfilePage from '@/components/pages/ProfilePage';
+import SubscriptionPage from '@/components/pages/SubscriptionPage';
 import FullscreenMode from '@/components/FullscreenMode';
 import RefinePromptDialog from '@/components/RefinePromptDialog';
 import OnboardingGuide from '@/components/OnboardingGuide';
+import ProFeaturesPanel from '@/components/ProFeaturesPanel';
+import QuestionLimitBanner from '@/components/QuestionLimitBanner';
 import { modes, ModeKey, LanguageKey, NavigationId } from '@/config/minimind';
 import AIService from '@/services/aiService';
 import speechService from '@/services/speechService';
@@ -329,9 +332,13 @@ const Index = () => {
       <SideMenu isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} currentPage={currentPage as NavigationId} onNavigate={setCurrentPage} theme={theme} onToggleTheme={toggleTheme} onShowGuide={() => setShowOnboarding(true)} />
       
       <main className="page-content px-4 custom-scrollbar">
+        <QuestionLimitBanner />
         <AnimatePresence mode="wait">
           {currentPage === 'home' && (
             <motion.div key="home" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-4">
+              {/* Pro Features Panel */}
+              <ProFeaturesPanel onGenerateLearningPath={() => toast.info('Learning Paths coming soon!')} />
+              
               {(Object.keys(modes) as ModeKey[]).map((modeKey, index) => (
                 <motion.div key={modeKey} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.1 }}>
                   <ModeCard modeKey={modeKey} answer={answers[modeKey]} isLoading={loadingModes[modeKey]} onSpeak={handleSpeak} onCopy={handleCopy} onDownload={handleDownload} onShare={handleShare} onGetOneWord={handleGetOneWord} onChatSubmit={handleChatSubmit} onFullscreen={handleFullscreen} isSpeaking={isSpeaking} chatInputValue={chatInputs[modeKey]} onChatInputChange={handleChatInputChange} currentQuestion={currentQuestion} />
@@ -340,6 +347,7 @@ const Index = () => {
             </motion.div>
           )}
           {currentPage === 'profile' && <motion.div key="profile" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}><ProfilePage onSignOut={handleSignOut} /></motion.div>}
+          {currentPage === 'subscription' && <motion.div key="subscription" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}><SubscriptionPage /></motion.div>}
           {currentPage === 'progress' && <motion.div key="progress" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}><ProgressPage stats={stats} history={history} /></motion.div>}
           {currentPage === 'oneword' && <motion.div key="oneword" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}><EkaksharPage language={selectedLanguage} /></motion.div>}
           {currentPage === 'history' && <motion.div key="history" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}><HistoryPage history={history} onLoadItem={handleLoadHistory} onClearHistory={handleClearHistory} /></motion.div>}
