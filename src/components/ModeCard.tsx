@@ -39,7 +39,7 @@ const ModeCard: React.FC<ModeCardProps> = ({
   currentQuestion,
 }) => {
   const mode = modes[modeKey];
-  const { credits, getCreditCost } = useSubscription();
+  const { getCreditCost } = useSubscription();
   const creditCost = getCreditCost(modeKey);
   
   const handleChatSubmit = (e: React.FormEvent) => {
@@ -56,44 +56,40 @@ const ModeCard: React.FC<ModeCardProps> = ({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
     >
-      {/* Header */}
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-3">
-          <span className="text-2xl animate-float">{mode.icon}</span>
-          <h3 className="font-heading font-semibold text-lg text-foreground">
+      {/* Header - Fixed layout with proper spacing */}
+      <div className="flex items-center justify-between gap-2 mb-3">
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          <span className="text-2xl animate-float shrink-0">{mode.icon}</span>
+          <h3 className="font-heading font-semibold text-lg text-foreground truncate">
             {mode.name}
           </h3>
-        </div>
-        
-        <div className="flex items-center gap-2">
-          <span className={`mode-badge ${mode.badgeClass}`}>
+          <span className={`mode-badge ${mode.badgeClass} shrink-0 text-[10px] px-1.5 py-0.5`}>
             {mode.badge}
           </span>
-          
-          {/* Credit cost indicator */}
-          <span className="flex items-center gap-1 px-2 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium">
-            <Zap className="w-3 h-3" />
+          <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-medium shrink-0">
+            <Zap className="w-2.5 h-2.5" />
             {creditCost}
           </span>
-          
-          {/* Fullscreen button */}
+        </div>
+        
+        <div className="flex items-center gap-1.5 shrink-0">
           <motion.button
-            className="action-btn bg-muted hover:bg-primary hover:text-primary-foreground"
+            className="action-btn bg-muted hover:bg-primary hover:text-primary-foreground w-7 h-7"
             onClick={() => onFullscreen(modeKey)}
             whileTap={{ scale: 0.95 }}
             aria-label="Fullscreen"
           >
-            <Maximize2 className="w-4 h-4" />
+            <Maximize2 className="w-3.5 h-3.5" />
           </motion.button>
           
           {answer && (
             <motion.button
-              className="action-btn bg-muted hover:bg-primary hover:text-primary-foreground"
+              className="action-btn bg-muted hover:bg-primary hover:text-primary-foreground w-7 h-7"
               onClick={() => onSpeak(answer, modeKey)}
               whileTap={{ scale: 0.95 }}
               aria-label="Read aloud"
             >
-              <Volume2 className={`w-4 h-4 ${isSpeaking ? 'text-primary animate-pulse-glow' : ''}`} />
+              <Volume2 className={`w-3.5 h-3.5 ${isSpeaking ? 'text-primary animate-pulse-glow' : ''}`} />
             </motion.button>
           )}
         </div>
