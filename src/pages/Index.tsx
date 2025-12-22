@@ -34,11 +34,11 @@ export interface HistoryItem {
 }
 
 // Default welcome messages for each mode
-const defaultAnswers: Record<ModeKey, string> = {
-  beginner: "Hi there! 😊 How are you today? Do you want to learn something fun?",
-  thinker: "Hey there! What's up? Need help with something specific, or just hanging out? Let's dive into whatever's on your mind! 📚 ✨",
-  story: "Once upon a time, in a cozy little town, there had lived a cheerful cat named Whiskers. Whiskers loved to play with his best friend, a fluffy mouse named Nibbles.\n\nOne sunny day, they found a shiny red ball in the garden. Whiskers...",
-  mastery: "Hello! How can I assist you today? If you have a specific topic or question in mind, feel free to share, and I'll provide a comprehensive, research-level explanation.",
+const defaultAnswers: Record<ModeKey, string | null> = {
+  beginner: null,
+  thinker: null,
+  story: null,
+  mastery: null,
 };
 
 const Index = () => {
