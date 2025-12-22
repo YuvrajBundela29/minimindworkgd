@@ -206,17 +206,9 @@ serve(async (req) => {
   }
 
   try {
-    // Verify authentication
+    // Get user ID from auth header (optional - app supports unauthenticated users)
     const authHeader = req.headers.get("Authorization");
-    const userId = getUserIdFromAuthHeader(authHeader);
-    
-    if (!userId) {
-      console.error("Authentication required - no valid user ID in token");
-      return new Response(
-        JSON.stringify({ error: "Authentication required" }),
-        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    const userId = getUserIdFromAuthHeader(authHeader) || "anonymous";
 
     // Parse and validate input
     let requestBody: unknown;
