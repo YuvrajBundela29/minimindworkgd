@@ -242,8 +242,11 @@ const Index = () => {
   const handleGetOneWord = useCallback(async (mode: string) => {
     const answer = answers[mode as ModeKey];
     if (!answer) return;
-    toast.promise(AIService.getOneWordAnswer(answer, selectedLanguage), { loading: 'Getting summary...', success: (data) => `One-word summary: ${data}`, error: 'Failed to get summary' });
-  }, [answers, selectedLanguage]);
+    // Navigate to Ekakshar page with the current question auto-submitted
+    setCurrentPage('oneword');
+    // Store question in session to auto-submit
+    sessionStorage.setItem('ekakshar-auto-question', currentQuestion);
+  }, [answers, currentQuestion]);
   
   const handleChatSubmit = useCallback(async (message: string, mode: string) => {
     const modeKey = mode as ModeKey;
@@ -274,7 +277,7 @@ const Index = () => {
   return (
     <div className="app-container">
       <MobileHeader onMenuClick={() => setIsMenuOpen(true)} onProfileClick={() => user ? handleSignOut() : setCurrentPage('auth')} />
-      <SideMenu isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} currentPage={currentPage as NavigationId} onNavigate={setCurrentPage} theme={theme} onToggleTheme={toggleTheme} selectedLanguage={selectedLanguage} onLanguageSelect={setSelectedLanguage} />
+      <SideMenu isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} currentPage={currentPage as NavigationId} onNavigate={setCurrentPage} theme={theme} onToggleTheme={toggleTheme} />
       
       <main className="page-content px-4 custom-scrollbar">
         <AnimatePresence mode="wait">

@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Zap, Send, Mic, Sparkles, Download, Share2, Copy } from 'lucide-react';
 import { toast } from 'sonner';
@@ -16,16 +16,31 @@ const EkaksharPage: React.FC<EkaksharPageProps> = ({ language }) => {
   const [flashcardAnswer, setFlashcardAnswer] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [history, setHistory] = useState<Array<{ question: string; answer: string }>>([]);
+  const [currentQuestion, setCurrentQuestion] = useState('');
 
-  const handleSubmit = useCallback(async () => {
-    if (!question.trim() || isLoading) return;
+  // Auto-submit if question comes from home page
+  useEffect(() => {
+    const autoQuestion = sessionStorage.getItem('ekakshar-auto-question');
+    if (autoQuestion) {
+      sessionStorage.removeItem('ekakshar-auto-question');
+      setQuestion(autoQuestion);
+      setCurrentQuestion(autoQuestion);
+      // Auto-submit after setting question
+      setTimeout(() => {
+        submitQuestion(autoQuestion);
+      }, 100);
+    }
+  }, [language]);
 
-    const currentQuestion = question;
+  const submitQuestion = async (q: string) => {
+    if (!q.trim() || isLoading) return;
+    
     setIsLoading(true);
+    setCurrentQuestion(q);
     try {
-      const answer = await AIService.getEkaksharAnswer(currentQuestion, language);
+      const answer = await AIService.getEkaksharAnswer(q, language);
       setFlashcardAnswer(answer);
-      setHistory(prev => [{ question: currentQuestion, answer }, ...prev.slice(0, 9)]);
+      setHistory(prev => [{ question: q, answer }, ...prev.slice(0, 9)]);
       setQuestion('');
     } catch (error) {
       console.error('Error getting Ekakshar answer:', error);
@@ -33,6 +48,10 @@ const EkaksharPage: React.FC<EkaksharPageProps> = ({ language }) => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleSubmit = useCallback(async () => {
+    submitQuestion(question);
   }, [question, language, isLoading]);
 
   const handleVoiceInput = useCallback(() => {
@@ -72,16 +91,15 @@ const EkaksharPage: React.FC<EkaksharPageProps> = ({ language }) => {
   };
 
   const handleDownload = () => {
-    if (flashcardAnswer && history.length > 0) {
-      downloadPDF(flashcardAnswer, 'beginner', history[0].question);
+    if (flashcardAnswer && currentQuestion) {
+      downloadPDF(flashcardAnswer, 'beginner', currentQuestion);
       toast.success('PDF downloaded!');
     }
   };
 
   const handleShare = async () => {
-    if (flashcardAnswer && history.length > 0) {
-      await sharePDF(flashcardAnswer, 'beginner', history[0].question);
-      toast.success('Shared!');
+    if (flashcardAnswer && currentQuestion) {
+      await sharePDF(flashcardAnswer, 'beginner', currentQuestion);
     }
   };
 

@@ -3,6 +3,12 @@ import { motion } from 'framer-motion';
 import { LogIn, UserPlus, Mail, Lock, Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { User, Session } from '@supabase/supabase-js';
+import { z } from 'zod';
+
+// Validation schemas
+const emailSchema = z.string().email('Please enter a valid email address');
+const passwordSchema = z.string().min(6, 'Password must be at least 6 characters');
 
 interface AuthPageProps {
   onBack: () => void;
@@ -15,19 +21,25 @@ const AuthPage: React.FC<AuthPageProps> = ({ onBack, onAuthSuccess }) => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
 
   useEffect(() => {
-    // Check if user is already logged in
-    const checkUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        onAuthSuccess();
+    // Set up auth state listener FIRST
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setSession(session);
+        setUser(session?.user ?? null);
+        if (session) {
+          onAuthSuccess();
+        }
       }
-    };
-    checkUser();
+    );
 
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    // THEN check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setUser(session?.user ?? null);
       if (session) {
         onAuthSuccess();
       }
@@ -36,28 +48,47 @@ const AuthPage: React.FC<AuthPageProps> = ({ onBack, onAuthSuccess }) => {
     return () => subscription.unsubscribe();
   }, [onAuthSuccess]);
 
+  const validateInputs = (): boolean => {
+    try {
+      emailSchema.parse(email);
+    } catch (e) {
+      if (e instanceof z.ZodError) {
+        toast.error(e.errors[0].message);
+        return false;
+      }
+    }
+    try {
+      passwordSchema.parse(password);
+    } catch (e) {
+      if (e instanceof z.ZodError) {
+        toast.error(e.errors[0].message);
+        return false;
+      }
+    }
+    return true;
+  };
+
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim() || !password.trim()) {
-      toast.error('Please fill in all fields');
-      return;
-    }
+    
+    if (!validateInputs()) return;
 
     setIsLoading(true);
     try {
       if (isLogin) {
         const { error } = await supabase.auth.signInWithPassword({
-          email,
+          email: email.trim(),
           password,
         });
         if (error) throw error;
         toast.success('Welcome back!');
       } else {
+        const redirectUrl = `${window.location.origin}/`;
         const { error } = await supabase.auth.signUp({
-          email,
+          email: email.trim(),
           password,
           options: {
-            emailRedirectTo: `${window.location.origin}/`,
+            emailRedirectTo: redirectUrl,
           },
         });
         if (error) throw error;
@@ -65,12 +96,13 @@ const AuthPage: React.FC<AuthPageProps> = ({ onBack, onAuthSuccess }) => {
         setIsLogin(true);
       }
     } catch (error: any) {
-      console.error('Auth error:', error);
       if (error.message?.includes('User already registered')) {
         toast.error('This email is already registered. Please sign in.');
         setIsLogin(true);
       } else if (error.message?.includes('Invalid login credentials')) {
         toast.error('Invalid email or password');
+      } else if (error.message?.includes('Email not confirmed')) {
+        toast.error('Please check your email to confirm your account');
       } else {
         toast.error(error.message || 'Authentication failed');
       }
@@ -90,7 +122,6 @@ const AuthPage: React.FC<AuthPageProps> = ({ onBack, onAuthSuccess }) => {
       });
       if (error) throw error;
     } catch (error: any) {
-      console.error('Google auth error:', error);
       toast.error('Google sign-in failed. Please try again.');
       setIsLoading(false);
     }

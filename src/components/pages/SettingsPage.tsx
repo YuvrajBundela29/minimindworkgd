@@ -1,7 +1,15 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Settings, Moon, Sun, Globe, Trash2, Info, Heart, ExternalLink } from 'lucide-react';
+import { Moon, Sun, Globe, Trash2, Info, Heart, Search, ChevronDown } from 'lucide-react';
 import { languages, LanguageKey, ModeKey } from '@/config/minimind';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Input } from '@/components/ui/input';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface SettingsPageProps {
   theme: 'light' | 'dark';
@@ -25,6 +33,18 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
   onClearHistory,
   stats,
 }) => {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isOpen, setIsOpen] = useState(false);
+
+  const filteredLanguages = useMemo(() => {
+    return Object.entries(languages).filter(([key, lang]) =>
+      lang.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      lang.nativeName.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [searchQuery]);
+
+  const currentLang = languages[selectedLanguage];
+
   return (
     <div className="py-4 space-y-6">
       {/* Header */}
@@ -73,7 +93,7 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
         </div>
       </motion.div>
 
-      {/* Language Selection */}
+      {/* Language Selection - Dropdown with Search */}
       <motion.div
         className="mode-card"
         initial={{ opacity: 0, y: 20 }}
@@ -88,23 +108,62 @@ const SettingsPage: React.FC<SettingsPageProps> = ({
           </div>
         </div>
         
-        <div className="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto custom-scrollbar">
-          {Object.entries(languages).map(([key, lang]) => (
+        <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
+          <DropdownMenuTrigger asChild>
             <motion.button
-              key={key}
-              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors text-left ${
-                selectedLanguage === key
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-muted hover:bg-muted/80 text-foreground'
-              }`}
-              onClick={() => onLanguageSelect(key as LanguageKey)}
+              className="w-full flex items-center justify-between px-4 py-3 rounded-xl border-2 border-border bg-background hover:bg-muted transition-colors"
               whileTap={{ scale: 0.98 }}
             >
-              <span>{lang.flag}</span>
-              <span className="truncate">{lang.nativeName}</span>
+              <div className="flex items-center gap-3">
+                <span className="text-lg">{currentLang.flag}</span>
+                <span className="font-medium text-foreground">{currentLang.name}</span>
+                <span className="text-sm text-muted-foreground">({currentLang.nativeName})</span>
+              </div>
+              <ChevronDown className={`w-5 h-5 text-muted-foreground transition-transform ${isOpen ? 'rotate-180' : ''}`} />
             </motion.button>
-          ))}
-        </div>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent 
+            className="w-[calc(100vw-4rem)] max-w-md bg-card border-border"
+            align="start"
+          >
+            <div className="p-2 border-b border-border">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search languages..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-9"
+                  onClick={(e) => e.stopPropagation()}
+                />
+              </div>
+            </div>
+            <ScrollArea className="h-64">
+              {filteredLanguages.map(([key, lang]) => (
+                <DropdownMenuItem
+                  key={key}
+                  className={`flex items-center gap-3 px-4 py-3 cursor-pointer ${
+                    selectedLanguage === key ? 'bg-primary/10 text-primary' : ''
+                  }`}
+                  onClick={() => {
+                    onLanguageSelect(key as LanguageKey);
+                    setSearchQuery('');
+                    setIsOpen(false);
+                  }}
+                >
+                  <span className="text-lg">{lang.flag}</span>
+                  <span className="font-medium">{lang.name}</span>
+                  <span className="text-sm text-muted-foreground">({lang.nativeName})</span>
+                </DropdownMenuItem>
+              ))}
+              {filteredLanguages.length === 0 && (
+                <div className="p-4 text-center text-muted-foreground">
+                  No languages found
+                </div>
+              )}
+            </ScrollArea>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </motion.div>
 
       {/* Clear Data */}

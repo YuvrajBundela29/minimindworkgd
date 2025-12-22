@@ -1,29 +1,68 @@
 import jsPDF from 'jspdf';
 import { modes, ModeKey } from '@/config/minimind';
 
-// Helper to strip markdown and get clean text with formatting info
-function parseMarkdownToPdfContent(text: string): Array<{ type: 'heading' | 'paragraph' | 'bullet' | 'numbered'; content: string; level?: number }> {
+// Thoroughly clean all markdown and special characters
+function cleanTextForPdf(text: string): string {
+  return text
+    // Remove bold markers
+    .replace(/\*\*(.+?)\*\*/g, '$1')
+    .replace(/__(.+?)__/g, '$1')
+    // Remove italic markers
+    .replace(/\*(.+?)\*/g, '$1')
+    .replace(/_(.+?)_/g, '$1')
+    // Remove strikethrough
+    .replace(/~~(.+?)~~/g, '$1')
+    // Remove inline code
+    .replace(/`(.+?)`/g, '$1')
+    // Remove code blocks
+    .replace(/```[\s\S]*?```/g, '')
+    // Remove custom markers
+    .replace(/\^\^(.+?)\^\^/g, '$1')
+    // Remove wiki links
+    .replace(/\[\[(.+?)\]\]/g, '$1')
+    // Remove markdown links but keep text
+    .replace(/\[(.+?)\]\(.+?\)/g, '$1')
+    // Remove heading markers
+    .replace(/^#{1,6}\s+/gm, '')
+    // Clean bullet points at start of line
+    .replace(/^[-*•]\s+/gm, '')
+    // Clean numbered lists
+    .replace(/^\d+\.\s+/gm, '')
+    // Remove extra whitespace
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+// Parse content into structured blocks
+interface ContentBlock {
+  type: 'heading' | 'paragraph' | 'bullet' | 'numbered';
+  content: string;
+  level?: number;
+}
+
+function parseContentToBlocks(text: string): ContentBlock[] {
   const lines = text.split('\n');
-  const result: Array<{ type: 'heading' | 'paragraph' | 'bullet' | 'numbered'; content: string; level?: number }> = [];
-  
+  const blocks: ContentBlock[] = [];
   let numberedIndex = 0;
   
   for (const line of lines) {
     const trimmed = line.trim();
     if (!trimmed) continue;
     
-    // Check for headings
+    // Check for headings (# ## ###)
     const headingMatch = trimmed.match(/^(#{1,6})\s+(.+)$/);
     if (headingMatch) {
-      result.push({ type: 'heading', content: cleanMarkdown(headingMatch[2]), level: headingMatch[1].length });
+      const content = cleanTextForPdf(headingMatch[2]);
+      blocks.push({ type: 'heading', content, level: headingMatch[1].length });
       numberedIndex = 0;
       continue;
     }
     
-    // Check for bullet points
+    // Check for bullet points (-, *, •)
     const bulletMatch = trimmed.match(/^[-*•]\s+(.+)$/);
     if (bulletMatch) {
-      result.push({ type: 'bullet', content: cleanMarkdown(bulletMatch[1]) });
+      const content = cleanTextForPdf(bulletMatch[1]);
+      blocks.push({ type: 'bullet', content });
       numberedIndex = 0;
       continue;
     }
@@ -32,31 +71,20 @@ function parseMarkdownToPdfContent(text: string): Array<{ type: 'heading' | 'par
     const numberedMatch = trimmed.match(/^\d+\.\s+(.+)$/);
     if (numberedMatch) {
       numberedIndex++;
-      result.push({ type: 'numbered', content: cleanMarkdown(numberedMatch[1]), level: numberedIndex });
+      const content = cleanTextForPdf(numberedMatch[1]);
+      blocks.push({ type: 'numbered', content, level: numberedIndex });
       continue;
     }
     
     // Regular paragraph
-    result.push({ type: 'paragraph', content: cleanMarkdown(trimmed) });
-    numberedIndex = 0;
+    const content = cleanTextForPdf(trimmed);
+    if (content) {
+      blocks.push({ type: 'paragraph', content });
+      numberedIndex = 0;
+    }
   }
   
-  return result;
-}
-
-// Clean markdown syntax from text
-function cleanMarkdown(text: string): string {
-  return text
-    .replace(/\*\*(.+?)\*\*/g, '$1') // Bold
-    .replace(/\*(.+?)\*/g, '$1') // Italic
-    .replace(/__(.+?)__/g, '$1') // Bold alt
-    .replace(/_(.+?)_/g, '$1') // Italic alt
-    .replace(/~~(.+?)~~/g, '$1') // Strikethrough
-    .replace(/`(.+?)`/g, '$1') // Inline code
-    .replace(/\[\[(.+?)\]\]/g, '$1') // Wiki links
-    .replace(/\[(.+?)\]\(.+?\)/g, '$1') // Links
-    .replace(/\^\^(.+?)\^\^/g, '$1') // Custom markers
-    .trim();
+  return blocks;
 }
 
 export function generatePDF(
@@ -68,99 +96,120 @@ export function generatePDF(
   const doc = new jsPDF();
   
   const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
   const margin = 20;
   const contentWidth = pageWidth - margin * 2;
   let yPos = margin;
   
+  // Helper to check and add new page
+  const checkNewPage = (neededSpace: number) => {
+    if (yPos + neededSpace > pageHeight - 25) {
+      doc.addPage();
+      yPos = margin;
+      return true;
+    }
+    return false;
+  };
+  
   // Title - Mode Name
-  doc.setFontSize(24);
+  doc.setFontSize(22);
   doc.setFont('helvetica', 'bold');
+  doc.setTextColor(40, 40, 40);
   doc.text(`${mode.icon} ${mode.name} Mode`, margin, yPos);
-  yPos += 12;
+  yPos += 10;
   
   // Badge
-  doc.setFontSize(10);
+  doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(100, 100, 100);
   doc.text(mode.badge, margin, yPos);
-  yPos += 10;
+  yPos += 12;
   
-  // Question
-  doc.setFontSize(12);
+  // Question section
+  doc.setFontSize(11);
   doc.setFont('helvetica', 'bold');
-  doc.setTextColor(0, 0, 0);
+  doc.setTextColor(60, 60, 60);
   doc.text('Question:', margin, yPos);
-  yPos += 7;
+  yPos += 6;
   
   doc.setFont('helvetica', 'italic');
-  doc.setFontSize(11);
-  const questionLines = doc.splitTextToSize(question, contentWidth);
+  doc.setFontSize(10);
+  doc.setTextColor(80, 80, 80);
+  const cleanQuestion = cleanTextForPdf(question);
+  const questionLines = doc.splitTextToSize(cleanQuestion, contentWidth);
   doc.text(questionLines, margin, yPos);
-  yPos += questionLines.length * 6 + 10;
+  yPos += questionLines.length * 5 + 10;
   
-  // Divider
+  // Divider line
   doc.setDrawColor(200, 200, 200);
+  doc.setLineWidth(0.5);
   doc.line(margin, yPos, pageWidth - margin, yPos);
-  yPos += 10;
+  yPos += 12;
   
-  // Content
-  const parsedContent = parseMarkdownToPdfContent(content);
+  // Answer section header
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(60, 60, 60);
+  doc.text('Answer:', margin, yPos);
+  yPos += 8;
   
-  for (const item of parsedContent) {
-    // Check if we need a new page
-    if (yPos > doc.internal.pageSize.getHeight() - 30) {
-      doc.addPage();
-      yPos = margin;
-    }
-    
-    switch (item.type) {
+  // Parse and render content
+  const blocks = parseContentToBlocks(content);
+  
+  for (const block of blocks) {
+    switch (block.type) {
       case 'heading':
-        const fontSize = item.level === 1 ? 16 : item.level === 2 ? 14 : 12;
-        doc.setFontSize(fontSize);
+        const hFontSize = block.level === 1 ? 14 : block.level === 2 ? 12 : 11;
+        checkNewPage(hFontSize + 6);
+        doc.setFontSize(hFontSize);
         doc.setFont('helvetica', 'bold');
-        doc.setTextColor(0, 0, 0);
-        const headingLines = doc.splitTextToSize(item.content, contentWidth);
+        doc.setTextColor(30, 30, 30);
+        const headingLines = doc.splitTextToSize(block.content, contentWidth);
         doc.text(headingLines, margin, yPos);
-        yPos += headingLines.length * (fontSize * 0.5) + 6;
+        yPos += headingLines.length * (hFontSize * 0.45) + 6;
         break;
         
       case 'bullet':
-        doc.setFontSize(11);
+        checkNewPage(12);
+        doc.setFontSize(10);
         doc.setFont('helvetica', 'normal');
-        doc.setTextColor(0, 0, 0);
-        doc.text('•', margin, yPos);
-        const bulletLines = doc.splitTextToSize(item.content, contentWidth - 10);
-        doc.text(bulletLines, margin + 8, yPos);
-        yPos += bulletLines.length * 5 + 4;
+        doc.setTextColor(50, 50, 50);
+        // Draw bullet point
+        doc.text('\u2022', margin, yPos);
+        const bulletLines = doc.splitTextToSize(block.content, contentWidth - 8);
+        doc.text(bulletLines, margin + 6, yPos);
+        yPos += bulletLines.length * 4.5 + 3;
         break;
         
       case 'numbered':
-        doc.setFontSize(11);
+        checkNewPage(12);
+        doc.setFontSize(10);
         doc.setFont('helvetica', 'normal');
-        doc.setTextColor(0, 0, 0);
-        doc.text(`${item.level}.`, margin, yPos);
-        const numLines = doc.splitTextToSize(item.content, contentWidth - 12);
-        doc.text(numLines, margin + 10, yPos);
-        yPos += numLines.length * 5 + 4;
+        doc.setTextColor(50, 50, 50);
+        doc.text(`${block.level}.`, margin, yPos);
+        const numLines = doc.splitTextToSize(block.content, contentWidth - 10);
+        doc.text(numLines, margin + 8, yPos);
+        yPos += numLines.length * 4.5 + 3;
         break;
         
       case 'paragraph':
-        doc.setFontSize(11);
+        checkNewPage(12);
+        doc.setFontSize(10);
         doc.setFont('helvetica', 'normal');
-        doc.setTextColor(0, 0, 0);
-        const paraLines = doc.splitTextToSize(item.content, contentWidth);
+        doc.setTextColor(50, 50, 50);
+        const paraLines = doc.splitTextToSize(block.content, contentWidth);
         doc.text(paraLines, margin, yPos);
-        yPos += paraLines.length * 5 + 6;
+        yPos += paraLines.length * 4.5 + 5;
         break;
     }
   }
   
-  // Footer
-  const footerY = doc.internal.pageSize.getHeight() - 15;
+  // Footer on last page
+  const footerY = pageHeight - 12;
   doc.setFontSize(8);
   doc.setTextColor(150, 150, 150);
   doc.text('Generated by MiniMind - Your AI Learning Companion', margin, footerY);
-  doc.text(new Date().toLocaleDateString(), pageWidth - margin - 30, footerY);
+  doc.text(new Date().toLocaleDateString(), pageWidth - margin - 25, footerY);
   
   return doc;
 }
@@ -179,30 +228,36 @@ export async function sharePDF(content: string, modeKey: ModeKey, question: stri
   const pdfBlob = doc.output('blob');
   const file = new File([pdfBlob], filename, { type: 'application/pdf' });
   
-  // Try Web Share API
+  // Try Web Share API with files
   if (navigator.canShare && navigator.canShare({ files: [file] })) {
     try {
       await navigator.share({
         title: `MiniMind ${modes[modeKey].name} - ${question.substring(0, 50)}`,
+        text: `Check out this explanation from MiniMind!`,
         files: [file],
       });
       return;
-    } catch (error) {
-      console.log('Share cancelled or failed, falling back to download');
+    } catch (error: any) {
+      // User cancelled or share failed
+      if (error.name !== 'AbortError') {
+        console.log('Share failed, falling back to download');
+      }
     }
   }
   
-  // Fallback to download
+  // Fallback to download if sharing not supported
   downloadPDF(content, modeKey, question);
 }
 
 function generateFilename(modeKey: ModeKey, question: string): string {
   const mode = modes[modeKey];
   const sanitizedQuestion = question
-    .substring(0, 40)
+    .substring(0, 35)
     .replace(/[^a-zA-Z0-9\s]/g, '')
     .replace(/\s+/g, '_')
-    .toLowerCase();
+    .toLowerCase()
+    .trim();
   
-  return `MiniMind_${mode.name}_${sanitizedQuestion || 'answer'}.pdf`;
+  const timestamp = new Date().toISOString().split('T')[0];
+  return `MiniMind_${mode.name}_${sanitizedQuestion || 'answer'}_${timestamp}.pdf`;
 }
