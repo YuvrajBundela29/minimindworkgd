@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Volume2, Copy, Download, Share2, Send, Wand2, Languages } from 'lucide-react';
 import { modes, ModeKey } from '@/config/minimind';
+import MarkdownRenderer from './MarkdownRenderer';
 
 interface ModeCardProps {
   modeKey: ModeKey;
@@ -98,9 +99,7 @@ const ModeCard: React.FC<ModeCardProps> = ({
             <span className="text-muted-foreground text-sm">Thinking...</span>
           </div>
         ) : answer ? (
-          <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
-            {answer}
-          </p>
+          <MarkdownRenderer content={answer} className="text-sm" />
         ) : (
           <p className="text-sm text-muted-foreground/60 italic py-4">
             Ready to explain...
