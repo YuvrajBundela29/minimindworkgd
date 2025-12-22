@@ -195,15 +195,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSignOut }) => {
               )}
               <p className="text-sm text-muted-foreground">{user.email}</p>
             </div>
-          </div>
-          <motion.button
-            onClick={onSignOut}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors"
-            whileTap={{ scale: 0.95 }}
-          >
-            <LogOut className="w-4 h-4" />
-            <span className="text-sm font-medium">Sign Out</span>
-          </motion.button>
+        </div>
         </div>
       </motion.div>
 
@@ -343,6 +335,22 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSignOut }) => {
         <p className="text-xs text-muted-foreground mt-4">
           Manage these settings from the Settings page.
         </p>
+      </motion.div>
+
+      {/* Sign Out Button at Bottom */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.5 }}
+      >
+        <motion.button
+          onClick={onSignOut}
+          className="w-full flex items-center justify-center gap-2 px-4 py-4 rounded-xl bg-destructive/10 text-destructive hover:bg-destructive/20 transition-colors border border-destructive/20"
+          whileTap={{ scale: 0.98 }}
+        >
+          <LogOut className="w-5 h-5" />
+          <span className="font-medium">Sign Out</span>
+        </motion.button>
       </motion.div>
     </div>
   );

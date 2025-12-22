@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { LogIn, UserPlus, Mail, Lock, Eye, EyeOff, ArrowLeft, Sparkles } from 'lucide-react';
+import { LogIn, UserPlus, Mail, Lock, Eye, EyeOff, ArrowLeft, Sparkles, KeyRound } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
@@ -21,6 +21,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onBack, onAuthSuccess }) => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [showResetPassword, setShowResetPassword] = useState(false);
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
 
@@ -111,6 +112,114 @@ const AuthPage: React.FC<AuthPageProps> = ({ onBack, onAuthSuccess }) => {
     }
   };
 
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    try {
+      emailSchema.parse(email);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        toast.error(err.errors[0].message);
+        return;
+      }
+    }
+
+    setIsLoading(true);
+    try {
+      const redirectUrl = `${window.location.origin}/`;
+      const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+        redirectTo: redirectUrl,
+      });
+      if (error) throw error;
+      toast.success('Password reset link sent! Check your email.');
+      setShowResetPassword(false);
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to send reset email');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (showResetPassword) {
+    return (
+      <div className="min-h-screen flex flex-col bg-background">
+        <div className="flex items-center gap-3 p-4 border-b border-border">
+          <motion.button
+            className="icon-btn icon-btn-ghost"
+            onClick={() => setShowResetPassword(false)}
+            whileTap={{ scale: 0.95 }}
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </motion.button>
+          <h1 className="font-heading font-bold text-lg text-foreground">Reset Password</h1>
+        </div>
+
+        <div className="flex-1 flex flex-col items-center justify-center p-6 bg-gradient-to-b from-primary/5 to-background">
+          <motion.div
+            className="w-full max-w-sm space-y-6"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+          >
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 mx-auto rounded-full bg-primary/10 flex items-center justify-center mb-4">
+                <KeyRound className="w-8 h-8 text-primary" />
+              </div>
+              <h2 className="text-2xl font-heading font-bold">Forgot Password?</h2>
+              <p className="text-muted-foreground text-sm mt-2">
+                Enter your email and we'll send you a link to reset your password.
+              </p>
+            </div>
+
+            <motion.div
+              className="bg-card/80 backdrop-blur-sm rounded-2xl p-6 shadow-xl border border-border/50"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+            >
+              <form onSubmit={handleResetPassword} className="space-y-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground">Email</label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="your@email.com"
+                      className="w-full pl-10 pr-4 py-3 rounded-xl border-2 border-border bg-background focus:border-primary outline-none transition-colors"
+                    />
+                  </div>
+                </div>
+
+                <motion.button
+                  type="submit"
+                  className="w-full flex items-center justify-center gap-2 px-4 py-3.5 rounded-xl bg-gradient-to-r from-primary to-primary/80 text-primary-foreground font-semibold shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 transition-shadow"
+                  whileTap={{ scale: 0.98 }}
+                  disabled={isLoading}
+                >
+                  {isLoading ? (
+                    <div className="w-5 h-5 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <>
+                      <Mail className="w-5 h-5" />
+                      Send Reset Link
+                    </>
+                  )}
+                </motion.button>
+              </form>
+            </motion.div>
+
+            <button
+              onClick={() => setShowResetPassword(false)}
+              className="w-full text-center text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Back to Sign In
+            </button>
+          </motion.div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -204,7 +313,18 @@ const AuthPage: React.FC<AuthPageProps> = ({ onBack, onAuthSuccess }) => {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">Password</label>
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium text-foreground">Password</label>
+                {isLogin && (
+                  <button
+                    type="button"
+                    onClick={() => setShowResetPassword(true)}
+                    className="text-xs text-primary hover:text-primary/80 transition-colors"
+                  >
+                    Forgot password?
+                  </button>
+                )}
+              </div>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                 <input
