@@ -1,10 +1,11 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Home, BarChart3, Zap, History, Settings, Sun, Moon, HelpCircle } from 'lucide-react';
+import { X, Home, BarChart3, Zap, History, Settings, Sun, Moon, HelpCircle, User } from 'lucide-react';
 import { navigationItems, NavigationId } from '@/config/minimind';
 
 const iconMap: Record<string, React.FC<{ className?: string }>> = {
   Home,
+  User,
   BarChart3,
   Zap,
   History,

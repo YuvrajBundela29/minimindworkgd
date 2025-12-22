@@ -10,6 +10,7 @@ import EkaksharPage from '@/components/pages/EkaksharPage';
 import HistoryPage from '@/components/pages/HistoryPage';
 import SettingsPage from '@/components/pages/SettingsPage';
 import AuthPage from '@/components/pages/AuthPage';
+import ProfilePage from '@/components/pages/ProfilePage';
 import FullscreenMode from '@/components/FullscreenMode';
 import RefinePromptDialog from '@/components/RefinePromptDialog';
 import OnboardingGuide from '@/components/OnboardingGuide';
@@ -293,7 +294,7 @@ const Index = () => {
 
   return (
     <div className="app-container">
-      <MobileHeader onMenuClick={() => setIsMenuOpen(true)} onProfileClick={() => user ? handleSignOut() : setCurrentPage('auth')} />
+      <MobileHeader onMenuClick={() => setIsMenuOpen(true)} onProfileClick={() => user ? setCurrentPage('profile') : setCurrentPage('auth')} />
       <SideMenu isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} currentPage={currentPage as NavigationId} onNavigate={setCurrentPage} theme={theme} onToggleTheme={toggleTheme} onShowGuide={() => setShowOnboarding(true)} />
       
       <main className="page-content px-4 custom-scrollbar">
@@ -307,6 +308,7 @@ const Index = () => {
               ))}
             </motion.div>
           )}
+          {currentPage === 'profile' && <motion.div key="profile" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}><ProfilePage onSignOut={handleSignOut} /></motion.div>}
           {currentPage === 'progress' && <motion.div key="progress" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}><ProgressPage stats={stats} history={history} /></motion.div>}
           {currentPage === 'oneword' && <motion.div key="oneword" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}><EkaksharPage language={selectedLanguage} /></motion.div>}
           {currentPage === 'history' && <motion.div key="history" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}><HistoryPage history={history} onLoadItem={handleLoadHistory} onClearHistory={handleClearHistory} /></motion.div>}
