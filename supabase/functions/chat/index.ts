@@ -71,6 +71,7 @@ Remember: Treat the user as an advanced learner seeking DEEP understanding. Be t
 const languagePrompts: Record<string, string> = {
   en: "Respond in English.",
   hi: "Respond in Hindi (हिंदी).",
+  hinglish: "Respond in Hinglish - a mix of Hindi and English commonly spoken in India. Use Hindi words written in Roman script mixed with English naturally. Example: 'Yaar, yeh bahut interesting hai, you know!'",
   ta: "Respond in Tamil (தமிழ்).",
   te: "Respond in Telugu (తెలుగు).",
   bn: "Respond in Bengali (বাংলা).",

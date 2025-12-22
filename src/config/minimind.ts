@@ -37,6 +37,7 @@ export const languages = {
   // Major Indian Languages
   en: { name: 'English', flag: '🇺🇸', nativeName: 'English' },
   hi: { name: 'Hindi', flag: '🇮🇳', nativeName: 'हिंदी' },
+  hinglish: { name: 'Hinglish', flag: '🇮🇳', nativeName: 'Hinglish (Hindi-English Mix)' },
   bn: { name: 'Bengali', flag: '🇮🇳', nativeName: 'বাংলা' },
   te: { name: 'Telugu', flag: '🇮🇳', nativeName: 'తెలుగు' },
   mr: { name: 'Marathi', flag: '🇮🇳', nativeName: 'मराठी' },

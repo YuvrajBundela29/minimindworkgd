@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Home, BarChart3, Zap, History, Settings, Sun, Moon, Globe } from 'lucide-react';
-import { navigationItems, NavigationId, languages, LanguageKey } from '@/config/minimind';
+import { X, Home, BarChart3, Zap, History, Settings, Sun, Moon } from 'lucide-react';
+import { navigationItems, NavigationId } from '@/config/minimind';
 
 const iconMap: Record<string, React.FC<{ className?: string }>> = {
   Home,
@@ -18,8 +18,6 @@ interface SideMenuProps {
   onNavigate: (page: NavigationId) => void;
   theme: 'light' | 'dark';
   onToggleTheme: () => void;
-  selectedLanguage: LanguageKey;
-  onLanguageSelect: (lang: LanguageKey) => void;
 }
 
 const SideMenu: React.FC<SideMenuProps> = ({
@@ -29,8 +27,6 @@ const SideMenu: React.FC<SideMenuProps> = ({
   onNavigate,
   theme,
   onToggleTheme,
-  selectedLanguage,
-  onLanguageSelect,
 }) => {
   return (
     <AnimatePresence>
@@ -123,31 +119,6 @@ const SideMenu: React.FC<SideMenuProps> = ({
                   </>
                 )}
               </motion.button>
-            </div>
-            
-            {/* Language Selection */}
-            <div className="p-4 pt-0">
-              <h3 className="text-sm font-semibold text-muted-foreground mb-2 px-4 flex items-center gap-2">
-                <Globe className="w-4 h-4" />
-                Language
-              </h3>
-              <div className="grid grid-cols-2 gap-2">
-                {Object.entries(languages).map(([key, lang]) => (
-                  <motion.button
-                    key={key}
-                    className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${
-                      selectedLanguage === key
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-muted hover:bg-muted/80'
-                    }`}
-                    onClick={() => onLanguageSelect(key as LanguageKey)}
-                    whileTap={{ scale: 0.98 }}
-                  >
-                    <span>{lang.flag}</span>
-                    <span className="truncate">{lang.name}</span>
-                  </motion.button>
-                ))}
-              </div>
             </div>
           </motion.div>
         </>
