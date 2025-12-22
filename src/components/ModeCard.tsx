@@ -88,14 +88,6 @@ const ModeCard: React.FC<ModeCardProps> = ({
                 <Volume2 className={`w-4 h-4 ${isSpeaking ? 'text-primary animate-pulse-glow' : ''}`} />
               </motion.button>
               
-              <motion.button
-                className="action-btn bg-muted hover:bg-primary hover:text-primary-foreground"
-                onClick={() => {}}
-                whileTap={{ scale: 0.95 }}
-                aria-label="Translate"
-              >
-                <Languages className="w-4 h-4" />
-              </motion.button>
             </>
           )}
         </div>
