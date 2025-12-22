@@ -55,12 +55,12 @@ const SubscriptionPage: React.FC = () => {
   ];
 
   const creditExplanation = [
-    { mode: 'Beginner', cost: CREDIT_COSTS.beginner, description: 'Simple, clear explanations', icon: '🌱' },
-    { mode: 'Thinker', cost: CREDIT_COSTS.thinker, description: 'Logical, analytical depth', icon: '🧠' },
-    { mode: 'Story', cost: CREDIT_COSTS.story, description: 'Narrative-based learning', icon: '📖' },
-    { mode: 'Mastery', cost: CREDIT_COSTS.mastery, description: 'Expert-level detail', icon: '🎓' },
-    { mode: 'Ekakshar', cost: CREDIT_COSTS.ekakshar, description: 'One-word compression', icon: '⚡' },
-    { mode: 'Learning Path', cost: CREDIT_COSTS.learningPath, description: 'Structured roadmap', icon: '🗺️' },
+    { mode: 'Beginner', cost: CREDIT_COSTS.beginner, description: 'Simple explanations', icon: '🌱' },
+    { mode: 'Thinker', cost: CREDIT_COSTS.thinker, description: 'Logical depth', icon: '🧠' },
+    { mode: 'Story', cost: CREDIT_COSTS.story, description: 'Narrative learning', icon: '📖' },
+    { mode: 'Mastery', cost: CREDIT_COSTS.mastery, description: 'Expert detail', icon: '🎓' },
+    { mode: 'Ekakshar', cost: CREDIT_COSTS.ekakshar, description: 'Compression', icon: '⚡' },
+    { mode: 'Learning Path', cost: CREDIT_COSTS.learningPath, description: 'Structured', icon: '🗺️' },
   ];
 
   return (
@@ -93,12 +93,12 @@ const SubscriptionPage: React.FC = () => {
         <CreditDisplay variant="detailed" />
       </motion.div>
 
-      {/* How Credits Work */}
+      {/* How Credits Work - Fixed grid layout */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className="bg-card rounded-2xl border border-border p-6"
+        className="bg-card rounded-2xl border border-border p-5"
       >
         <div className="flex items-center gap-2 mb-4">
           <Zap className="w-5 h-5 text-primary" />
@@ -110,22 +110,26 @@ const SubscriptionPage: React.FC = () => {
           Deeper explanations require more processing power.
         </p>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 gap-2.5">
           {creditExplanation.map((item) => (
-            <div
+            <motion.div
               key={item.mode}
-              className="flex items-center gap-3 p-3 rounded-xl bg-muted/50"
+              className="flex items-center gap-2.5 p-3 rounded-xl bg-muted/50 border border-border/50"
+              whileHover={{ scale: 1.02 }}
+              transition={{ duration: 0.2 }}
             >
-              <span className="text-xl">{item.icon}</span>
+              <span className="text-xl shrink-0">{item.icon}</span>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground">{item.mode}</p>
-                <p className="text-xs text-muted-foreground truncate">{item.description}</p>
+                <div className="flex items-center gap-1.5">
+                  <p className="text-sm font-medium text-foreground">{item.mode}</p>
+                  <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-semibold">
+                    <Zap className="w-2.5 h-2.5" />
+                    {item.cost}
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground">{item.description}</p>
               </div>
-              <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium">
-                <Zap className="w-3 h-3" />
-                {item.cost}
-              </div>
-            </div>
+            </motion.div>
           ))}
         </div>
       </motion.div>
