@@ -20,6 +20,24 @@ export class AIService {
     }
   }
 
+  static async getEkaksharAnswer(prompt: string, language: string): Promise<string> {
+    try {
+      const { data, error } = await supabase.functions.invoke('chat', {
+        body: { prompt, language, type: 'ekakshar' }
+      });
+
+      if (error) {
+        console.error('AI Service error:', error);
+        throw new Error(error.message || 'Failed to get Ekakshar answer');
+      }
+
+      return data?.response || 'Unable to generate response. Please try again.';
+    } catch (error) {
+      console.error('Error in getEkaksharAnswer:', error);
+      throw error;
+    }
+  }
+
   static async getOneWordAnswer(prompt: string, language: string): Promise<string> {
     try {
       const { data, error } = await supabase.functions.invoke('chat', {

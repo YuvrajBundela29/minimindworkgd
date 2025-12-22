@@ -1,9 +1,11 @@
 import React, { useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { Zap, Send, Mic, Sparkles } from 'lucide-react';
+import { Zap, Send, Mic, Sparkles, Download, Share2, Copy } from 'lucide-react';
 import { toast } from 'sonner';
 import AIService from '@/services/aiService';
 import { LanguageKey } from '@/config/minimind';
+import MarkdownRenderer from '../MarkdownRenderer';
+import { downloadPDF, sharePDF } from '@/utils/pdfGenerator';
 
 interface EkaksharPageProps {
   language: LanguageKey;
@@ -11,21 +13,22 @@ interface EkaksharPageProps {
 
 const EkaksharPage: React.FC<EkaksharPageProps> = ({ language }) => {
   const [question, setQuestion] = useState('');
-  const [oneWordAnswer, setOneWordAnswer] = useState<string | null>(null);
+  const [flashcardAnswer, setFlashcardAnswer] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [history, setHistory] = useState<Array<{ question: string; answer: string }>>([]);
 
   const handleSubmit = useCallback(async () => {
     if (!question.trim() || isLoading) return;
 
+    const currentQuestion = question;
     setIsLoading(true);
     try {
-      const answer = await AIService.getOneWordAnswer(question, language);
-      setOneWordAnswer(answer);
-      setHistory(prev => [{ question, answer }, ...prev.slice(0, 9)]);
+      const answer = await AIService.getEkaksharAnswer(currentQuestion, language);
+      setFlashcardAnswer(answer);
+      setHistory(prev => [{ question: currentQuestion, answer }, ...prev.slice(0, 9)]);
       setQuestion('');
     } catch (error) {
-      console.error('Error getting one-word answer:', error);
+      console.error('Error getting Ekakshar answer:', error);
       toast.error('Failed to get answer');
     } finally {
       setIsLoading(false);
@@ -61,45 +64,92 @@ const EkaksharPage: React.FC<EkaksharPageProps> = ({ language }) => {
     }
   }, [language]);
 
+  const handleCopy = () => {
+    if (flashcardAnswer) {
+      navigator.clipboard.writeText(flashcardAnswer);
+      toast.success('Copied to clipboard!');
+    }
+  };
+
+  const handleDownload = () => {
+    if (flashcardAnswer && history.length > 0) {
+      downloadPDF(flashcardAnswer, 'beginner', history[0].question);
+      toast.success('PDF downloaded!');
+    }
+  };
+
+  const handleShare = async () => {
+    if (flashcardAnswer && history.length > 0) {
+      await sharePDF(flashcardAnswer, 'beginner', history[0].question);
+      toast.success('Shared!');
+    }
+  };
+
   return (
     <div className="py-4 space-y-6">
       {/* Header */}
       <div className="text-center mb-6">
         <div className="text-5xl mb-3">⚡</div>
         <h1 className="text-2xl font-heading font-bold text-foreground">Ekakshar</h1>
-        <p className="text-muted-foreground text-sm mt-1">One word. Infinite meaning.</p>
+        <p className="text-muted-foreground text-sm mt-1">Flash-card insights. Quick learning.</p>
       </div>
 
       {/* Main Result */}
       <motion.div
-        className="mode-card text-center py-8"
+        className="mode-card"
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
       >
         {isLoading ? (
-          <div className="flex flex-col items-center gap-3">
+          <div className="flex flex-col items-center gap-3 py-8">
             <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
-            <p className="text-muted-foreground">Finding the perfect word...</p>
+            <p className="text-muted-foreground">Creating flashcard insights...</p>
           </div>
-        ) : oneWordAnswer ? (
+        ) : flashcardAnswer ? (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="space-y-2"
+            className="space-y-4"
           >
-            <Sparkles className="w-8 h-8 mx-auto text-primary mb-2" />
-            <h2 className="text-4xl font-heading font-bold gradient-text">
-              {oneWordAnswer}
-            </h2>
-            <p className="text-sm text-muted-foreground mt-2">
-              The essence of your question
-            </p>
+            <div className="flex items-center gap-2 mb-4">
+              <Sparkles className="w-5 h-5 text-primary" />
+              <h2 className="font-heading font-semibold text-foreground">Key Points</h2>
+            </div>
+            
+            <div className="card-content-scroll custom-scrollbar">
+              <MarkdownRenderer content={flashcardAnswer} className="text-sm" />
+            </div>
+
+            {/* Action buttons */}
+            <div className="flex items-center gap-2 pt-3 border-t border-border">
+              <motion.button
+                className="action-btn bg-muted hover:bg-muted/80"
+                onClick={handleCopy}
+                whileTap={{ scale: 0.95 }}
+              >
+                <Copy className="w-4 h-4" />
+              </motion.button>
+              <motion.button
+                className="action-btn bg-muted hover:bg-muted/80"
+                onClick={handleDownload}
+                whileTap={{ scale: 0.95 }}
+              >
+                <Download className="w-4 h-4" />
+              </motion.button>
+              <motion.button
+                className="action-btn bg-muted hover:bg-muted/80"
+                onClick={handleShare}
+                whileTap={{ scale: 0.95 }}
+              >
+                <Share2 className="w-4 h-4" />
+              </motion.button>
+            </div>
           </motion.div>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-2 py-8 text-center">
             <Zap className="w-12 h-12 mx-auto text-primary/30" />
             <p className="text-muted-foreground">
-              Ask anything and get a one-word answer
+              Ask anything and get concise flashcard-style insights
             </p>
           </div>
         )}
@@ -124,7 +174,7 @@ const EkaksharPage: React.FC<EkaksharPageProps> = ({ language }) => {
             type="text"
             value={question}
             onChange={(e) => setQuestion(e.target.value)}
-            placeholder="What's the meaning of life?"
+            placeholder="Ask anything for quick insights..."
             className="flex-1 bg-transparent border-none outline-none text-foreground text-sm"
             disabled={isLoading}
           />
@@ -148,21 +198,22 @@ const EkaksharPage: React.FC<EkaksharPageProps> = ({ language }) => {
           animate={{ opacity: 1, y: 0 }}
         >
           <h3 className="font-heading font-semibold text-foreground mb-3">Recent</h3>
-          <div className="space-y-2">
+          <div className="space-y-2 max-h-60 overflow-y-auto custom-scrollbar">
             {history.map((item, index) => (
               <motion.div
                 key={index}
-                className="flex items-center justify-between py-2 border-b border-border last:border-0"
+                className="py-2 border-b border-border last:border-0 cursor-pointer hover:bg-muted/50 rounded-lg px-2 -mx-2 transition-colors"
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: index * 0.05 }}
+                onClick={() => setFlashcardAnswer(item.answer)}
               >
-                <span className="text-sm text-muted-foreground truncate flex-1 mr-2">
+                <p className="text-sm text-muted-foreground truncate mb-1">
                   {item.question}
-                </span>
-                <span className="font-semibold text-primary flex-shrink-0">
-                  {item.answer}
-                </span>
+                </p>
+                <p className="text-xs text-primary">
+                  {item.answer.split('\n')[0].substring(0, 60)}...
+                </p>
               </motion.div>
             ))}
           </div>
@@ -171,7 +222,7 @@ const EkaksharPage: React.FC<EkaksharPageProps> = ({ language }) => {
 
       {/* Info */}
       <div className="text-center text-xs text-muted-foreground">
-        <p>Powered by AI • Captures the essence in a single word</p>
+        <p>Powered by AI • Quick flashcard-style learning</p>
       </div>
     </div>
   );

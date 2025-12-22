@@ -95,6 +95,18 @@ const languagePrompts: Record<string, string> = {
   raj: "Respond in Rajasthani (राजस्थानी).",
   es: "Respond in Spanish (Español).",
   fr: "Respond in French (Français).",
+  // Roman mode languages - respond in English transliteration
+  "hi-roman": "Respond in Hindi but written in Roman/English script (transliteration). Example: 'Namaste' instead of 'नमस्ते'.",
+  "ta-roman": "Respond in Tamil but written in Roman/English script (transliteration). Example: 'Vanakkam' instead of 'வணக்கம்'.",
+  "te-roman": "Respond in Telugu but written in Roman/English script (transliteration).",
+  "bn-roman": "Respond in Bengali but written in Roman/English script (transliteration).",
+  "gu-roman": "Respond in Gujarati but written in Roman/English script (transliteration).",
+  "kn-roman": "Respond in Kannada but written in Roman/English script (transliteration).",
+  "ml-roman": "Respond in Malayalam but written in Roman/English script (transliteration).",
+  "mr-roman": "Respond in Marathi but written in Roman/English script (transliteration).",
+  "pa-roman": "Respond in Punjabi but written in Roman/English script (transliteration).",
+  "ur-roman": "Respond in Urdu but written in Roman/English script (transliteration).",
+  "sa-roman": "Respond in Sanskrit but written in Roman/English script (transliteration).",
 };
 
 serve(async (req) => {
@@ -117,6 +129,28 @@ serve(async (req) => {
     if (type === "refine") {
       systemPrompt = `You are a prompt refiner. Take the user's question and enhance it to be more specific, detailed, and likely to yield a comprehensive answer. Add context, clarify intent, and suggest follow-up angles. Return ONLY the refined prompt, nothing else.`;
       userMessage = `Refine this prompt: "${prompt}"`;
+    } else if (type === "ekakshar") {
+      // Ekakshar mode - Flashcard style concise points
+      systemPrompt = `You are MiniMind Ekakshar - a master of condensing knowledge into flash-card style insights.
+
+STYLE GUIDELINES:
+- Summarize the topic into 3-7 KEY POINTS
+- Each point should be SHORT and MEMORABLE (one sentence max)
+- Use bullet points (•) for clarity
+- Start each point with a bold keyword or concept
+- Make it like flashcard snippets - quick to read, easy to remember
+- Include one "💡 Quick Fact" at the end
+- NO lengthy explanations - be CONCISE and CRISP
+- Use simple language everyone can understand
+
+FORMAT:
+• **Keyword**: Brief explanation
+• **Another Point**: Quick insight
+💡 Quick Fact: One surprising/memorable fact
+
+Remember: Flash cards are for FAST learning. Keep it tight!`;
+      const langPrompt = languagePrompts[language] || languagePrompts.en;
+      systemPrompt = `${systemPrompt}\n\n${langPrompt}`;
     } else if (type === "oneword") {
       systemPrompt = `You are a one-word summary expert. Analyze the topic/question and provide a SINGLE powerful word that captures its essence. Return ONLY one word, nothing else.`;
     } else if (type === "continue") {

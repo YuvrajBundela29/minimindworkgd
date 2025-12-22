@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Volume2, Copy, Download, Share2, Send, Wand2, Languages } from 'lucide-react';
+import { Volume2, Copy, Download, Share2, Send, Wand2, Languages, Maximize2 } from 'lucide-react';
 import { modes, ModeKey } from '@/config/minimind';
 import MarkdownRenderer from './MarkdownRenderer';
 
@@ -10,13 +10,15 @@ interface ModeCardProps {
   isLoading: boolean;
   onSpeak: (text: string, mode: string) => void;
   onCopy: (text: string) => void;
-  onDownload: (text: string, mode: string) => void;
-  onShare: (text: string, mode: string) => void;
+  onDownload: (text: string, mode: string, question: string) => void;
+  onShare: (text: string, mode: string, question: string) => void;
   onGetOneWord: (mode: string) => void;
   onChatSubmit: (message: string, mode: string) => void;
+  onFullscreen: (mode: string) => void;
   isSpeaking: boolean;
   chatInputValue: string;
   onChatInputChange: (mode: string, value: string) => void;
+  currentQuestion: string;
 }
 
 const ModeCard: React.FC<ModeCardProps> = ({
@@ -29,9 +31,11 @@ const ModeCard: React.FC<ModeCardProps> = ({
   onShare,
   onGetOneWord,
   onChatSubmit,
+  onFullscreen,
   isSpeaking,
   chatInputValue,
   onChatInputChange,
+  currentQuestion,
 }) => {
   const mode = modes[modeKey];
   
@@ -62,6 +66,16 @@ const ModeCard: React.FC<ModeCardProps> = ({
           <span className={`mode-badge ${mode.badgeClass}`}>
             {mode.badge}
           </span>
+          
+          {/* Fullscreen button - always visible */}
+          <motion.button
+            className="action-btn bg-muted hover:bg-primary hover:text-primary-foreground"
+            onClick={() => onFullscreen(modeKey)}
+            whileTap={{ scale: 0.95 }}
+            aria-label="Fullscreen"
+          >
+            <Maximize2 className="w-4 h-4" />
+          </motion.button>
           
           {answer && (
             <>
@@ -130,7 +144,7 @@ const ModeCard: React.FC<ModeCardProps> = ({
           
           <motion.button
             className="action-btn bg-muted hover:bg-muted/80"
-            onClick={() => onDownload(answer, modeKey)}
+            onClick={() => onDownload(answer, modeKey, currentQuestion)}
             whileTap={{ scale: 0.95 }}
             aria-label="Download"
           >
@@ -139,7 +153,7 @@ const ModeCard: React.FC<ModeCardProps> = ({
           
           <motion.button
             className="action-btn bg-muted hover:bg-muted/80"
-            onClick={() => onShare(answer, modeKey)}
+            onClick={() => onShare(answer, modeKey, currentQuestion)}
             whileTap={{ scale: 0.95 }}
             aria-label="Share"
           >

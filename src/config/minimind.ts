@@ -32,7 +32,7 @@ export const modes = {
 
 export type ModeKey = keyof typeof modes;
 
-// All Indian languages (22 Scheduled Languages) + Popular International
+// All Indian languages (22 Scheduled Languages) + Popular International + Roman modes
 export const languages = {
   // Major Indian Languages
   en: { name: 'English', flag: '🇺🇸', nativeName: 'English' },
@@ -62,6 +62,18 @@ export const languages = {
   // International Languages
   es: { name: 'Spanish', flag: '🇪🇸', nativeName: 'Español' },
   fr: { name: 'French', flag: '🇫🇷', nativeName: 'Français' },
+  // Roman script modes (transliteration)
+  'hi-roman': { name: 'Hindi (Roman)', flag: '🔤', nativeName: 'Hindi in English' },
+  'ta-roman': { name: 'Tamil (Roman)', flag: '🔤', nativeName: 'Tamil in English' },
+  'te-roman': { name: 'Telugu (Roman)', flag: '🔤', nativeName: 'Telugu in English' },
+  'bn-roman': { name: 'Bengali (Roman)', flag: '🔤', nativeName: 'Bengali in English' },
+  'gu-roman': { name: 'Gujarati (Roman)', flag: '🔤', nativeName: 'Gujarati in English' },
+  'kn-roman': { name: 'Kannada (Roman)', flag: '🔤', nativeName: 'Kannada in English' },
+  'ml-roman': { name: 'Malayalam (Roman)', flag: '🔤', nativeName: 'Malayalam in English' },
+  'mr-roman': { name: 'Marathi (Roman)', flag: '🔤', nativeName: 'Marathi in English' },
+  'pa-roman': { name: 'Punjabi (Roman)', flag: '🔤', nativeName: 'Punjabi in English' },
+  'ur-roman': { name: 'Urdu (Roman)', flag: '🔤', nativeName: 'Urdu in English' },
+  'sa-roman': { name: 'Sanskrit (Roman)', flag: '🔤', nativeName: 'Sanskrit in English' },
 } as const;
 
 export type LanguageKey = keyof typeof languages;
