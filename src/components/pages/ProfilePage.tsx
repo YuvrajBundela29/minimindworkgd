@@ -3,6 +3,14 @@ import { motion } from 'framer-motion';
 import { User, Trophy, Target, Flame, Calendar, Edit2, Save, X, LogOut } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { z } from 'zod';
+
+// Validation schema for display name
+const displayNameSchema = z.string()
+  .max(100, 'Display name must be less than 100 characters')
+  .refine(val => val.length === 0 || val.trim().length > 0, 'Display name cannot be only whitespace')
+  .refine(val => !/<[^>]*>/.test(val), 'Display name cannot contain HTML tags')
+  .refine(val => !/javascript:/i.test(val), 'Invalid characters in display name');
 
 interface Achievement {
   id: string;
@@ -106,15 +114,26 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSignOut }) => {
   const handleSaveProfile = async () => {
     if (!user) return;
     
+    // Validate display name before saving
+    const validationResult = displayNameSchema.safeParse(editName);
+    if (!validationResult.success) {
+      toast.error(validationResult.error.errors[0]?.message || 'Invalid display name');
+      return;
+    }
+    
+    // Sanitize the display name (trim whitespace)
+    const sanitizedName = editName.trim();
+    
     try {
       const { error } = await supabase
         .from('profiles')
-        .update({ display_name: editName })
+        .update({ display_name: sanitizedName })
         .eq('user_id', user.id);
 
       if (error) throw error;
 
-      setProfile({ ...profile, display_name: editName });
+      setProfile({ ...profile, display_name: sanitizedName });
+      setEditName(sanitizedName);
       setIsEditing(false);
       toast.success('Profile updated!');
     } catch (error) {
