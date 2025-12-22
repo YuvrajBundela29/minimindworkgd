@@ -1,18 +1,18 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Zap, Crown } from 'lucide-react';
+import { Zap, Crown, AlertCircle } from 'lucide-react';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { Progress } from '@/components/ui/progress';
 
 const QuestionLimitBanner: React.FC = () => {
-  const { tier, questionsUsedToday, limits, showUpgradePrompt } = useSubscription();
+  const { tier, credits, showUpgradePrompt, showLowCreditsWarning } = useSubscription();
 
-  if (tier === 'pro') return null;
+  if (tier === 'pro' || !showLowCreditsWarning) return null;
 
-  const remaining = Math.max(0, limits.questionsPerDay - questionsUsedToday);
-  const percentage = (questionsUsedToday / limits.questionsPerDay) * 100;
+  const remaining = Math.floor(credits.available);
+  const percentage = (credits.dailyUsed / credits.dailyLimit) * 100;
   const isLow = remaining <= 3;
-  const isExhausted = remaining === 0;
+  const isExhausted = remaining <= 0;
 
   return (
     <motion.div
@@ -28,20 +28,24 @@ const QuestionLimitBanner: React.FC = () => {
     >
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
-          <Zap className={`w-4 h-4 ${isExhausted ? 'text-destructive' : isLow ? 'text-amber-500' : 'text-primary'}`} />
+          {isExhausted ? (
+            <AlertCircle className="w-4 h-4 text-destructive" />
+          ) : (
+            <Zap className={`w-4 h-4 ${isLow ? 'text-amber-500' : 'text-primary'}`} />
+          )}
           <span className="text-sm font-medium">
             {isExhausted 
-              ? 'Daily limit reached' 
-              : `${remaining} questions left today`
+              ? 'Daily credits used up' 
+              : `${remaining} credits left today`
             }
           </span>
         </div>
         <button
-          onClick={() => showUpgradePrompt('Unlimited Questions')}
+          onClick={() => showUpgradePrompt('More Credits')}
           className="flex items-center gap-1 px-2 py-1 text-xs font-semibold text-amber-700 dark:text-amber-300 bg-amber-100 dark:bg-amber-900/30 rounded-full hover:bg-amber-200 dark:hover:bg-amber-900/50 transition-colors"
         >
           <Crown className="w-3 h-3" />
-          Go Pro
+          Get Pro
         </button>
       </div>
       <Progress 
