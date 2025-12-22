@@ -3,10 +3,20 @@ import { toast } from 'sonner';
 
 export type SubscriptionTier = 'free' | 'pro';
 
+// Credit costs per mode (deeper = more credits)
+export const CREDIT_COSTS = {
+  beginner: 1,
+  thinker: 2,
+  story: 2,
+  mastery: 3,
+  ekakshar: 0.5,
+  learningPath: 5,
+} as const;
+
 export interface SubscriptionLimits {
-  questionsPerDay: number;
+  dailyCredits: number;
+  monthlyCredits: number;
   historyItems: number;
-  modes: ('beginner' | 'thinker' | 'story' | 'mastery')[];
   features: {
     ekaksharAdvanced: boolean;
     learningPaths: boolean;
@@ -17,16 +27,17 @@ export interface SubscriptionLimits {
     mentorPersonas: boolean;
     adaptiveDifficulty: boolean;
     memoryGraph: boolean;
+    priorityResponses: boolean;
   };
 }
 
 const FREE_LIMITS: SubscriptionLimits = {
-  questionsPerDay: 10,
+  dailyCredits: 15,
+  monthlyCredits: 0,
   historyItems: 20,
-  modes: ['beginner', 'thinker'],
   features: {
     ekaksharAdvanced: false,
-    learningPaths: false,
+    learningPaths: true, // Available but limited depth
     truthMode: false,
     multiPerspective: false,
     offlineNotes: false,
@@ -34,13 +45,14 @@ const FREE_LIMITS: SubscriptionLimits = {
     mentorPersonas: false,
     adaptiveDifficulty: false,
     memoryGraph: false,
+    priorityResponses: false,
   },
 };
 
 const PRO_LIMITS: SubscriptionLimits = {
-  questionsPerDay: Infinity,
+  dailyCredits: 100,
+  monthlyCredits: 500,
   historyItems: Infinity,
-  modes: ['beginner', 'thinker', 'story', 'mastery'],
   features: {
     ekaksharAdvanced: true,
     learningPaths: true,
@@ -51,22 +63,37 @@ const PRO_LIMITS: SubscriptionLimits = {
     mentorPersonas: true,
     adaptiveDifficulty: true,
     memoryGraph: true,
+    priorityResponses: true,
   },
 };
+
+interface CreditUsage {
+  daily: number;
+  monthly: number;
+  lastDailyReset: string;
+  lastMonthlyReset: string;
+}
 
 interface SubscriptionContextType {
   tier: SubscriptionTier;
   limits: SubscriptionLimits;
-  questionsUsedToday: number;
+  credits: {
+    available: number;
+    dailyUsed: number;
+    monthlyUsed: number;
+    dailyLimit: number;
+    monthlyLimit: number;
+  };
   isProFeature: (feature: keyof SubscriptionLimits['features']) => boolean;
-  isModeAvailable: (mode: string) => boolean;
-  canAskQuestion: () => boolean;
-  useQuestion: () => boolean;
+  hasCredits: (cost?: number) => boolean;
+  useCredits: (cost: number, mode?: string) => boolean;
+  getCreditCost: (mode: string) => number;
   upgradeToPro: () => void;
   showUpgradePrompt: (feature: string) => void;
   isUpgradeModalOpen: boolean;
   setUpgradeModalOpen: (open: boolean) => void;
   upgradeFeature: string;
+  showLowCreditsWarning: boolean;
 }
 
 const SubscriptionContext = createContext<SubscriptionContextType | undefined>(undefined);
@@ -85,65 +112,103 @@ interface SubscriptionProviderProps {
 
 export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({ children }) => {
   const [tier, setTier] = useState<SubscriptionTier>('free');
-  const [questionsUsedToday, setQuestionsUsedToday] = useState(0);
+  const [creditUsage, setCreditUsage] = useState<CreditUsage>({
+    daily: 0,
+    monthly: 0,
+    lastDailyReset: new Date().toDateString(),
+    lastMonthlyReset: new Date().toISOString().slice(0, 7),
+  });
   const [isUpgradeModalOpen, setUpgradeModalOpen] = useState(false);
   const [upgradeFeature, setUpgradeFeature] = useState('');
+  const [showLowCreditsWarning, setShowLowCreditsWarning] = useState(false);
 
   const limits = tier === 'pro' ? PRO_LIMITS : FREE_LIMITS;
 
-  // Load subscription state from localStorage
+  // Calculate available credits
+  const dailyRemaining = limits.dailyCredits - creditUsage.daily;
+  const monthlyRemaining = tier === 'pro' ? limits.monthlyCredits - creditUsage.monthly : 0;
+  const availableCredits = tier === 'pro' 
+    ? Math.min(dailyRemaining, monthlyRemaining + dailyRemaining)
+    : dailyRemaining;
+
+  // Load and manage subscription state
   useEffect(() => {
     const savedTier = localStorage.getItem('minimind-tier') as SubscriptionTier;
-    const savedQuestions = localStorage.getItem('minimind-questions-today');
-    const savedDate = localStorage.getItem('minimind-questions-date');
+    const savedUsage = localStorage.getItem('minimind-credit-usage');
     
     if (savedTier === 'pro') {
       setTier('pro');
     }
     
-    // Reset questions count if it's a new day
-    const today = new Date().toDateString();
-    if (savedDate === today && savedQuestions) {
-      setQuestionsUsedToday(parseInt(savedQuestions, 10));
-    } else {
-      localStorage.setItem('minimind-questions-date', today);
-      localStorage.setItem('minimind-questions-today', '0');
+    if (savedUsage) {
+      try {
+        const usage = JSON.parse(savedUsage) as CreditUsage;
+        const today = new Date().toDateString();
+        const thisMonth = new Date().toISOString().slice(0, 7);
+        
+        // Reset daily if new day
+        if (usage.lastDailyReset !== today) {
+          usage.daily = 0;
+          usage.lastDailyReset = today;
+        }
+        
+        // Reset monthly if new month
+        if (usage.lastMonthlyReset !== thisMonth) {
+          usage.monthly = 0;
+          usage.lastMonthlyReset = thisMonth;
+        }
+        
+        setCreditUsage(usage);
+      } catch (e) {
+        console.error('Error parsing credit usage:', e);
+      }
     }
   }, []);
 
-  // Save questions count
+  // Save credit usage
   useEffect(() => {
-    localStorage.setItem('minimind-questions-today', questionsUsedToday.toString());
-  }, [questionsUsedToday]);
+    localStorage.setItem('minimind-credit-usage', JSON.stringify(creditUsage));
+  }, [creditUsage]);
+
+  // Check for low credits warning
+  useEffect(() => {
+    const warningThreshold = limits.dailyCredits * 0.2;
+    setShowLowCreditsWarning(dailyRemaining <= warningThreshold && dailyRemaining > 0);
+  }, [dailyRemaining, limits.dailyCredits]);
 
   const isProFeature = useCallback((feature: keyof SubscriptionLimits['features']) => {
     return !FREE_LIMITS.features[feature];
   }, []);
 
-  const isModeAvailable = useCallback((mode: string) => {
-    return limits.modes.includes(mode as any);
-  }, [limits.modes]);
+  const getCreditCost = useCallback((mode: string): number => {
+    return CREDIT_COSTS[mode as keyof typeof CREDIT_COSTS] || 1;
+  }, []);
 
-  const canAskQuestion = useCallback(() => {
-    if (tier === 'pro') return true;
-    return questionsUsedToday < limits.questionsPerDay;
-  }, [tier, questionsUsedToday, limits.questionsPerDay]);
+  const hasCredits = useCallback((cost: number = 1) => {
+    return availableCredits >= cost;
+  }, [availableCredits]);
 
-  const useQuestion = useCallback(() => {
-    if (!canAskQuestion()) {
-      showUpgradePrompt('Unlimited Questions');
+  const useCredits = useCallback((cost: number, mode?: string) => {
+    if (!hasCredits(cost)) {
+      showUpgradePrompt('More Credits');
       return false;
     }
-    setQuestionsUsedToday(prev => prev + 1);
+    
+    setCreditUsage(prev => ({
+      ...prev,
+      daily: prev.daily + cost,
+      monthly: prev.monthly + cost,
+    }));
+    
     return true;
-  }, [canAskQuestion]);
+  }, [hasCredits]);
 
   const upgradeToPro = useCallback(() => {
     // Demo mode: just toggle the tier
     setTier('pro');
     localStorage.setItem('minimind-tier', 'pro');
     toast.success('🎉 Welcome to MiniMind Pro!', {
-      description: 'All premium features are now unlocked.',
+      description: 'All premium features and bonus credits unlocked.',
     });
     setUpgradeModalOpen(false);
   }, []);
@@ -158,16 +223,23 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({ chil
       value={{
         tier,
         limits,
-        questionsUsedToday,
+        credits: {
+          available: availableCredits,
+          dailyUsed: creditUsage.daily,
+          monthlyUsed: creditUsage.monthly,
+          dailyLimit: limits.dailyCredits,
+          monthlyLimit: limits.monthlyCredits,
+        },
         isProFeature,
-        isModeAvailable,
-        canAskQuestion,
-        useQuestion,
+        hasCredits,
+        useCredits,
+        getCreditCost,
         upgradeToPro,
         showUpgradePrompt,
         isUpgradeModalOpen,
         setUpgradeModalOpen,
         upgradeFeature,
+        showLowCreditsWarning,
       }}
     >
       {children}

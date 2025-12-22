@@ -34,7 +34,6 @@ export type ModeKey = keyof typeof modes;
 
 // All Indian languages (22 Scheduled Languages) + Popular International + Roman modes
 export const languages = {
-  // Major Indian Languages
   en: { name: 'English', flag: '🇺🇸', nativeName: 'English' },
   hi: { name: 'Hindi', flag: '🇮🇳', nativeName: 'हिंदी' },
   hinglish: { name: 'Hinglish', flag: '🇮🇳', nativeName: 'Hinglish (Hindi-English Mix)' },
@@ -60,10 +59,8 @@ export const languages = {
   sat: { name: 'Santali', flag: '🇮🇳', nativeName: 'ᱥᱟᱱᱛᱟᱲᱤ' },
   bho: { name: 'Bhojpuri', flag: '🇮🇳', nativeName: 'भोजपुरी' },
   raj: { name: 'Rajasthani', flag: '🇮🇳', nativeName: 'राजस्थानी' },
-  // International Languages
   es: { name: 'Spanish', flag: '🇪🇸', nativeName: 'Español' },
   fr: { name: 'French', flag: '🇫🇷', nativeName: 'Français' },
-  // Roman script modes (transliteration)
   'hi-roman': { name: 'Hindi (Roman)', flag: '🔤', nativeName: 'Hindi in English' },
   'ta-roman': { name: 'Tamil (Roman)', flag: '🔤', nativeName: 'Tamil in English' },
   'te-roman': { name: 'Telugu (Roman)', flag: '🔤', nativeName: 'Telugu in English' },
@@ -90,10 +87,12 @@ export const suggestedPrompts = [
 
 export const navigationItems = [
   { id: 'home', label: 'Learn', icon: 'Home' },
+  { id: 'learningpath', label: 'Learning Paths', icon: 'BookOpen' },
   { id: 'profile', label: 'Profile', icon: 'User' },
   { id: 'progress', label: 'Progress', icon: 'BarChart3' },
   { id: 'oneword', label: 'Ekakshar', icon: 'Zap' },
   { id: 'history', label: 'History', icon: 'History' },
+  { id: 'subscription', label: 'Subscription', icon: 'Crown' },
   { id: 'settings', label: 'Settings', icon: 'Cog' },
 ] as const;
 
