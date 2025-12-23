@@ -1,0 +1,397 @@
+import React, { useState, useCallback, useRef } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  Upload, FileText, Image, Table, FileSpreadsheet, Presentation, 
+  X, Sparkles, Brain, BookOpen, Zap, GraduationCap, ChevronRight,
+  Loader2, AlertCircle, CheckCircle, Eye
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
+import { toast } from 'sonner';
+import { useSubscription, CREDIT_COSTS } from '@/contexts/SubscriptionContext';
+import { modes, ModeKey } from '@/config/minimind';
+import MarkdownRenderer from '@/components/MarkdownRenderer';
+import { supabase } from '@/integrations/supabase/client';
+
+interface FileInfo {
+  name: string;
+  size: number;
+  type: string;
+  content?: string;
+}
+
+const SUPPORTED_TYPES = {
+  'image/jpeg': { icon: Image, label: 'Image', color: 'from-pink-500 to-rose-500' },
+  'image/png': { icon: Image, label: 'Image', color: 'from-pink-500 to-rose-500' },
+  'image/webp': { icon: Image, label: 'Image', color: 'from-pink-500 to-rose-500' },
+  'application/pdf': { icon: FileText, label: 'PDF', color: 'from-red-500 to-orange-500' },
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': { icon: FileText, label: 'Document', color: 'from-blue-500 to-cyan-500' },
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation': { icon: Presentation, label: 'Presentation', color: 'from-orange-500 to-yellow-500' },
+  'text/plain': { icon: FileText, label: 'Text', color: 'from-gray-500 to-slate-500' },
+  'text/csv': { icon: Table, label: 'Data', color: 'from-green-500 to-emerald-500' },
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': { icon: FileSpreadsheet, label: 'Spreadsheet', color: 'from-green-500 to-teal-500' },
+};
+
+const ANALYSIS_MODES = [
+  { key: 'beginner', label: 'Simple', description: 'Easy to understand', icon: Sparkles, color: 'from-amber-400 to-orange-500' },
+  { key: 'thinker', label: 'Analytical', description: 'Logical breakdown', icon: Brain, color: 'from-purple-500 to-indigo-600' },
+  { key: 'story', label: 'Narrative', description: 'Story-based', icon: BookOpen, color: 'from-teal-400 to-cyan-500' },
+  { key: 'mastery', label: 'Expert', description: 'Deep technical', icon: GraduationCap, color: 'from-rose-500 to-pink-600' },
+];
+
+const FileAnalysisPage: React.FC = () => {
+  const { credits, hasCredits, useCredits, showUpgradePrompt, getCreditCost } = useSubscription();
+  const [file, setFile] = useState<FileInfo | null>(null);
+  const [selectedMode, setSelectedMode] = useState<ModeKey>('beginner');
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysis, setAnalysis] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0];
+    if (!selectedFile) return;
+
+    // Check file size (100MB limit)
+    if (selectedFile.size > 100 * 1024 * 1024) {
+      toast.error('File size must be less than 100MB');
+      return;
+    }
+
+    // Check file type
+    const typeInfo = SUPPORTED_TYPES[selectedFile.type as keyof typeof SUPPORTED_TYPES];
+    if (!typeInfo) {
+      toast.error('Unsupported file type. Please upload images, PDFs, documents, or data files.');
+      return;
+    }
+
+    setUploadProgress(0);
+    setAnalysis(null);
+
+    // Create preview for images
+    if (selectedFile.type.startsWith('image/')) {
+      const url = URL.createObjectURL(selectedFile);
+      setPreviewUrl(url);
+    } else {
+      setPreviewUrl(null);
+    }
+
+    // Read file content
+    const reader = new FileReader();
+    reader.onprogress = (event) => {
+      if (event.lengthComputable) {
+        setUploadProgress((event.loaded / event.total) * 100);
+      }
+    };
+    reader.onload = (event) => {
+      const content = event.target?.result as string;
+      setFile({
+        name: selectedFile.name,
+        size: selectedFile.size,
+        type: selectedFile.type,
+        content: content.split(',')[1] || content, // Remove data URL prefix if present
+      });
+      setUploadProgress(100);
+      toast.success('File ready for analysis!');
+    };
+    reader.onerror = () => {
+      toast.error('Failed to read file');
+      setUploadProgress(0);
+    };
+
+    if (selectedFile.type.startsWith('image/')) {
+      reader.readAsDataURL(selectedFile);
+    } else {
+      reader.readAsText(selectedFile);
+    }
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    const droppedFile = e.dataTransfer.files[0];
+    if (droppedFile && fileInputRef.current) {
+      const dt = new DataTransfer();
+      dt.items.add(droppedFile);
+      fileInputRef.current.files = dt.files;
+      fileInputRef.current.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+  }, []);
+
+  const analyzeFile = useCallback(async () => {
+    if (!file) return;
+
+    const cost = getCreditCost('file_analysis_basic' as any) || 5;
+    if (!hasCredits(cost)) {
+      showUpgradePrompt('File Analysis');
+      return;
+    }
+
+    setIsAnalyzing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('chat', {
+        body: {
+          type: 'file_analysis',
+          prompt: `Analyze "${file.name}": ${file.content?.substring(0, 4500)}`,
+          analysisMode: selectedMode,
+          language: 'en',
+        },
+      });
+
+      if (error) throw error;
+
+      useCredits(cost, 'file_analysis');
+      setAnalysis(data.response);
+      toast.success('Analysis complete!');
+    } catch (error) {
+      console.error('Analysis error:', error);
+      toast.error('Failed to analyze file. Please try again.');
+    } finally {
+      setIsAnalyzing(false);
+    }
+  }, [file, selectedMode, hasCredits, useCredits, showUpgradePrompt, getCreditCost]);
+
+  const clearFile = () => {
+    setFile(null);
+    setAnalysis(null);
+    setPreviewUrl(null);
+    setUploadProgress(0);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  return (
+    <div className="space-y-6 pb-24">
+      {/* Header */}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="text-center"
+      >
+        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-violet-500/20 to-purple-500/20 border border-violet-500/30 mb-4">
+          <Upload className="w-4 h-4 text-violet-400" />
+          <span className="text-sm font-medium text-violet-300">File Intelligence</span>
+        </div>
+        <h1 className="text-2xl font-bold bg-gradient-to-r from-violet-400 to-purple-400 bg-clip-text text-transparent">
+          Upload & Understand
+        </h1>
+        <p className="text-muted-foreground text-sm mt-1">
+          Upload files and images for AI-powered analysis
+        </p>
+      </motion.div>
+
+      {/* Upload Area */}
+      {!file && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="relative"
+        >
+          <div
+            onDrop={handleDrop}
+            onDragOver={(e) => e.preventDefault()}
+            onClick={() => fileInputRef.current?.click()}
+            className="border-2 border-dashed border-muted-foreground/30 rounded-2xl p-8 text-center cursor-pointer hover:border-violet-500/50 hover:bg-violet-500/5 transition-all"
+          >
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-violet-500/20 to-purple-500/20 flex items-center justify-center">
+              <Upload className="w-8 h-8 text-violet-400" />
+            </div>
+            <p className="text-foreground font-medium mb-1">Drop your file here</p>
+            <p className="text-muted-foreground text-sm mb-4">or click to browse</p>
+            <div className="flex flex-wrap gap-2 justify-center">
+              {Object.entries(SUPPORTED_TYPES).slice(0, 5).map(([type, info]) => (
+                <span key={type} className="text-xs px-2 py-1 rounded-full bg-muted text-muted-foreground">
+                  {info.label}
+                </span>
+              ))}
+              <span className="text-xs px-2 py-1 rounded-full bg-muted text-muted-foreground">
+                +more
+              </span>
+            </div>
+            <p className="text-xs text-muted-foreground mt-4">Max file size: 100MB</p>
+          </div>
+          <input
+            ref={fileInputRef}
+            type="file"
+            className="hidden"
+            accept=".jpg,.jpeg,.png,.webp,.pdf,.docx,.pptx,.txt,.csv,.xlsx"
+            onChange={handleFileSelect}
+          />
+        </motion.div>
+      )}
+
+      {/* File Preview */}
+      {file && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <Card className="p-4 bg-card/50 backdrop-blur-sm border-border/50">
+            <div className="flex items-start gap-4">
+              {/* Preview/Icon */}
+              <div className="shrink-0">
+                {previewUrl ? (
+                  <div className="w-20 h-20 rounded-lg overflow-hidden bg-muted">
+                    <img src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
+                  </div>
+                ) : (
+                  <div className={`w-20 h-20 rounded-lg bg-gradient-to-br ${SUPPORTED_TYPES[file.type as keyof typeof SUPPORTED_TYPES]?.color || 'from-gray-500 to-slate-500'} flex items-center justify-center`}>
+                    {React.createElement(SUPPORTED_TYPES[file.type as keyof typeof SUPPORTED_TYPES]?.icon || FileText, {
+                      className: 'w-10 h-10 text-white',
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* File Info */}
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-foreground truncate">{file.name}</p>
+                <p className="text-sm text-muted-foreground">
+                  {SUPPORTED_TYPES[file.type as keyof typeof SUPPORTED_TYPES]?.label || 'File'} • {formatFileSize(file.size)}
+                </p>
+                {uploadProgress < 100 && (
+                  <Progress value={uploadProgress} className="mt-2 h-1" />
+                )}
+                {uploadProgress === 100 && (
+                  <div className="flex items-center gap-1 text-green-500 text-sm mt-1">
+                    <CheckCircle className="w-4 h-4" />
+                    <span>Ready for analysis</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Remove Button */}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={clearFile}
+                className="shrink-0"
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+          </Card>
+        </motion.div>
+      )}
+
+      {/* Mode Selection */}
+      {file && !analysis && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="space-y-4"
+        >
+          <h3 className="text-sm font-medium text-muted-foreground">Choose explanation style:</h3>
+          <div className="grid grid-cols-2 gap-3">
+            {ANALYSIS_MODES.map((mode) => {
+              const Icon = mode.icon;
+              const isSelected = selectedMode === mode.key;
+              return (
+                <motion.button
+                  key={mode.key}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => setSelectedMode(mode.key as ModeKey)}
+                  className={`relative p-4 rounded-xl border transition-all ${
+                    isSelected
+                      ? 'border-transparent bg-gradient-to-br ' + mode.color + ' text-white shadow-lg'
+                      : 'border-border bg-card hover:bg-muted'
+                  }`}
+                >
+                  <Icon className={`w-6 h-6 mb-2 ${isSelected ? 'text-white' : 'text-muted-foreground'}`} />
+                  <p className={`font-medium text-sm ${isSelected ? 'text-white' : 'text-foreground'}`}>
+                    {mode.label}
+                  </p>
+                  <p className={`text-xs ${isSelected ? 'text-white/80' : 'text-muted-foreground'}`}>
+                    {mode.description}
+                  </p>
+                </motion.button>
+              );
+            })}
+          </div>
+
+          {/* Analyze Button */}
+          <Button
+            onClick={analyzeFile}
+            disabled={isAnalyzing}
+            className="w-full h-12 bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 text-white font-medium"
+          >
+            {isAnalyzing ? (
+              <>
+                <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                Analyzing...
+              </>
+            ) : (
+              <>
+                <Eye className="w-5 h-5 mr-2" />
+                Analyze File
+                <span className="ml-2 px-2 py-0.5 rounded-full bg-white/20 text-xs">
+                  5 credits
+                </span>
+              </>
+            )}
+          </Button>
+        </motion.div>
+      )}
+
+      {/* Analysis Result */}
+      <AnimatePresence>
+        {analysis && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+          >
+            <Card className="p-6 bg-gradient-to-br from-card to-muted/50 border-border/50">
+              <div className="flex items-center gap-2 mb-4">
+                <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${ANALYSIS_MODES.find(m => m.key === selectedMode)?.color} flex items-center justify-center`}>
+                  {React.createElement(ANALYSIS_MODES.find(m => m.key === selectedMode)?.icon || Brain, {
+                    className: 'w-4 h-4 text-white',
+                  })}
+                </div>
+                <div>
+                  <p className="font-medium text-foreground">
+                    {ANALYSIS_MODES.find(m => m.key === selectedMode)?.label} Analysis
+                  </p>
+                  <p className="text-xs text-muted-foreground">{file?.name}</p>
+                </div>
+              </div>
+              <div className="prose prose-sm dark:prose-invert max-w-none">
+                <MarkdownRenderer content={analysis} />
+              </div>
+            </Card>
+
+            {/* Try Another Mode */}
+            <div className="flex gap-2 mt-4">
+              <Button
+                variant="outline"
+                onClick={() => setAnalysis(null)}
+                className="flex-1"
+              >
+                Try Another Style
+              </Button>
+              <Button
+                variant="outline"
+                onClick={clearFile}
+                className="flex-1"
+              >
+                New File
+              </Button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
+export default FileAnalysisPage;

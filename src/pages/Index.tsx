@@ -5,6 +5,7 @@ import MobileHeader from '@/components/MobileHeader';
 import BottomInputBar from '@/components/BottomInputBar';
 import ModeCard from '@/components/ModeCard';
 import SideMenu from '@/components/SideMenu';
+import ProgressPage from '@/components/pages/ProgressPage';
 import EkaksharPage from '@/components/pages/EkaksharPage';
 import HistoryPage from '@/components/pages/HistoryPage';
 import SettingsPage from '@/components/pages/SettingsPage';
@@ -12,7 +13,10 @@ import AuthPage from '@/components/pages/AuthPage';
 import ProfilePage from '@/components/pages/ProfilePage';
 import SubscriptionPage from '@/components/pages/SubscriptionPage';
 import LearningPathPage from '@/components/pages/LearningPathPage';
+import FileAnalysisPage from '@/components/pages/FileAnalysisPage';
+import EkaksharPlusPage from '@/components/pages/EkaksharPlusPage';
 import ExplainBackPage from '@/components/pages/ExplainBackPage';
+import ProgressDashboard from '@/components/pages/ProgressDashboard';
 import FullscreenMode from '@/components/FullscreenMode';
 import RefinePromptDialog from '@/components/RefinePromptDialog';
 import OnboardingGuide from '@/components/OnboardingGuide';
@@ -31,14 +35,6 @@ export interface HistoryItem {
   answers: Record<ModeKey, string>;
   timestamp: Date;
   language: LanguageKey;
-}
-
-// File info interface for file uploads
-interface FileInfo {
-  name: string;
-  size: number;
-  type: string;
-  content?: string;
 }
 
 // Default welcome messages for each mode
@@ -65,9 +61,6 @@ const Index = () => {
   const [loadingModes, setLoadingModes] = useState<Record<ModeKey, boolean>>({
     beginner: false, thinker: false, story: false, mastery: false,
   });
-  
-  // File upload state
-  const [selectedFile, setSelectedFile] = useState<FileInfo | null>(null);
   
   // Refining state
   const [isRefining, setIsRefining] = useState(false);
@@ -115,6 +108,7 @@ const Index = () => {
     setSelectedLanguage(savedLanguage);
     document.documentElement.classList.toggle('dark', savedTheme === 'dark');
     
+    // Show onboarding for first-time users
     if (!hasSeenOnboarding) {
       setShowOnboarding(true);
     }
@@ -130,6 +124,7 @@ const Index = () => {
       try { setStats(JSON.parse(savedStats)); } catch (e) { console.error('Error parsing stats:', e); }
     }
 
+    // Auth listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user ?? null);
     });
@@ -156,6 +151,7 @@ const Index = () => {
     document.documentElement.classList.toggle('dark', newTheme === 'dark');
   }, [theme]);
   
+  // Handle prompt refining with dialog
   const handleRefinePrompt = useCallback(async () => {
     if (!question.trim() || isRefining) return;
     
@@ -176,7 +172,7 @@ const Index = () => {
   const handleAcceptRefinedPrompt = () => {
     setQuestion(refinedPrompt);
     setShowRefineDialog(false);
-    toast.success('Using refined prompt!');
+    toast.success('✨ Using refined prompt!');
   };
 
   const handleReRefine = async () => {
@@ -191,20 +187,11 @@ const Index = () => {
     }
   };
   
-  // Handle question submission (with optional file)
+  // Handle question submission
   const handleSubmit = useCallback(async () => {
-    if (!question.trim() && !selectedFile) return;
+    if (!question.trim()) return;
     
-    let questionText = question;
-    
-    // If file is attached, analyze the file instead
-    if (selectedFile) {
-      const fileContext = selectedFile.content?.substring(0, 4000) || '';
-      questionText = question.trim() 
-        ? `Regarding this file "${selectedFile.name}": ${question}\n\nFile content:\n${fileContext}`
-        : `Analyze this file "${selectedFile.name}":\n\n${fileContext}`;
-    }
-    
+    const questionText = question;
     setCurrentQuestion(questionText);
     setHasAskedQuestion(true);
     setAnswers({ beginner: null, thinker: null, story: null, mastery: null });
@@ -241,8 +228,7 @@ const Index = () => {
     setHistory(prev => [historyItem, ...prev.slice(0, 49)]);
     setStats(prev => ({ ...prev, totalQuestions: prev.totalQuestions + 1, todayQuestions: prev.todayQuestions + 1 }));
     setQuestion('');
-    setSelectedFile(null);
-  }, [question, selectedFile, selectedLanguage]);
+  }, [question, selectedLanguage]);
   
   const handleVoiceInput = useCallback(() => {
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
@@ -251,8 +237,8 @@ const Index = () => {
       recognition.continuous = false;
       recognition.interimResults = false;
       recognition.lang = selectedLanguage === 'en' ? 'en-US' : `${selectedLanguage}-IN`;
-      recognition.onstart = () => { toast.info('Listening... Speak now!'); };
-      recognition.onresult = (event: any) => { setQuestion(event.results[0][0].transcript); toast.success('Voice input captured!'); };
+      recognition.onstart = () => { toast.info('🎤 Listening... Speak now!'); };
+      recognition.onresult = (event: any) => { setQuestion(event.results[0][0].transcript); toast.success('✅ Voice input captured!'); };
       recognition.onerror = (event: any) => { toast.error(`Voice input error: ${event.error}`); };
       recognition.start();
     } else { toast.error('Voice input not supported in your browser'); }
@@ -313,7 +299,9 @@ const Index = () => {
   const handleGetOneWord = useCallback(async (mode: string) => {
     const answer = answers[mode as ModeKey];
     if (!answer) return;
-    setCurrentPage('ekakshar');
+    // Navigate to Ekakshar page with the current question auto-submitted
+    setCurrentPage('oneword');
+    // Store question in session to auto-submit
     sessionStorage.setItem('ekakshar-auto-question', currentQuestion);
   }, [answers, currentQuestion]);
   
@@ -359,34 +347,23 @@ const Index = () => {
               ))}
             </motion.div>
           )}
-          {currentPage === 'profile' && <motion.div key="profile" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}><ProfilePage onSignOut={handleSignOut} stats={stats} history={history} /></motion.div>}
-          {currentPage === 'ekakshar' && <motion.div key="ekakshar" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}><EkaksharPage language={selectedLanguage} /></motion.div>}
+          {currentPage === 'profile' && <motion.div key="profile" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}><ProfilePage onSignOut={handleSignOut} /></motion.div>}
+          {currentPage === 'progress' && <motion.div key="progress" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}><ProgressPage stats={stats} history={history} /></motion.div>}
+          {currentPage === 'oneword' && <motion.div key="oneword" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}><EkaksharPage language={selectedLanguage} /></motion.div>}
           {currentPage === 'history' && <motion.div key="history" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}><HistoryPage history={history} onLoadItem={handleLoadHistory} onClearHistory={handleClearHistory} /></motion.div>}
           {currentPage === 'settings' && <motion.div key="settings" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}><SettingsPage theme={theme} onToggleTheme={toggleTheme} selectedLanguage={selectedLanguage} onLanguageSelect={setSelectedLanguage} onClearHistory={handleClearHistory} stats={stats} /></motion.div>}
           {currentPage === 'subscription' && <motion.div key="subscription" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}><SubscriptionPage /></motion.div>}
           {currentPage === 'learningpath' && <motion.div key="learningpath" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}><LearningPathPage /></motion.div>}
+          {currentPage === 'fileanalysis' && <motion.div key="fileanalysis" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}><FileAnalysisPage /></motion.div>}
+          {currentPage === 'ekaksharplus' && <motion.div key="ekaksharplus" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}><EkaksharPlusPage /></motion.div>}
           {currentPage === 'explainback' && <motion.div key="explainback" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}><ExplainBackPage /></motion.div>}
+          {currentPage === 'dashboard' && <motion.div key="dashboard" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}><ProgressDashboard /></motion.div>}
         </AnimatePresence>
       </main>
       
       <QuestionLimitBanner />
       
-      {currentPage === 'home' && (
-        <BottomInputBar 
-          value={question} 
-          onChange={setQuestion} 
-          onSubmit={handleSubmit} 
-          onVoiceInput={handleVoiceInput} 
-          onRefinePrompt={handleRefinePrompt} 
-          onFileSelect={setSelectedFile}
-          selectedFile={selectedFile}
-          onClearFile={() => setSelectedFile(null)}
-          placeholder="Ask anything... or attach a file!" 
-          isLoading={isAnyLoading} 
-          isRefining={isRefining}
-          showFileUpload={true}
-        />
-      )}
+      {currentPage === 'home' && <BottomInputBar value={question} onChange={setQuestion} onSubmit={handleSubmit} onVoiceInput={handleVoiceInput} onRefinePrompt={handleRefinePrompt} placeholder="Ask anything... MiniMind explains it 4 ways!" isLoading={isAnyLoading} isRefining={isRefining} />}
       
       {fullscreenMode && <FullscreenMode isOpen={!!fullscreenMode} modeKey={fullscreenMode} answer={answers[fullscreenMode]} onClose={() => setFullscreenMode(null)} onSpeak={handleSpeak} onCopy={handleCopy} onDownload={handleDownload} onShare={handleShare} onChatSubmit={handleChatSubmit} isSpeaking={isSpeaking} chatInputValue={chatInputs[fullscreenMode]} onChatInputChange={handleChatInputChange} currentQuestion={currentQuestion} />}
       
