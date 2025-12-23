@@ -335,12 +335,57 @@ const Index = () => {
       <main className="page-content px-4 custom-scrollbar">
         <AnimatePresence mode="wait">
           {currentPage === 'home' && (
-            <motion.div key="home" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-4">
-              {(Object.keys(modes) as ModeKey[]).map((modeKey, index) => (
-                <motion.div key={modeKey} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.1 }}>
-                  <ModeCard modeKey={modeKey} answer={answers[modeKey]} isLoading={loadingModes[modeKey]} onSpeak={handleSpeak} onCopy={handleCopy} onDownload={handleDownload} onShare={handleShare} onGetOneWord={handleGetOneWord} onChatSubmit={handleChatSubmit} onFullscreen={handleFullscreen} isSpeaking={isSpeaking} chatInputValue={chatInputs[modeKey]} onChatInputChange={handleChatInputChange} currentQuestion={currentQuestion} />
+            <motion.div key="home" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-5">
+              {/* Welcome Header */}
+              {!hasAskedQuestion && (
+                <motion.div 
+                  className="text-center py-6"
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5 }}
+                >
+                  <motion.div
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-4"
+                    initial={{ scale: 0.9 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: 0.1 }}
+                  >
+                    <span className="text-sm font-medium text-primary">4 Unique Perspectives</span>
+                  </motion.div>
+                  <h1 className="text-2xl font-heading font-bold text-foreground mb-2">
+                    Ask Anything
+                  </h1>
+                  <p className="text-muted-foreground text-sm max-w-xs mx-auto">
+                    Get explanations tailored to your learning style
+                  </p>
                 </motion.div>
-              ))}
+              )}
+              
+              {/* Current Question Display */}
+              {currentQuestion && (
+                <motion.div 
+                  className="px-4 py-3 rounded-xl bg-card/80 border border-border/50"
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                >
+                  <p className="text-xs text-muted-foreground mb-1">Your question</p>
+                  <p className="text-sm font-medium text-foreground line-clamp-2">{currentQuestion}</p>
+                </motion.div>
+              )}
+              
+              {/* Mode Cards */}
+              <div className="space-y-4">
+                {(Object.keys(modes) as ModeKey[]).map((modeKey, index) => (
+                  <motion.div 
+                    key={modeKey} 
+                    initial={{ opacity: 0, y: 20 }} 
+                    animate={{ opacity: 1, y: 0 }} 
+                    transition={{ delay: 0.1 + index * 0.08, duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
+                  >
+                    <ModeCard modeKey={modeKey} answer={answers[modeKey]} isLoading={loadingModes[modeKey]} onSpeak={handleSpeak} onCopy={handleCopy} onDownload={handleDownload} onShare={handleShare} onGetOneWord={handleGetOneWord} onChatSubmit={handleChatSubmit} onFullscreen={handleFullscreen} isSpeaking={isSpeaking} chatInputValue={chatInputs[modeKey]} onChatInputChange={handleChatInputChange} currentQuestion={currentQuestion} />
+                  </motion.div>
+                ))}
+              </div>
             </motion.div>
           )}
           {currentPage === 'profile' && <motion.div key="profile" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}><ProfilePage onSignOut={handleSignOut} /></motion.div>}
