@@ -5,7 +5,6 @@ import MobileHeader from '@/components/MobileHeader';
 import BottomInputBar from '@/components/BottomInputBar';
 import ModeCard from '@/components/ModeCard';
 import SideMenu from '@/components/SideMenu';
-import ProgressPage from '@/components/pages/ProgressPage';
 import EkaksharPage from '@/components/pages/EkaksharPage';
 import HistoryPage from '@/components/pages/HistoryPage';
 import SettingsPage from '@/components/pages/SettingsPage';
@@ -13,10 +12,7 @@ import AuthPage from '@/components/pages/AuthPage';
 import ProfilePage from '@/components/pages/ProfilePage';
 import SubscriptionPage from '@/components/pages/SubscriptionPage';
 import LearningPathPage from '@/components/pages/LearningPathPage';
-import FileAnalysisPage from '@/components/pages/FileAnalysisPage';
-import EkaksharPlusPage from '@/components/pages/EkaksharPlusPage';
 import ExplainBackPage from '@/components/pages/ExplainBackPage';
-import ProgressDashboard from '@/components/pages/ProgressDashboard';
 import FullscreenMode from '@/components/FullscreenMode';
 import RefinePromptDialog from '@/components/RefinePromptDialog';
 import OnboardingGuide from '@/components/OnboardingGuide';
@@ -300,7 +296,7 @@ const Index = () => {
     const answer = answers[mode as ModeKey];
     if (!answer) return;
     // Navigate to Ekakshar page with the current question auto-submitted
-    setCurrentPage('oneword');
+    setCurrentPage('ekakshar');
     // Store question in session to auto-submit
     sessionStorage.setItem('ekakshar-auto-question', currentQuestion);
   }, [answers, currentQuestion]);
@@ -348,16 +344,12 @@ const Index = () => {
             </motion.div>
           )}
           {currentPage === 'profile' && <motion.div key="profile" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}><ProfilePage onSignOut={handleSignOut} /></motion.div>}
-          {currentPage === 'progress' && <motion.div key="progress" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}><ProgressPage stats={stats} history={history} /></motion.div>}
-          {currentPage === 'oneword' && <motion.div key="oneword" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}><EkaksharPage language={selectedLanguage} /></motion.div>}
+          {currentPage === 'ekakshar' && <motion.div key="ekakshar" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}><EkaksharPage language={selectedLanguage} /></motion.div>}
           {currentPage === 'history' && <motion.div key="history" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}><HistoryPage history={history} onLoadItem={handleLoadHistory} onClearHistory={handleClearHistory} /></motion.div>}
           {currentPage === 'settings' && <motion.div key="settings" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}><SettingsPage theme={theme} onToggleTheme={toggleTheme} selectedLanguage={selectedLanguage} onLanguageSelect={setSelectedLanguage} onClearHistory={handleClearHistory} stats={stats} /></motion.div>}
           {currentPage === 'subscription' && <motion.div key="subscription" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}><SubscriptionPage /></motion.div>}
           {currentPage === 'learningpath' && <motion.div key="learningpath" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}><LearningPathPage /></motion.div>}
-          {currentPage === 'fileanalysis' && <motion.div key="fileanalysis" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}><FileAnalysisPage /></motion.div>}
-          {currentPage === 'ekaksharplus' && <motion.div key="ekaksharplus" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}><EkaksharPlusPage /></motion.div>}
           {currentPage === 'explainback' && <motion.div key="explainback" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}><ExplainBackPage /></motion.div>}
-          {currentPage === 'dashboard' && <motion.div key="dashboard" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}><ProgressDashboard /></motion.div>}
         </AnimatePresence>
       </main>
       
