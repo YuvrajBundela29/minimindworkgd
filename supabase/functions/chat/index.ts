@@ -11,7 +11,7 @@ const MAX_PROMPT_LENGTH = 5000;
 const MAX_MESSAGE_LENGTH = 10000;
 const MAX_MESSAGES_COUNT = 50;
 const VALID_MODES = ["beginner", "thinker", "story", "mastery"];
-const VALID_TYPES = ["explain", "ekakshar", "oneword", "refine", "continue"];
+const VALID_TYPES = ["explain", "ekakshar", "oneword", "oneline", "bullets", "diagram", "refine", "continue", "file_analysis", "learning_path", "explain_back_evaluate"];
 const VALID_LANGUAGES = [
   "en", "hi", "hinglish", "ta", "te", "bn", "gu", "kn", "ml", "mr", "or", "pa",
   "as", "ur", "sd", "ks", "ne", "sa", "kok", "mni", "doi", "sat", "mai", "bho",
