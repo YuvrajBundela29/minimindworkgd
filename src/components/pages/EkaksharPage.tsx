@@ -55,7 +55,7 @@ const COMPRESSION_MODES: CompressionMode[] = [
     credits: 2,
   },
   {
-    id: 'mindmap',
+    id: 'visual_map',
     label: 'Mind Map',
     description: 'Visual structure',
     icon: Network,
@@ -395,7 +395,7 @@ const EkaksharPage: React.FC<EkaksharPageProps> = ({ language }) => {
                     <p className="text-4xl font-bold text-center py-6">{result}</p>
                   ) : selectedMode === 'oneline' ? (
                     <p className="text-xl font-medium text-center py-4">{result}</p>
-                  ) : selectedMode === 'mindmap' ? (
+                  ) : selectedMode === 'visual_map' ? (
                     <div className="p-4 bg-white/10 rounded-xl backdrop-blur-sm">
                       <pre className="whitespace-pre-wrap text-sm font-mono overflow-x-auto">{result}</pre>
                     </div>
