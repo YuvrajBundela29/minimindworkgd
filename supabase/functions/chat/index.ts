@@ -206,9 +206,19 @@ serve(async (req) => {
   }
 
   try {
-    // Get user ID from auth header (optional - app supports unauthenticated users)
+    // Get user ID from auth header (required - JWT verification is enabled)
     const authHeader = req.headers.get("Authorization");
-    const userId = getUserIdFromAuthHeader(authHeader) || "anonymous";
+    const userId = getUserIdFromAuthHeader(authHeader);
+    
+    if (!userId) {
+      console.error("Authentication required: No valid user ID found in token");
+      return new Response(
+        JSON.stringify({ error: "Authentication required" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
+    console.log(`Processing request for authenticated user: ${userId.substring(0, 8)}...`);
 
     // Parse and validate input
     let requestBody: unknown;
