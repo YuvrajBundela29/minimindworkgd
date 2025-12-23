@@ -3,13 +3,16 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   BookOpen, ChevronRight, Sparkles, Clock, Target, 
   CheckCircle2, Circle, Play, Lock, Zap, ArrowLeft,
-  GraduationCap, Rocket, Star, TrendingUp
+  GraduationCap, Rocket, Star, TrendingUp, ChevronDown
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useSubscription, CREDIT_COSTS } from '@/contexts/SubscriptionContext';
 import { ModeKey, modes } from '@/config/minimind';
 import AIService from '@/services/aiService';
 import MarkdownRenderer from '@/components/MarkdownRenderer';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
 
 interface Topic {
   id: string;
@@ -38,15 +41,13 @@ const SUBJECTS = [
   { id: 'biology', name: 'Biology', icon: '🧬', gradient: 'from-pink-500 to-rose-500' },
   { id: 'history', name: 'World History', icon: '📜', gradient: 'from-yellow-500 to-amber-500' },
   { id: 'psychology', name: 'Psychology', icon: '🧠', gradient: 'from-fuchsia-500 to-pink-500' },
-  { id: 'mathematics', name: 'Mathematics', icon: '📐', gradient: 'from-indigo-500 to-blue-500' },
   { id: 'programming', name: 'Programming', icon: '💻', gradient: 'from-teal-500 to-cyan-500' },
-  { id: 'astronomy', name: 'Astronomy', icon: '🌌', gradient: 'from-slate-600 to-indigo-600' },
 ];
 
 const LEVELS = [
-  { id: 'beginner', name: 'Beginner', description: 'Start from basics', icon: '🌱', color: 'emerald' },
-  { id: 'intermediate', name: 'Intermediate', description: 'Build on fundamentals', icon: '🌿', color: 'blue' },
-  { id: 'advanced', name: 'Advanced', description: 'Deep expertise', icon: '🌳', color: 'purple' },
+  { id: 'beginner', name: 'Beginner', description: 'Start from basics', icon: '🌱' },
+  { id: 'intermediate', name: 'Intermediate', description: 'Build on fundamentals', icon: '🌿' },
+  { id: 'advanced', name: 'Advanced', description: 'Deep expertise', icon: '🌳' },
 ];
 
 const LearningPathPage: React.FC = () => {
@@ -120,9 +121,7 @@ const LearningPathPage: React.FC = () => {
   }, [selectedSubject, selectedLevel, hasCredits, useCredits, showUpgradePrompt]);
 
   const loadTopicExplanation = useCallback(async (topic: Topic, mode: ModeKey) => {
-    if (topic.explanations?.[mode]) {
-      return;
-    }
+    if (topic.explanations?.[mode]) return;
 
     const cost = CREDIT_COSTS[mode];
     if (!hasCredits(cost)) {
@@ -140,22 +139,13 @@ const LearningPathPage: React.FC = () => {
       
       setSelectedTopic(prev => {
         if (!prev) return null;
-        return {
-          ...prev,
-          loading: false,
-          explanations: {
-            ...prev.explanations,
-            [mode]: response,
-          },
-        };
+        return { ...prev, loading: false, explanations: { ...prev.explanations, [mode]: response } };
       });
 
       setCurrentPath(prev => {
         if (!prev) return null;
         const updatedTopics = prev.topics.map(t => 
-          t.id === topic.id 
-            ? { ...t, explanations: { ...t.explanations, [mode]: response } }
-            : t
+          t.id === topic.id ? { ...t, explanations: { ...t.explanations, [mode]: response } } : t
         );
         return { ...prev, topics: updatedTopics };
       });
@@ -169,9 +159,7 @@ const LearningPathPage: React.FC = () => {
   const markTopicComplete = useCallback((topicId: string) => {
     setCurrentPath(prev => {
       if (!prev) return null;
-      const updatedTopics = prev.topics.map(t => 
-        t.id === topicId ? { ...t, completed: true } : t
-      );
+      const updatedTopics = prev.topics.map(t => t.id === topicId ? { ...t, completed: true } : t);
       const newIndex = Math.min(prev.currentIndex + 1, updatedTopics.length - 1);
       const updated = { ...prev, topics: updatedTopics, currentIndex: newIndex };
       
@@ -180,59 +168,32 @@ const LearningPathPage: React.FC = () => {
         localStorage.setItem('minimind-learning-paths', JSON.stringify(newPaths));
         return newPaths;
       });
-      
       return updated;
     });
     toast.success('Topic completed! 🎉');
   }, []);
 
-  // Selection step - Enhanced UI
+  // Selection Step
   if (step === 'select') {
     return (
-      <div className="space-y-6 pb-8">
-        {/* Hero Header */}
-        <div className="text-center relative">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="absolute -top-4 left-1/2 -translate-x-1/2 w-32 h-32 bg-gradient-to-br from-primary/20 to-accent/20 rounded-full blur-3xl"
-          />
-          <motion.div
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="relative inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-primary/10 to-accent/10 text-primary mb-4 border border-primary/20"
+      <div className="space-y-6 pb-24">
+        {/* Header */}
+        <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="text-center">
+          <motion.div 
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-gradient-to-r from-primary/10 to-accent/10 border border-primary/20 mb-4"
+            whileHover={{ scale: 1.02 }}
           >
-            <Rocket className="w-4 h-4" />
-            <span className="text-sm font-medium">Learning Paths</span>
+            <Rocket className="w-5 h-5 text-primary" />
+            <span className="text-sm font-semibold text-primary">Learning Paths</span>
           </motion.div>
-          
-          <motion.h1 
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="text-2xl font-heading font-bold text-foreground mb-2"
-          >
-            What do you want to master?
-          </motion.h1>
-          <motion.p 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.2 }}
-            className="text-muted-foreground text-sm"
-          >
-            AI-powered structured learning journeys
-          </motion.p>
-        </div>
+          <h1 className="text-2xl font-heading font-bold text-foreground">What do you want to master?</h1>
+          <p className="text-muted-foreground text-sm mt-1">AI-powered structured learning journeys</p>
+        </motion.div>
 
-        {/* Saved Paths - Enhanced Cards */}
+        {/* Saved Paths */}
         {savedPaths.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="space-y-3"
-          >
-            <div className="flex items-center gap-2">
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+            <div className="flex items-center gap-2 mb-3">
               <TrendingUp className="w-4 h-4 text-primary" />
               <h2 className="text-sm font-semibold text-foreground">Continue Learning</h2>
             </div>
@@ -244,35 +205,21 @@ const LearningPathPage: React.FC = () => {
                     key={path.id}
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.1 * i }}
-                    className="flex-shrink-0 p-4 rounded-2xl bg-gradient-to-br from-card to-muted/30 border border-border hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10 transition-all text-left min-w-[180px] group"
-                    onClick={() => {
-                      setCurrentPath(path);
-                      setStep('path');
-                    }}
+                    transition={{ delay: 0.05 * i }}
+                    className="flex-shrink-0 p-4 rounded-2xl bg-card border border-border hover:border-primary/30 hover:shadow-lg transition-all text-left min-w-[180px] group"
+                    onClick={() => { setCurrentPath(path); setStep('path'); }}
                     whileTap={{ scale: 0.98 }}
                   >
                     <div className="flex items-center gap-2 mb-2">
                       <span className="text-2xl">{path.icon || '📚'}</span>
                       <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-foreground text-sm truncate group-hover:text-primary transition-colors">
-                          {path.subject}
-                        </p>
+                        <p className="font-semibold text-foreground text-sm truncate group-hover:text-primary transition-colors">{path.subject}</p>
                         <p className="text-xs text-muted-foreground capitalize">{path.level}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2 mt-3">
-                      <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
-                        <motion.div 
-                          className="h-full bg-gradient-to-r from-primary to-accent rounded-full"
-                          initial={{ width: 0 }}
-                          animate={{ width: `${progress}%` }}
-                          transition={{ delay: 0.3, duration: 0.5 }}
-                        />
-                      </div>
-                      <span className="text-xs font-medium text-primary">
-                        {Math.round(progress)}%
-                      </span>
+                      <Progress value={progress} className="h-2 flex-1" />
+                      <span className="text-xs font-medium text-primary">{Math.round(progress)}%</span>
                     </div>
                   </motion.button>
                 );
@@ -281,14 +228,9 @@ const LearningPathPage: React.FC = () => {
           </motion.div>
         )}
 
-        {/* Subject Selection - Enhanced Grid */}
-        <motion.div 
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="space-y-3"
-        >
-          <div className="flex items-center gap-2">
+        {/* Subject Selection */}
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+          <div className="flex items-center gap-2 mb-3">
             <GraduationCap className="w-4 h-4 text-primary" />
             <h2 className="text-sm font-semibold text-foreground">Choose Subject</h2>
           </div>
@@ -296,35 +238,27 @@ const LearningPathPage: React.FC = () => {
             {SUBJECTS.map((subject, index) => (
               <motion.button
                 key={subject.id}
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.05 * index }}
-                className={`relative p-4 rounded-2xl border-2 transition-all text-left overflow-hidden group ${
+                transition={{ delay: 0.03 * index }}
+                whileHover={{ scale: 1.02, y: -2 }}
+                whileTap={{ scale: 0.98 }}
+                className={`relative p-4 rounded-2xl border-2 transition-all text-left overflow-hidden ${
                   selectedSubject === subject.id
                     ? 'border-primary bg-primary/5 shadow-lg shadow-primary/10'
                     : 'border-border bg-card hover:border-primary/30 hover:shadow-md'
                 }`}
                 onClick={() => setSelectedSubject(subject.id)}
-                whileTap={{ scale: 0.98 }}
               >
                 {selectedSubject === subject.id && (
-                  <motion.div
-                    layoutId="selectedSubject"
-                    className={`absolute inset-0 bg-gradient-to-br ${subject.gradient} opacity-5`}
-                  />
+                  <motion.div layoutId="selectedSubject" className={`absolute inset-0 bg-gradient-to-br ${subject.gradient} opacity-5`} />
                 )}
                 <div className="relative">
-                  <span className="text-3xl mb-2 block group-hover:scale-110 transition-transform">
-                    {subject.icon}
-                  </span>
-                  <p className="font-medium text-foreground text-sm">{subject.name}</p>
+                  <span className="text-3xl mb-2 block">{subject.icon}</span>
+                  <p className="font-semibold text-foreground text-sm">{subject.name}</p>
                 </div>
                 {selectedSubject === subject.id && (
-                  <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    className="absolute top-2 right-2 w-5 h-5 rounded-full bg-primary flex items-center justify-center"
-                  >
+                  <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="absolute top-3 right-3 w-5 h-5 rounded-full bg-primary flex items-center justify-center">
                     <CheckCircle2 className="w-3 h-3 text-primary-foreground" />
                   </motion.div>
                 )}
@@ -333,15 +267,10 @@ const LearningPathPage: React.FC = () => {
           </div>
         </motion.div>
 
-        {/* Level Selection - Enhanced */}
+        {/* Level Selection */}
         <AnimatePresence>
           {selectedSubject && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              className="space-y-3 overflow-hidden"
-            >
+            <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="space-y-3 overflow-hidden">
               <div className="flex items-center gap-2">
                 <Star className="w-4 h-4 text-primary" />
                 <h2 className="text-sm font-semibold text-foreground">Choose Level</h2>
@@ -350,19 +279,17 @@ const LearningPathPage: React.FC = () => {
                 {LEVELS.map((level, index) => (
                   <motion.button
                     key={level.id}
-                    initial={{ opacity: 0, scale: 0.9 }}
+                    initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: 0.1 * index }}
+                    transition={{ delay: 0.05 * index }}
+                    whileTap={{ scale: 0.98 }}
                     className={`p-3 rounded-xl border-2 transition-all text-center ${
-                      selectedLevel === level.id
-                        ? 'border-primary bg-primary/5'
-                        : 'border-border bg-card hover:border-primary/30'
+                      selectedLevel === level.id ? 'border-primary bg-primary/5' : 'border-border bg-card hover:border-primary/30'
                     }`}
                     onClick={() => setSelectedLevel(level.id)}
-                    whileTap={{ scale: 0.98 }}
                   >
                     <span className="text-2xl mb-1 block">{level.icon}</span>
-                    <p className="font-medium text-foreground text-xs">{level.name}</p>
+                    <p className="font-semibold text-foreground text-xs">{level.name}</p>
                     <p className="text-[10px] text-muted-foreground">{level.description}</p>
                   </motion.button>
                 ))}
@@ -371,54 +298,32 @@ const LearningPathPage: React.FC = () => {
           )}
         </AnimatePresence>
 
-        {/* Generate Button - Enhanced */}
+        {/* Generate Button */}
         <AnimatePresence>
           {selectedSubject && selectedLevel && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 10 }}
-              className="pt-2"
-            >
-              <motion.button
-                className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-primary via-primary to-accent text-primary-foreground font-semibold flex items-center justify-center gap-3 disabled:opacity-50 shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/30 transition-shadow"
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }}>
+              <Button
+                className="w-full h-14 rounded-2xl bg-gradient-to-r from-primary via-primary to-accent text-primary-foreground font-semibold text-base shadow-lg shadow-primary/25"
                 onClick={generatePath}
                 disabled={isGenerating || !hasCredits(CREDIT_COSTS.learningPath)}
-                whileTap={{ scale: 0.98 }}
-                whileHover={{ scale: 1.02 }}
               >
                 {isGenerating ? (
-                  <>
+                  <div className="flex items-center gap-2">
                     <div className="flex gap-1">
-                      <motion.span 
-                        className="w-2 h-2 bg-white rounded-full"
-                        animate={{ y: [0, -6, 0] }}
-                        transition={{ repeat: Infinity, duration: 0.6 }}
-                      />
-                      <motion.span 
-                        className="w-2 h-2 bg-white rounded-full"
-                        animate={{ y: [0, -6, 0] }}
-                        transition={{ repeat: Infinity, duration: 0.6, delay: 0.2 }}
-                      />
-                      <motion.span 
-                        className="w-2 h-2 bg-white rounded-full"
-                        animate={{ y: [0, -6, 0] }}
-                        transition={{ repeat: Infinity, duration: 0.6, delay: 0.4 }}
-                      />
+                      {[0, 1, 2].map(i => (
+                        <motion.span key={i} className="w-2 h-2 bg-white rounded-full" animate={{ y: [0, -6, 0] }} transition={{ repeat: Infinity, duration: 0.6, delay: 0.2 * i }} />
+                      ))}
                     </div>
                     <span>Creating your path...</span>
-                  </>
+                  </div>
                 ) : (
                   <>
-                    <Sparkles className="w-5 h-5" />
-                    <span>Generate Learning Path</span>
-                    <span className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-white/20 text-xs font-medium">
-                      <Zap className="w-3 h-3" />
-                      {CREDIT_COSTS.learningPath}
-                    </span>
+                    <Sparkles className="w-5 h-5 mr-2" />
+                    Generate Learning Path
+                    <span className="ml-2 px-2.5 py-1 rounded-full bg-white/20 text-xs">{CREDIT_COSTS.learningPath}c</span>
                   </>
                 )}
-              </motion.button>
+              </Button>
             </motion.div>
           )}
         </AnimatePresence>
@@ -426,135 +331,83 @@ const LearningPathPage: React.FC = () => {
     );
   }
 
-  // Path view - Enhanced
+  // Path View
   if (step === 'path' && currentPath) {
     const completedCount = currentPath.topics.filter(t => t.completed).length;
     const progress = (completedCount / currentPath.topics.length) * 100;
-    
+
     return (
-      <div className="space-y-5 pb-8">
-        <motion.button
-          initial={{ opacity: 0, x: -10 }}
-          animate={{ opacity: 1, x: 0 }}
-          className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
-          onClick={() => setStep('select')}
-          whileTap={{ scale: 0.98 }}
-        >
-          <ArrowLeft className="w-4 h-4" />
-          <span className="text-sm">Back to paths</span>
-        </motion.button>
-
-        {/* Path Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="p-5 rounded-2xl bg-gradient-to-br from-card to-muted/30 border border-border"
-        >
-          <div className="flex items-start gap-4">
-            <span className="text-4xl">{currentPath.icon || '📚'}</span>
-            <div className="flex-1">
-              <h1 className="text-xl font-heading font-bold text-foreground">
-                {currentPath.subject}
-              </h1>
-              <div className="flex items-center gap-3 mt-1.5 text-xs text-muted-foreground">
-                <span className="capitalize flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary">
-                  <Target className="w-3 h-3" />
-                  {currentPath.level}
-                </span>
-                <span className="flex items-center gap-1">
-                  <Clock className="w-3 h-3" />
-                  {currentPath.topics.length} topics
-                </span>
-              </div>
+      <div className="space-y-6 pb-24">
+        {/* Header */}
+        <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" onClick={() => setStep('select')} className="rounded-xl">
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
+          <div className="flex-1">
+            <div className="flex items-center gap-2">
+              <span className="text-2xl">{currentPath.icon}</span>
+              <h1 className="text-xl font-heading font-bold text-foreground">{currentPath.subject}</h1>
             </div>
-          </div>
-
-          {/* Progress Bar */}
-          <div className="mt-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-medium text-foreground">Progress</span>
-              <span className="text-xs text-muted-foreground">
-                {completedCount} / {currentPath.topics.length} completed
-              </span>
-            </div>
-            <div className="h-2.5 bg-muted rounded-full overflow-hidden">
-              <motion.div
-                className="h-full bg-gradient-to-r from-primary via-accent to-emerald-500 rounded-full"
-                initial={{ width: 0 }}
-                animate={{ width: `${progress}%` }}
-                transition={{ duration: 0.5 }}
-              />
-            </div>
+            <p className="text-sm text-muted-foreground capitalize">{currentPath.level} Level</p>
           </div>
         </motion.div>
 
-        {/* Topics Roadmap - Enhanced with connecting line */}
-        <div className="relative space-y-3 pl-4">
-          {/* Connecting line */}
-          <div className="absolute left-[1.25rem] top-4 bottom-4 w-0.5 bg-border" />
-          
+        {/* Progress */}
+        <Card className="p-4 bg-gradient-to-r from-primary/10 to-accent/10 border-primary/20">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-medium text-foreground">{completedCount} of {currentPath.topics.length} topics</span>
+            <span className="text-sm font-semibold text-primary">{Math.round(progress)}%</span>
+          </div>
+          <Progress value={progress} className="h-3" />
+        </Card>
+
+        {/* Topics */}
+        <div className="space-y-3">
           {currentPath.topics.map((topic, index) => {
-            const isActive = index === currentPath.currentIndex;
-            const isLocked = !topic.completed && index > currentPath.currentIndex + 1 && tier === 'free';
+            const isUnlocked = index === 0 || currentPath.topics[index - 1].completed;
+            const isCurrent = index === currentPath.currentIndex;
             
             return (
-              <motion.button
+              <motion.div
                 key={topic.id}
-                className={`relative w-full p-4 pl-10 rounded-xl border-2 transition-all text-left ${
-                  topic.completed
-                    ? 'border-emerald-500/40 bg-emerald-500/5'
-                    : isActive
-                    ? 'border-primary bg-primary/5 shadow-md shadow-primary/10'
-                    : isLocked
-                    ? 'border-border bg-muted/50 opacity-60'
-                    : 'border-border bg-card hover:border-primary/30'
-                }`}
-                onClick={() => {
-                  if (isLocked) {
-                    showUpgradePrompt('Full Learning Path Access');
-                    return;
-                  }
-                  setSelectedTopic(topic);
-                  setStep('topic');
-                }}
-                whileTap={isLocked ? undefined : { scale: 0.98 }}
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.05 }}
+                transition={{ delay: 0.05 * index }}
               >
-                {/* Status circle on line */}
-                <div className={`absolute left-0 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full flex items-center justify-center ring-4 ring-background ${
-                  topic.completed
-                    ? 'bg-emerald-500 text-white'
-                    : isActive
-                    ? 'bg-primary text-primary-foreground'
-                    : isLocked
-                    ? 'bg-muted text-muted-foreground'
-                    : 'bg-muted text-foreground'
-                }`}>
-                  {topic.completed ? (
-                    <CheckCircle2 className="w-3.5 h-3.5" />
-                  ) : isLocked ? (
-                    <Lock className="w-3 h-3" />
-                  ) : isActive ? (
-                    <Play className="w-3 h-3" />
-                  ) : (
-                    <span className="text-xs font-medium">{index + 1}</span>
-                  )}
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <div className="flex-1 min-w-0">
-                    <p className={`font-medium text-sm ${topic.completed || isActive ? 'text-foreground' : 'text-muted-foreground'}`}>
-                      {topic.title}
-                    </p>
-                    <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">
-                      {topic.description}
-                    </p>
+                <Card
+                  className={`p-4 cursor-pointer transition-all ${
+                    topic.completed
+                      ? 'bg-emerald-500/10 border-emerald-500/30'
+                      : isCurrent
+                      ? 'bg-primary/10 border-primary/30 shadow-md'
+                      : isUnlocked
+                      ? 'bg-card hover:border-primary/30 hover:shadow-md'
+                      : 'bg-muted/50 opacity-60'
+                  }`}
+                  onClick={() => isUnlocked && (setSelectedTopic(topic), setStep('topic'))}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                      topic.completed ? 'bg-emerald-500' : isCurrent ? 'bg-primary' : 'bg-muted'
+                    }`}>
+                      {topic.completed ? (
+                        <CheckCircle2 className="w-5 h-5 text-white" />
+                      ) : !isUnlocked ? (
+                        <Lock className="w-5 h-5 text-muted-foreground" />
+                      ) : (
+                        <span className="text-sm font-bold text-foreground">{index + 1}</span>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className={`font-semibold text-sm ${topic.completed ? 'text-emerald-700 dark:text-emerald-300' : 'text-foreground'}`}>
+                        {topic.title}
+                      </p>
+                      <p className="text-xs text-muted-foreground truncate">{topic.description}</p>
+                    </div>
+                    {isUnlocked && <ChevronRight className="w-5 h-5 text-muted-foreground" />}
                   </div>
-                  <ChevronRight className={`w-4 h-4 shrink-0 ${isActive ? 'text-primary' : 'text-muted-foreground'}`} />
-                </div>
-              </motion.button>
+                </Card>
+              </motion.div>
             );
           })}
         </div>
@@ -562,148 +415,79 @@ const LearningPathPage: React.FC = () => {
     );
   }
 
-  // Topic detail view - Enhanced
+  // Topic View
   if (step === 'topic' && selectedTopic && currentPath) {
-    const currentExplanation = selectedTopic.explanations?.[selectedMode];
+    const explanation = selectedTopic.explanations?.[selectedMode];
     
     return (
-      <div className="space-y-4 pb-8">
-        <motion.button
-          initial={{ opacity: 0, x: -10 }}
-          animate={{ opacity: 1, x: 0 }}
-          className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
-          onClick={() => setStep('path')}
-          whileTap={{ scale: 0.98 }}
-        >
-          <ArrowLeft className="w-4 h-4" />
-          <span className="text-sm">Back to path</span>
-        </motion.button>
-
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-        >
-          <h1 className="text-xl font-heading font-bold text-foreground">
-            {selectedTopic.title}
-          </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            {selectedTopic.description}
-          </p>
+      <div className="space-y-6 pb-24">
+        {/* Header */}
+        <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="flex items-center gap-3">
+          <Button variant="ghost" size="icon" onClick={() => setStep('path')} className="rounded-xl">
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
+          <div className="flex-1">
+            <h1 className="text-lg font-heading font-bold text-foreground">{selectedTopic.title}</h1>
+            <p className="text-sm text-muted-foreground">{currentPath.subject}</p>
+          </div>
         </motion.div>
 
-        {/* Mode Switcher - Enhanced */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1 custom-scrollbar"
-        >
-          {(Object.keys(modes) as ModeKey[]).map((modeKey) => {
-            const mode = modes[modeKey];
-            const hasExplanation = !!selectedTopic.explanations?.[modeKey];
-            
-            return (
-              <motion.button
-                key={modeKey}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl whitespace-nowrap transition-all border ${
-                  selectedMode === modeKey
-                    ? 'bg-primary text-primary-foreground border-primary shadow-md'
-                    : hasExplanation
-                    ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/30'
-                    : 'bg-muted/50 text-muted-foreground border-border hover:border-primary/30'
-                }`}
-                onClick={() => {
-                  setSelectedMode(modeKey);
-                  if (!hasExplanation) {
-                    loadTopicExplanation(selectedTopic, modeKey);
-                  }
-                }}
-                whileTap={{ scale: 0.98 }}
-              >
-                <span className="text-lg">{mode.icon}</span>
-                <span className="text-sm font-medium">{mode.name}</span>
-                {!hasExplanation && (
-                  <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-background/50 text-[10px] font-medium">
-                    <Zap className="w-2.5 h-2.5" />
-                    {CREDIT_COSTS[modeKey]}
-                  </span>
-                )}
-                {hasExplanation && (
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                )}
-              </motion.button>
-            );
-          })}
-        </motion.div>
+        {/* Mode Selector */}
+        <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1 custom-scrollbar">
+          {(Object.keys(modes) as ModeKey[]).map((modeKey) => (
+            <Button
+              key={modeKey}
+              variant={selectedMode === modeKey ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => {
+                setSelectedMode(modeKey);
+                if (!selectedTopic.explanations?.[modeKey]) {
+                  loadTopicExplanation(selectedTopic, modeKey);
+                }
+              }}
+              className="flex-shrink-0 rounded-xl"
+            >
+              <span className="mr-1.5">{modes[modeKey].icon}</span>
+              {modes[modeKey].name}
+            </Button>
+          ))}
+        </div>
 
-        {/* Explanation Content */}
-        <motion.div 
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="bg-card rounded-2xl border border-border p-5 min-h-[300px]"
-        >
+        {/* Content */}
+        <Card className="p-5 bg-card/80 backdrop-blur-sm border-border/50">
           {selectedTopic.loading ? (
-            <div className="flex flex-col items-center justify-center py-12">
-              <div className="flex gap-1.5 mb-4">
-                <motion.span 
-                  className="w-3 h-3 bg-primary rounded-full"
-                  animate={{ y: [0, -8, 0] }}
-                  transition={{ repeat: Infinity, duration: 0.6 }}
-                />
-                <motion.span 
-                  className="w-3 h-3 bg-primary rounded-full"
-                  animate={{ y: [0, -8, 0] }}
-                  transition={{ repeat: Infinity, duration: 0.6, delay: 0.2 }}
-                />
-                <motion.span 
-                  className="w-3 h-3 bg-primary rounded-full"
-                  animate={{ y: [0, -8, 0] }}
-                  transition={{ repeat: Infinity, duration: 0.6, delay: 0.4 }}
-                />
-              </div>
-              <span className="text-muted-foreground text-sm">Loading explanation...</span>
+            <div className="flex flex-col items-center gap-3 py-8">
+              <div className="w-10 h-10 border-3 border-primary border-t-transparent rounded-full animate-spin" />
+              <p className="text-sm text-muted-foreground">Loading explanation...</p>
             </div>
-          ) : currentExplanation ? (
-            <MarkdownRenderer content={currentExplanation} className="text-sm" />
+          ) : explanation ? (
+            <div className="prose prose-sm dark:prose-invert max-w-none">
+              <MarkdownRenderer content={explanation} />
+            </div>
           ) : (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <div className="text-5xl mb-4">{modes[selectedMode].icon}</div>
-              <p className="text-foreground font-semibold text-lg">
-                Get {modes[selectedMode].name} explanation
-              </p>
-              <p className="text-sm text-muted-foreground mt-1 mb-5">
-                Uses {CREDIT_COSTS[selectedMode]} credits
-              </p>
-              <motion.button
-                className="px-6 py-3 rounded-xl bg-gradient-to-r from-primary to-accent text-primary-foreground font-medium flex items-center gap-2 shadow-lg shadow-primary/20"
-                onClick={() => loadTopicExplanation(selectedTopic, selectedMode)}
-                whileTap={{ scale: 0.98 }}
-                whileHover={{ scale: 1.02 }}
-              >
-                <Zap className="w-4 h-4" />
+            <div className="text-center py-8">
+              <BookOpen className="w-10 h-10 mx-auto text-muted-foreground mb-3" />
+              <p className="text-sm text-muted-foreground mb-4">Ready to learn about this topic?</p>
+              <Button onClick={() => loadTopicExplanation(selectedTopic, selectedMode)}>
+                <Play className="w-4 h-4 mr-2" />
                 Load Explanation
-              </motion.button>
+              </Button>
             </div>
           )}
-        </motion.div>
+        </Card>
 
-        {/* Mark Complete */}
-        {!selectedTopic.completed && currentExplanation && (
-          <motion.button
-            className="w-full py-3.5 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-medium flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/25 transition-colors"
+        {/* Complete Button */}
+        {!selectedTopic.completed && explanation && (
+          <Button
+            className="w-full h-12 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-semibold"
             onClick={() => {
               markTopicComplete(selectedTopic.id);
               setStep('path');
             }}
-            whileTap={{ scale: 0.98 }}
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
           >
-            <CheckCircle2 className="w-5 h-5" />
+            <CheckCircle2 className="w-5 h-5 mr-2" />
             Mark as Complete
-          </motion.button>
+          </Button>
         )}
       </div>
     );
