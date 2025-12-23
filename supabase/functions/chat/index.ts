@@ -11,7 +11,7 @@ const MAX_PROMPT_LENGTH = 5000;
 const MAX_MESSAGE_LENGTH = 10000;
 const MAX_MESSAGES_COUNT = 50;
 const VALID_MODES = ["beginner", "thinker", "story", "mastery"];
-const VALID_TYPES = ["explain", "ekakshar", "oneword", "oneline", "bullets", "diagram", "refine", "continue", "file_analysis", "learning_path", "explain_back_evaluate"];
+const VALID_TYPES = ["explain", "ekakshar", "oneword", "oneline", "bullets", "diagram", "visual_map", "refine", "continue", "file_analysis", "learning_path", "explain_back_evaluate"];
 const VALID_LANGUAGES = [
   "en", "hi", "hinglish", "ta", "te", "bn", "gu", "kn", "ml", "mr", "or", "pa",
   "as", "ur", "sd", "ks", "ne", "sa", "kok", "mni", "doi", "sat", "mai", "bho",
@@ -295,6 +295,161 @@ Remember: Flash cards are for FAST learning. Keep it tight!`;
         );
       }
       systemPrompt = `You are a one-word summary expert. Analyze the topic/question and provide a SINGLE powerful word that captures its essence. Return ONLY one word, nothing else.`;
+    } else if (type === "oneline") {
+      if (!prompt) {
+        return new Response(
+          JSON.stringify({ error: "prompt is required for oneline type" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      systemPrompt = `You are a master of concise explanation. Summarize the given topic in ONE powerful sentence that captures its complete essence. The sentence should be memorable, precise, and insightful. Return ONLY the one-line summary, nothing else.`;
+      const langPrompt = languagePrompts[language] || languagePrompts.en;
+      systemPrompt = `${systemPrompt}\n\n${langPrompt}`;
+    } else if (type === "bullets") {
+      if (!prompt) {
+        return new Response(
+          JSON.stringify({ error: "prompt is required for bullets type" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      systemPrompt = `You are a knowledge architect. Create a "Bullet Ladder" for the topic - a progression of bullet points from SIMPLE to DEEP understanding.
+
+FORMAT:
+🌱 SIMPLE (For beginners):
+• Basic point 1
+• Basic point 2
+
+🧠 DEEPER (For thinkers):
+• More nuanced point 1
+• More nuanced point 2
+
+🎓 MASTERY (For experts):
+• Advanced insight 1
+• Advanced insight 2
+
+Each level should build upon the previous. Use clear, memorable language.`;
+      const langPrompt = languagePrompts[language] || languagePrompts.en;
+      systemPrompt = `${systemPrompt}\n\n${langPrompt}`;
+    } else if (type === "diagram" || type === "visual_map") {
+      if (!prompt) {
+        return new Response(
+          JSON.stringify({ error: "prompt is required for diagram type" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      systemPrompt = `You are a visual knowledge mapper. Create a TEXT-BASED diagram/map that shows the structure, relationships, and hierarchy of the topic.
+
+USE THESE VISUAL ELEMENTS:
+- Boxes: [Concept]
+- Arrows: → ← ↔ ↓ ↑
+- Hierarchy: Use indentation and lines
+- Connections: Use --- or ═══
+- Groups: Use ┌──┐ └──┘ borders
+
+Create a clear, scannable visual structure that reveals:
+1. Main concept at the center/top
+2. Sub-concepts branching out
+3. Relationships between elements
+4. Hierarchy from general to specific
+
+Make it look like an ASCII diagram that captures the full picture at a glance.`;
+      const langPrompt = languagePrompts[language] || languagePrompts.en;
+      systemPrompt = `${systemPrompt}\n\n${langPrompt}`;
+    } else if (type === "file_analysis") {
+      if (!prompt) {
+        return new Response(
+          JSON.stringify({ error: "prompt is required for file_analysis type" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      const analysisMode = (body.analysisMode as string) || "beginner";
+      const modeInstructions: Record<string, string> = {
+        beginner: "Explain like teaching a curious 10-year-old. Use simple words, fun analogies, and emojis. Make it engaging and easy to understand.",
+        thinker: "Provide a logical, structured analysis. Break down the reasoning, show cause-and-effect, and highlight key insights systematically.",
+        story: "Transform the content into an engaging narrative. Use metaphors, create a journey through the material, make it memorable through storytelling.",
+        mastery: "Provide expert-level analysis. Include technical details, nuances, connections to broader concepts, and academic-style insights."
+      };
+      systemPrompt = `You are MiniMind File Analyst - an expert at understanding and explaining documents, images, and data.
+
+ANALYSIS INSTRUCTIONS:
+${modeInstructions[analysisMode] || modeInstructions.beginner}
+
+For the content provided:
+1. Identify the main topics and themes
+2. Extract key concepts and arguments
+3. Note important patterns or data points
+4. Explain the significance and implications
+5. Summarize the core message
+
+Be thorough but clear. Help the user truly UNDERSTAND the content, not just know what's in it.`;
+      const langPrompt = languagePrompts[language] || languagePrompts.en;
+      systemPrompt = `${systemPrompt}\n\n${langPrompt}`;
+    } else if (type === "learning_path") {
+      if (!prompt) {
+        return new Response(
+          JSON.stringify({ error: "prompt is required for learning_path type" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      const pathType = (body.pathType as string) || "overview";
+      const pathInstructions: Record<string, string> = {
+        overview: "Create a 3-step quick overview. Each step should be clear and actionable.",
+        week: "Create a 7-day learning plan with daily focus areas and activities.",
+        month: "Create a 30-day mastery journey with weekly themes and daily micro-lessons."
+      };
+      systemPrompt = `You are MiniMind Learning Path Creator - an expert at designing structured learning journeys.
+
+${pathInstructions[pathType] || pathInstructions.overview}
+
+FORMAT YOUR RESPONSE:
+- Clear step/day numbering
+- Specific learning objectives
+- Actionable activities
+- Expected outcomes
+- Connections between steps
+
+Make the path feel achievable yet comprehensive. Build from basics to mastery.`;
+      const langPrompt = languagePrompts[language] || languagePrompts.en;
+      systemPrompt = `${systemPrompt}\n\n${langPrompt}`;
+    } else if (type === "explain_back_evaluate") {
+      if (!prompt) {
+        return new Response(
+          JSON.stringify({ error: "prompt is required for explain_back_evaluate type" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      const originalConcept = (body.originalConcept as string) || "";
+      systemPrompt = `You are MiniMind Learning Evaluator - an encouraging but honest teacher who evaluates understanding.
+
+The student was taught this concept:
+"${originalConcept}"
+
+Now they've explained it back in their own words. Evaluate their explanation:
+
+1. **Accuracy Score** (0-100%): How correct is their understanding?
+2. **What They Got Right**: Celebrate their correct points
+3. **Gaps or Misconceptions**: Gently identify what's missing or incorrect
+4. **Constructive Feedback**: Specific advice to improve understanding
+5. **Suggested Next Step**: What they should study or practice next
+
+Be encouraging but honest. The goal is REAL learning, not just feeling good.
+
+FORMAT:
+📊 Accuracy: [X]%
+
+✅ What You Got Right:
+[Points]
+
+🔍 Areas to Review:
+[Gaps/misconceptions]
+
+💡 My Advice:
+[Feedback]
+
+📚 Next Step:
+[Suggestion]`;
+      const langPrompt = languagePrompts[language] || languagePrompts.en;
+      systemPrompt = `${systemPrompt}\n\n${langPrompt}`;
     } else if (type === "continue") {
       if (!messages || messages.length === 0) {
         return new Response(

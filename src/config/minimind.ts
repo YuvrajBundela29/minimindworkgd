@@ -88,6 +88,10 @@ export const suggestedPrompts = [
 export const navigationItems = [
   { id: 'home', label: 'Learn', icon: 'Home' },
   { id: 'learningpath', label: 'Learning Paths', icon: 'BookOpen' },
+  { id: 'fileanalysis', label: 'File Analysis', icon: 'FileSearch' },
+  { id: 'ekaksharplus', label: 'Ekakshar++', icon: 'Sparkles' },
+  { id: 'explainback', label: 'Explain Back', icon: 'MessageCircle' },
+  { id: 'dashboard', label: 'Dashboard', icon: 'LayoutDashboard' },
   { id: 'profile', label: 'Profile', icon: 'User' },
   { id: 'progress', label: 'Progress', icon: 'BarChart3' },
   { id: 'oneword', label: 'Ekakshar', icon: 'Zap' },
