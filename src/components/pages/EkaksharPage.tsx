@@ -54,7 +54,7 @@ const COMPRESSION_MODES: CompressionMode[] = [
     credits: 2,
   },
   {
-    id: 'visual',
+    id: 'visual_map',
     label: 'Visual Map',
     description: 'Structured concept view',
     icon: Network,
@@ -337,7 +337,7 @@ const EkaksharPage: React.FC<EkaksharPageProps> = ({ language }) => {
                   <p className="text-4xl font-bold text-center py-6">{result}</p>
                 ) : selectedMode === 'oneline' ? (
                   <p className="text-xl font-medium text-center py-4 leading-relaxed">{result}</p>
-                ) : selectedMode === 'visual' ? (
+                ) : selectedMode === 'visual_map' ? (
                   <div className="bg-white/10 rounded-xl p-4 backdrop-blur-sm">
                     <div className="prose prose-invert prose-sm max-w-none">
                       <MarkdownRenderer content={result} />
