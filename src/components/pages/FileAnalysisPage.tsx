@@ -133,7 +133,7 @@ const FileAnalysisPage: React.FC = () => {
       const { data, error } = await supabase.functions.invoke('chat', {
         body: {
           type: 'file_analysis',
-          prompt: `Analyze this file named "${file.name}": ${file.content?.substring(0, 50000)}`,
+          prompt: `Analyze "${file.name}": ${file.content?.substring(0, 4500)}`,
           analysisMode: selectedMode,
           language: 'en',
         },
