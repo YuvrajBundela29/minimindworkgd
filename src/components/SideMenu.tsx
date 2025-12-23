@@ -8,16 +8,12 @@ import CreditDisplay from './CreditDisplay';
 const iconMap: Record<string, React.FC<{ className?: string }>> = {
   Home,
   User,
-  BarChart3,
   Zap,
   History,
   Cog: Settings,
   BookOpen,
   Crown,
-  FileSearch,
-  Sparkles,
   MessageCircle,
-  LayoutDashboard,
 };
 
 interface SideMenuProps {
