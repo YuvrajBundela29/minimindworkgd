@@ -86,8 +86,8 @@ const ExplainBackPage: React.FC = () => {
       const { data, error } = await supabase.functions.invoke('chat', {
         body: {
           type: 'explain_back_evaluate',
+          prompt: userExplanation,
           originalConcept: aiExplanation,
-          userExplanation: userExplanation,
           language: 'en',
         },
       });
