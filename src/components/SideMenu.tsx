@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Home, BarChart3, Zap, History, Settings, Sun, Moon, HelpCircle, User, BookOpen, Crown } from 'lucide-react';
+import { X, Home, BarChart3, Zap, History, Settings, Sun, Moon, HelpCircle, User, BookOpen, Crown, FileSearch, Sparkles, MessageCircle, LayoutDashboard } from 'lucide-react';
 import { navigationItems, NavigationId } from '@/config/minimind';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import CreditDisplay from './CreditDisplay';
@@ -14,6 +14,10 @@ const iconMap: Record<string, React.FC<{ className?: string }>> = {
   Cog: Settings,
   BookOpen,
   Crown,
+  FileSearch,
+  Sparkles,
+  MessageCircle,
+  LayoutDashboard,
 };
 
 interface SideMenuProps {
