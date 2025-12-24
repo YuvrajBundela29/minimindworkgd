@@ -1,6 +1,8 @@
 import React from 'react';
 import { Menu, User } from 'lucide-react';
 import { motion } from 'framer-motion';
+import EarlyAccessCreditDisplay from './EarlyAccessCreditDisplay';
+import { useEarlyAccess } from '@/contexts/EarlyAccessContext';
 
 interface MobileHeaderProps {
   onMenuClick: () => void;
@@ -8,6 +10,8 @@ interface MobileHeaderProps {
 }
 
 const MobileHeader: React.FC<MobileHeaderProps> = ({ onMenuClick, onProfileClick }) => {
+  const { isEarlyAccess } = useEarlyAccess();
+
   return (
     <header className="mobile-header">
       <motion.button
@@ -27,15 +31,20 @@ const MobileHeader: React.FC<MobileHeaderProps> = ({ onMenuClick, onProfileClick
         />
         <span className="logo-text">MiniMind</span>
       </div>
-      
-      <motion.button
-        className="icon-btn icon-btn-surface"
-        onClick={onProfileClick}
-        whileTap={{ scale: 0.95 }}
-        aria-label="Profile"
-      >
-        <User className="w-5 h-5" />
-      </motion.button>
+
+      <div className="flex items-center gap-2">
+        {/* Persistent Credit Pill */}
+        {isEarlyAccess && <EarlyAccessCreditDisplay variant="minimal" />}
+        
+        <motion.button
+          className="icon-btn icon-btn-surface"
+          onClick={onProfileClick}
+          whileTap={{ scale: 0.95 }}
+          aria-label="Profile"
+        >
+          <User className="w-5 h-5" />
+        </motion.button>
+      </div>
     </header>
   );
 };
