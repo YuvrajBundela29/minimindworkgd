@@ -164,10 +164,10 @@ const EkaksharPage: React.FC<EkaksharPageProps> = ({ language }) => {
 
       {/* Input Card */}
       <Card className="p-4 bg-card border-border shadow-sm">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 rounded-xl bg-muted/50 p-1.5">
           <button
             type="button"
-            className="p-2.5 rounded-xl bg-muted hover:bg-muted/80 transition-colors flex-shrink-0"
+            className="p-2.5 rounded-lg hover:bg-background transition-colors flex-shrink-0"
             onClick={handleVoiceInput}
           >
             <Mic className="w-5 h-5 text-muted-foreground" />
@@ -178,23 +178,21 @@ const EkaksharPage: React.FC<EkaksharPageProps> = ({ language }) => {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Enter any topic or concept..."
-            className="flex-1 bg-transparent border-none outline-none text-foreground text-base placeholder:text-muted-foreground"
+            className="flex-1 min-w-0 bg-transparent border-none outline-none text-foreground text-base placeholder:text-muted-foreground py-2"
             disabled={isProcessing}
             onKeyDown={(e) => e.key === 'Enter' && handleQuickCompress()}
           />
           
           <Button
             onClick={() => handleQuickCompress()}
-            className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-medium"
+            size="icon"
+            className="h-10 w-10 rounded-lg bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white flex-shrink-0"
             disabled={!input.trim() || isProcessing}
           >
             {isProcessing ? (
               <Loader2 className="w-4 h-4 animate-spin" />
             ) : (
-              <>
-                <Zap className="w-4 h-4 mr-2" />
-                Compress
-              </>
+              <Zap className="w-4 h-4" />
             )}
           </Button>
         </div>
