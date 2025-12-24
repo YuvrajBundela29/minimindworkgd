@@ -206,29 +206,29 @@ const LearningPathPage: React.FC = () => {
               <TrendingUp className="w-4 h-4 text-primary" />
               <h2 className="text-sm font-semibold text-foreground">Continue Learning</h2>
             </div>
-            <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1 custom-scrollbar">
+            <div className="flex flex-col gap-3">
               {savedPaths.slice(0, 3).map((path, i) => {
                 const progress = (path.topics.filter(t => t.completed).length / path.topics.length) * 100;
                 return (
                   <motion.button
                     key={path.id}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.05 * i }}
-                    className="flex-shrink-0 p-4 rounded-2xl bg-card border border-border hover:border-primary/30 hover:shadow-lg transition-all text-left min-w-[180px] group"
+                    className="p-4 rounded-2xl bg-card border border-border hover:border-primary/30 hover:shadow-lg transition-all text-left group"
                     onClick={() => { setCurrentPath(path); setStep('path'); }}
                     whileTap={{ scale: 0.98 }}
                   >
-                    <div className="flex items-center gap-2 mb-2">
+                    <div className="flex items-center gap-3">
                       <span className="text-2xl">{path.icon || '📚'}</span>
                       <div className="flex-1 min-w-0">
-                        <p className="font-semibold text-foreground text-sm truncate group-hover:text-primary transition-colors">{path.subject}</p>
+                        <p className="font-semibold text-foreground text-sm group-hover:text-primary transition-colors">{path.subject}</p>
                         <p className="text-xs text-muted-foreground capitalize">{path.level}</p>
                       </div>
-                    </div>
-                    <div className="flex items-center gap-2 mt-3">
-                      <Progress value={progress} className="h-2 flex-1" />
-                      <span className="text-xs font-medium text-primary">{Math.round(progress)}%</span>
+                      <div className="flex items-center gap-2">
+                        <Progress value={progress} className="h-2 w-16" />
+                        <span className="text-xs font-medium text-primary">{Math.round(progress)}%</span>
+                      </div>
                     </div>
                   </motion.button>
                 );

@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { 
-  User, Trophy, Target, Flame, Calendar, Edit2, Save, X, LogOut,
-  TrendingUp, BookOpen, Brain, Sparkles, ChevronRight, BarChart3
+  User, Trophy, Flame, Calendar, Edit2, Save, X, LogOut,
+  TrendingUp, Brain, BarChart3, Camera, Upload
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -51,6 +51,9 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSignOut }) => {
   const [activeTab, setActiveTab] = useState('overview');
   const [modeUsage, setModeUsage] = useState<Record<ModeKey, number>>({} as Record<ModeKey, number>);
   const [skillAreas, setSkillAreas] = useState<SkillArea[]>([]);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetchUserData();
@@ -98,6 +101,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSignOut }) => {
       if (profileData) {
         setProfile(profileData);
         setEditName(profileData.display_name || '');
+        setAvatarUrl(profileData.avatar_url || null);
       }
 
       const { data: statsData } = await supabase
@@ -171,6 +175,58 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSignOut }) => {
     }
   };
 
+  const handleAvatarClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file');
+      return;
+    }
+
+    // Validate file size (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error('Image must be less than 2MB');
+      return;
+    }
+
+    setIsUploadingAvatar(true);
+
+    try {
+      // Create a local preview URL
+      const previewUrl = URL.createObjectURL(file);
+      setAvatarUrl(previewUrl);
+
+      // Convert to base64 for storage in profile (since we don't have storage bucket set up)
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        const base64 = reader.result as string;
+        
+        const { error } = await supabase
+          .from('profiles')
+          .update({ avatar_url: base64 })
+          .eq('user_id', user.id);
+
+        if (error) throw error;
+
+        setProfile({ ...profile, avatar_url: base64 });
+        toast.success('Profile picture updated!');
+      };
+      reader.readAsDataURL(file);
+    } catch (error) {
+      console.error('Error uploading avatar:', error);
+      toast.error('Failed to upload profile picture');
+      setAvatarUrl(profile?.avatar_url || null);
+    } finally {
+      setIsUploadingAvatar(false);
+    }
+  };
+
   const getTrendIcon = (trend: string) => {
     if (trend === 'up') return <TrendingUp className="w-3 h-3 text-emerald-500" />;
     if (trend === 'down') return <TrendingUp className="w-3 h-3 text-red-500 rotate-180" />;
@@ -204,6 +260,15 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSignOut }) => {
 
   return (
     <div className="space-y-6 pb-24">
+      {/* Hidden file input */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleAvatarChange}
+        className="hidden"
+      />
+
       {/* Profile Header */}
       <motion.div
         className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary/20 via-accent/10 to-primary/5 p-6 border border-primary/20"
@@ -212,9 +277,39 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSignOut }) => {
       >
         <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-primary/20 to-transparent rounded-full blur-3xl" />
         <div className="relative flex items-start gap-4">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-lg">
-            <User className="w-8 h-8 text-white" />
+          {/* Avatar with upload */}
+          <div className="relative group">
+            <button
+              onClick={handleAvatarClick}
+              disabled={isUploadingAvatar}
+              className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-lg overflow-hidden relative"
+            >
+              {avatarUrl ? (
+                <img 
+                  src={avatarUrl} 
+                  alt="Profile" 
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <User className="w-8 h-8 text-white" />
+              )}
+              
+              {/* Overlay on hover */}
+              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                {isUploadingAvatar ? (
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <Camera className="w-5 h-5 text-white" />
+                )}
+              </div>
+            </button>
+            
+            {/* Upload badge */}
+            <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-primary flex items-center justify-center shadow-md">
+              <Upload className="w-3 h-3 text-primary-foreground" />
+            </div>
           </div>
+
           <div className="flex-1">
             {isEditing ? (
               <div className="flex items-center gap-2">
