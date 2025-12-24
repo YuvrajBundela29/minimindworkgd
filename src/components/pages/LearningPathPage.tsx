@@ -7,9 +7,13 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useSubscription, CREDIT_COSTS } from '@/contexts/SubscriptionContext';
+import { useEarlyAccess } from '@/contexts/EarlyAccessContext';
 import { ModeKey, modes } from '@/config/minimind';
 import AIService from '@/services/aiService';
 import MarkdownRenderer from '@/components/MarkdownRenderer';
+import SkeletonLoader from '@/components/SkeletonLoader';
+import TrustFooter from '@/components/TrustFooter';
+import FeedbackPrompt from '@/components/FeedbackPrompt';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -52,6 +56,7 @@ const LEVELS = [
 
 const LearningPathPage: React.FC = () => {
   const { tier, credits, useCredits, hasCredits, showUpgradePrompt } = useSubscription();
+  const { isEarlyAccess } = useEarlyAccess();
   const [step, setStep] = useState<'select' | 'path' | 'topic'>('select');
   const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
   const [selectedLevel, setSelectedLevel] = useState<string | null>(null);
@@ -68,7 +73,7 @@ const LearningPathPage: React.FC = () => {
     if (!selectedSubject || !selectedLevel) return;
     
     const cost = CREDIT_COSTS.learningPath;
-    if (!hasCredits(cost)) {
+    if (!isEarlyAccess && !hasCredits(cost)) {
       showUpgradePrompt('Learning Path Generation');
       return;
     }
@@ -103,7 +108,9 @@ const LearningPathPage: React.FC = () => {
         icon: subject?.icon,
       };
 
-      useCredits(cost, 'learningPath');
+      if (!isEarlyAccess) {
+        useCredits(cost, 'learningPath');
+      }
       setCurrentPath(newPath);
       setSavedPaths(prev => {
         const updated = [newPath, ...prev.slice(0, 9)];
@@ -118,13 +125,13 @@ const LearningPathPage: React.FC = () => {
     } finally {
       setIsGenerating(false);
     }
-  }, [selectedSubject, selectedLevel, hasCredits, useCredits, showUpgradePrompt]);
+  }, [selectedSubject, selectedLevel, hasCredits, useCredits, showUpgradePrompt, isEarlyAccess]);
 
   const loadTopicExplanation = useCallback(async (topic: Topic, mode: ModeKey) => {
     if (topic.explanations?.[mode]) return;
 
     const cost = CREDIT_COSTS[mode];
-    if (!hasCredits(cost)) {
+    if (!isEarlyAccess && !hasCredits(cost)) {
       showUpgradePrompt('Topic Explanation');
       return;
     }
@@ -135,7 +142,9 @@ const LearningPathPage: React.FC = () => {
       const prompt = `Explain "${topic.title}" in the context of ${currentPath?.subject}. ${topic.description}`;
       const response = await AIService.getExplanation(prompt, mode, 'en');
       
-      useCredits(cost, mode);
+      if (!isEarlyAccess) {
+        useCredits(cost, mode);
+      }
       
       setSelectedTopic(prev => {
         if (!prev) return null;
@@ -154,7 +163,7 @@ const LearningPathPage: React.FC = () => {
       toast.error('Failed to load explanation');
       setSelectedTopic(prev => prev ? { ...prev, loading: false } : null);
     }
-  }, [currentPath, hasCredits, useCredits, showUpgradePrompt]);
+  }, [currentPath, hasCredits, useCredits, showUpgradePrompt, isEarlyAccess]);
 
   const markTopicComplete = useCallback((topicId: string) => {
     setCurrentPath(prev => {
@@ -305,28 +314,47 @@ const LearningPathPage: React.FC = () => {
               <Button
                 className="w-full h-14 rounded-2xl bg-gradient-to-r from-primary via-primary to-accent text-primary-foreground font-semibold text-base shadow-lg shadow-primary/25"
                 onClick={generatePath}
-                disabled={isGenerating || !hasCredits(CREDIT_COSTS.learningPath)}
+                disabled={isGenerating || (!isEarlyAccess && !hasCredits(CREDIT_COSTS.learningPath))}
               >
                 {isGenerating ? (
-                  <div className="flex items-center gap-2">
-                    <div className="flex gap-1">
-                      {[0, 1, 2].map(i => (
-                        <motion.span key={i} className="w-2 h-2 bg-white rounded-full" animate={{ y: [0, -6, 0] }} transition={{ repeat: Infinity, duration: 0.6, delay: 0.2 * i }} />
-                      ))}
+                  <div className="flex flex-col items-center gap-1">
+                    <div className="flex items-center gap-2">
+                      <div className="flex gap-1">
+                        {[0, 1, 2].map(i => (
+                          <motion.span key={i} className="w-2 h-2 bg-white rounded-full" animate={{ y: [0, -6, 0] }} transition={{ repeat: Infinity, duration: 0.6, delay: 0.2 * i }} />
+                        ))}
+                      </div>
+                      <span>Thinking deeply...</span>
                     </div>
-                    <span>Creating your path...</span>
+                    <span className="text-xs opacity-70">~10 seconds</span>
                   </div>
                 ) : (
                   <>
                     <Sparkles className="w-5 h-5 mr-2" />
                     Generate Learning Path
-                    <span className="ml-2 px-2.5 py-1 rounded-full bg-white/20 text-xs">{CREDIT_COSTS.learningPath}c</span>
+                    <span className="ml-2 px-2.5 py-1 rounded-full bg-white/20 text-xs">
+                      {isEarlyAccess ? 'Free' : `${CREDIT_COSTS.learningPath}c`}
+                    </span>
                   </>
                 )}
               </Button>
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Skeleton loader during generation */}
+        {isGenerating && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="mt-6"
+          >
+            <SkeletonLoader 
+              variant="learning-path" 
+              message="Thinking deeply... ~10 seconds"
+            />
+          </motion.div>
+        )}
       </div>
     );
   }

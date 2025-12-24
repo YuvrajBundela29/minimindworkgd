@@ -1,9 +1,13 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Volume2, Copy, Download, Share2, Send, Wand2, Maximize2, Zap } from 'lucide-react';
 import { modes, ModeKey } from '@/config/minimind';
 import MarkdownRenderer from './MarkdownRenderer';
+import FeedbackPrompt from './FeedbackPrompt';
+import TrustFooter from './TrustFooter';
+import SkeletonLoader from './SkeletonLoader';
 import { useSubscription, CREDIT_COSTS } from '@/contexts/SubscriptionContext';
+import { useEarlyAccess } from '@/contexts/EarlyAccessContext';
 
 interface ModeCardProps {
   modeKey: ModeKey;
@@ -21,6 +25,33 @@ interface ModeCardProps {
   onChatInputChange: (mode: string, value: string) => void;
   currentQuestion: string;
 }
+
+// Determine confidence level based on mode
+const getConfidence = (mode: ModeKey): 'high' | 'medium' | 'low' => {
+  switch (mode) {
+    case 'mastery':
+      return 'high';
+    case 'thinker':
+      return 'high';
+    case 'beginner':
+      return 'medium';
+    case 'story':
+      return 'medium';
+    default:
+      return 'medium';
+  }
+};
+
+const getSourceType = (mode: ModeKey): 'reasoning' | 'knowledge' | 'creative' => {
+  switch (mode) {
+    case 'thinker':
+      return 'reasoning';
+    case 'story':
+      return 'creative';
+    default:
+      return 'knowledge';
+  }
+};
 
 const ModeCard: React.FC<ModeCardProps> = ({
   modeKey,
@@ -40,7 +71,9 @@ const ModeCard: React.FC<ModeCardProps> = ({
 }) => {
   const mode = modes[modeKey];
   const { getCreditCost } = useSubscription();
+  const { isEarlyAccess } = useEarlyAccess();
   const creditCost = getCreditCost(modeKey);
+  const [showFeedback, setShowFeedback] = useState(true);
   
   const handleChatSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,6 +81,13 @@ const ModeCard: React.FC<ModeCardProps> = ({
       onChatSubmit(chatInputValue, modeKey);
     }
   };
+
+  const thinkingMessages = [
+    'Thinking deeply...',
+    'Crafting explanation...',
+    'Processing...',
+  ];
+  const randomMessage = thinkingMessages[Math.floor(Math.random() * thinkingMessages.length)];
 
   return (
     <motion.div
@@ -68,7 +108,7 @@ const ModeCard: React.FC<ModeCardProps> = ({
           </span>
           <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-medium shrink-0">
             <Zap className="w-2.5 h-2.5" />
-            {creditCost}
+            {isEarlyAccess ? 'Free' : creditCost}
           </span>
         </div>
         
@@ -98,16 +138,32 @@ const ModeCard: React.FC<ModeCardProps> = ({
       {/* Content */}
       <div className="card-content-scroll custom-scrollbar mb-3">
         {isLoading ? (
-          <div className="flex items-center gap-2 py-4">
-            <div className="typing-indicator">
-              <span></span>
-              <span></span>
-              <span></span>
-            </div>
-            <span className="text-muted-foreground text-sm">Thinking...</span>
-          </div>
+          <SkeletonLoader 
+            variant="paragraph" 
+            lines={4} 
+            message={randomMessage}
+          />
         ) : answer ? (
-          <MarkdownRenderer content={answer} className="text-sm" />
+          <>
+            <MarkdownRenderer content={answer} className="text-sm" />
+            
+            {/* Trust Footer */}
+            <TrustFooter 
+              creditCost={creditCost}
+              confidence={getConfidence(modeKey)}
+              sourceType={getSourceType(modeKey)}
+            />
+            
+            {/* Feedback Prompt */}
+            {isEarlyAccess && showFeedback && (
+              <FeedbackPrompt 
+                onFeedback={(type, comment) => {
+                  console.log('Feedback:', { type, comment, mode: modeKey });
+                  setShowFeedback(false);
+                }}
+              />
+            )}
+          </>
         ) : (
           <p className="text-sm text-muted-foreground/60 italic py-4">
             Ready to explain...
