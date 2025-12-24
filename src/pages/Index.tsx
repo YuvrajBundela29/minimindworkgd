@@ -18,6 +18,7 @@ import RefinePromptDialog from '@/components/RefinePromptDialog';
 import OnboardingGuide from '@/components/OnboardingGuide';
 import QuestionLimitBanner from '@/components/QuestionLimitBanner';
 import EarlyAccessGate from '@/components/EarlyAccessGate';
+import HeroEmptyState from '@/components/HeroEmptyState';
 import { modes, ModeKey, LanguageKey, NavigationId } from '@/config/minimind';
 import AIService from '@/services/aiService';
 import speechService from '@/services/speechService';
@@ -361,7 +362,55 @@ const Index = () => {
         <AnimatePresence mode="wait">
           {currentPage === 'home' && (
             <motion.div key="home" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-4">
-              {(Object.keys(modes) as ModeKey[]).map((modeKey, index) => (
+              {/* Hero Empty State when no question asked */}
+              {!hasAskedQuestion && !isAnyLoading && (
+                <HeroEmptyState onPromptClick={(prompt) => {
+                  setQuestion(prompt);
+                  // Auto-submit after small delay for UX
+                  setTimeout(() => {
+                    setCurrentQuestion(prompt);
+                    setHasAskedQuestion(true);
+                    setAnswers({ beginner: null, thinker: null, story: null, mastery: null });
+                    setLoadingModes({ beginner: true, thinker: true, story: true, mastery: true });
+                    
+                    setChatHistories({
+                      beginner: [{ role: 'user', content: prompt }],
+                      thinker: [{ role: 'user', content: prompt }],
+                      story: [{ role: 'user', content: prompt }],
+                      mastery: [{ role: 'user', content: prompt }],
+                    });
+                    
+                    const modeKeys = Object.keys(modes) as ModeKey[];
+                    const newAnswers: Record<ModeKey, string> = {} as Record<ModeKey, string>;
+                    
+                    Promise.all(
+                      modeKeys.map(async (modeKey) => {
+                        try {
+                          const response = await AIService.getExplanation(prompt, modeKey, selectedLanguage);
+                          setAnswers(prev => ({ ...prev, [modeKey]: response }));
+                          newAnswers[modeKey] = response;
+                          setChatHistories(prev => ({ ...prev, [modeKey]: [...prev[modeKey], { role: 'assistant', content: response }] }));
+                        } catch (error) {
+                          const errorMsg = 'Sorry, something went wrong. Please try again.';
+                          setAnswers(prev => ({ ...prev, [modeKey]: errorMsg }));
+                          newAnswers[modeKey] = errorMsg;
+                        } finally {
+                          setLoadingModes(prev => ({ ...prev, [modeKey]: false }));
+                        }
+                      })
+                    ).then(() => {
+                      const historyItem: HistoryItem = { id: Date.now().toString(), question: prompt, answers: newAnswers, timestamp: new Date(), language: selectedLanguage };
+                      setHistory(prev => [historyItem, ...prev.slice(0, 49)]);
+                      setStats(prev => ({ ...prev, totalQuestions: prev.totalQuestions + 1, todayQuestions: prev.todayQuestions + 1 }));
+                    });
+                    
+                    setQuestion('');
+                  }, 100);
+                }} />
+              )}
+              
+              {/* Mode Cards - shown when loading or has answers */}
+              {(hasAskedQuestion || isAnyLoading) && (Object.keys(modes) as ModeKey[]).map((modeKey, index) => (
                 <motion.div key={modeKey} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.1 }}>
                   <ModeCard modeKey={modeKey} answer={answers[modeKey]} isLoading={loadingModes[modeKey]} onSpeak={handleSpeak} onCopy={handleCopy} onDownload={handleDownload} onShare={handleShare} onGetOneWord={handleGetOneWord} onChatSubmit={handleChatSubmit} onFullscreen={handleFullscreen} isSpeaking={isSpeaking} chatInputValue={chatInputs[modeKey]} onChatInputChange={handleChatInputChange} currentQuestion={currentQuestion} />
                 </motion.div>
