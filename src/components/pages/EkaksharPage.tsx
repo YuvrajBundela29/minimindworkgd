@@ -1,20 +1,18 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  Zap, Send, Mic, Sparkles, Download, Share2, Copy, Check,
-  List, Network, Loader2, RefreshCw, ArrowRight, Brain
+  Zap, Mic, Sparkles, Download, Share2, Copy, Check,
+  List, Network, Loader2, RefreshCw, Brain
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import AIService from '@/services/aiService';
 import { LanguageKey } from '@/config/minimind';
 import MarkdownRenderer from '../MarkdownRenderer';
 import TrustFooter from '../TrustFooter';
 import FeedbackPrompt from '../FeedbackPrompt';
 import SkeletonLoader from '../SkeletonLoader';
 import { downloadPDF, sharePDF } from '@/utils/pdfGenerator';
-import { useSubscription, CREDIT_COSTS } from '@/contexts/SubscriptionContext';
 import { useEarlyAccess } from '@/contexts/EarlyAccessContext';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -22,61 +20,14 @@ interface EkaksharPageProps {
   language: LanguageKey;
 }
 
-interface CompressionMode {
-  id: string;
-  label: string;
-  description: string;
-  icon: typeof Zap;
-  gradient: string;
-  credits: number;
-}
-
-const COMPRESSION_MODES: CompressionMode[] = [
-  {
-    id: 'oneword',
-    label: 'One Word',
-    description: 'Pure essence',
-    icon: Zap,
-    gradient: 'from-amber-500 to-orange-600',
-    credits: 1,
-  },
-  {
-    id: 'oneline',
-    label: 'One Sentence',
-    description: 'Complete thought',
-    icon: Sparkles,
-    gradient: 'from-violet-500 to-purple-600',
-    credits: 1,
-  },
-  {
-    id: 'bullets',
-    label: 'Key Insights',
-    description: '3-5 bullet points',
-    icon: List,
-    gradient: 'from-cyan-500 to-blue-600',
-    credits: 2,
-  },
-  {
-    id: 'visual_map',
-    label: 'Mind Map',
-    description: 'Visual structure',
-    icon: Network,
-    gradient: 'from-emerald-500 to-teal-600',
-    credits: 3,
-  },
-];
-
 const EkaksharPage: React.FC<EkaksharPageProps> = ({ language }) => {
-  const { hasCredits, useCredits, showUpgradePrompt } = useSubscription();
   const { isEarlyAccess } = useEarlyAccess();
   const [input, setInput] = useState('');
-  const [selectedMode, setSelectedMode] = useState<string | null>(null);
   const [results, setResults] = useState<Record<string, string>>({});
   const [isProcessing, setIsProcessing] = useState(false);
   const [copied, setCopied] = useState(false);
   const [showFeedback, setShowFeedback] = useState(true);
 
-  // Auto-submit if question comes from home page
   useEffect(() => {
     const autoQuestion = sessionStorage.getItem('ekakshar-auto-question');
     if (autoQuestion) {
@@ -91,10 +42,8 @@ const EkaksharPage: React.FC<EkaksharPageProps> = ({ language }) => {
     if (!q.trim() || isProcessing) return;
 
     setIsProcessing(true);
-    setSelectedMode('oneword');
     
     try {
-      // Get all compressions at once for premium feel
       const modes = ['oneword', 'oneline', 'bullets'];
       const promises = modes.map(async (modeId) => {
         const { data, error } = await supabase.functions.invoke('chat', {
@@ -120,41 +69,28 @@ const EkaksharPage: React.FC<EkaksharPageProps> = ({ language }) => {
     }
   };
 
-  const handleSingleCompress = useCallback(async (modeId: string) => {
-    if (!input.trim()) {
-      toast.error('Please enter something to compress');
+  const handleGenerateMindMap = useCallback(async () => {
+    if (!input.trim() && !Object.keys(results).length) {
+      toast.error('Please enter something to compress first');
       return;
     }
 
-    const mode = COMPRESSION_MODES.find(m => m.id === modeId);
-    if (!mode) return;
-
-    if (!isEarlyAccess && !hasCredits(mode.credits)) {
-      showUpgradePrompt('Ekakshar');
-      return;
-    }
-
-    setSelectedMode(modeId);
     setIsProcessing(true);
 
     try {
       const { data, error } = await supabase.functions.invoke('chat', {
-        body: { prompt: input, type: modeId, language },
+        body: { prompt: input || 'Generate mind map for the previous topic', type: 'visual_map', language },
       });
 
       if (error) throw error;
-
-      if (!isEarlyAccess) {
-        useCredits(mode.credits, `ekakshar_${modeId}`);
-      }
-      setResults(prev => ({ ...prev, [modeId]: data.response }));
+      setResults(prev => ({ ...prev, visual_map: data.response }));
     } catch (error) {
-      console.error('Compression error:', error);
-      toast.error('Failed to process. Please try again.');
+      console.error('Mind map error:', error);
+      toast.error('Failed to generate mind map.');
     } finally {
       setIsProcessing(false);
     }
-  }, [input, hasCredits, useCredits, showUpgradePrompt, language, isEarlyAccess]);
+  }, [input, results, language]);
 
   const handleCopy = useCallback((text: string) => {
     navigator.clipboard.writeText(text);
@@ -174,7 +110,7 @@ const EkaksharPage: React.FC<EkaksharPageProps> = ({ language }) => {
 
   const handleReset = () => {
     setResults({});
-    setSelectedMode(null);
+    setInput('');
     setShowFeedback(true);
   };
 
@@ -207,72 +143,65 @@ const EkaksharPage: React.FC<EkaksharPageProps> = ({ language }) => {
         animate={{ opacity: 1, y: 0 }}
         className="text-center"
       >
-        <motion.div 
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-rose-500/10 border border-amber-500/20 mb-4"
-          whileHover={{ scale: 1.02 }}
-        >
+        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-rose-500/10 border border-amber-500/20 mb-4">
           <Zap className="w-5 h-5 text-amber-500" />
           <span className="text-sm font-semibold bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent">
             Ekakshar
           </span>
           {isEarlyAccess && (
-            <span className="px-1.5 py-0.5 text-[10px] font-medium rounded-full bg-primary/10 text-primary">
+            <span className="px-2 py-0.5 text-[10px] font-medium rounded-full bg-primary/10 text-primary">
               Free
             </span>
           )}
-        </motion.div>
+        </div>
         <h1 className="text-2xl font-heading font-bold text-foreground">
           Compress Any Idea
         </h1>
         <p className="text-muted-foreground text-sm mt-1">
-          From paragraphs to a single word — pure knowledge compression
+          From paragraphs to essence — pure knowledge compression
         </p>
       </motion.div>
 
       {/* Input Card */}
-      <Card className="p-4 bg-card/80 backdrop-blur-sm border-border/50 shadow-lg">
-        <form 
-          onSubmit={(e) => { e.preventDefault(); handleQuickCompress(); }}
-          className="flex items-center gap-2"
-        >
-          <motion.button
+      <Card className="p-4 bg-card border-border shadow-sm">
+        <div className="flex items-center gap-3">
+          <button
             type="button"
-            className="icon-btn icon-btn-ghost flex-shrink-0"
+            className="p-2.5 rounded-xl bg-muted hover:bg-muted/80 transition-colors flex-shrink-0"
             onClick={handleVoiceInput}
-            whileTap={{ scale: 0.95 }}
           >
             <Mic className="w-5 h-5 text-muted-foreground" />
-          </motion.button>
+          </button>
           
           <input
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Enter any topic or concept..."
-            className="flex-1 bg-transparent border-none outline-none text-foreground text-sm"
+            className="flex-1 bg-transparent border-none outline-none text-foreground text-base placeholder:text-muted-foreground"
             disabled={isProcessing}
+            onKeyDown={(e) => e.key === 'Enter' && handleQuickCompress()}
           />
           
-          <motion.button
-            type="submit"
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-white font-medium text-sm"
-            whileTap={{ scale: 0.95 }}
+          <Button
+            onClick={() => handleQuickCompress()}
+            className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-medium"
             disabled={!input.trim() || isProcessing}
           >
             {isProcessing ? (
               <Loader2 className="w-4 h-4 animate-spin" />
             ) : (
               <>
-                <Zap className="w-4 h-4" />
+                <Zap className="w-4 h-4 mr-2" />
                 Compress
               </>
             )}
-          </motion.button>
-        </form>
+          </Button>
+        </div>
       </Card>
 
       {/* Loading State */}
-      {isProcessing && (
+      {isProcessing && !hasResults && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -293,55 +222,57 @@ const EkaksharPage: React.FC<EkaksharPageProps> = ({ language }) => {
             exit={{ opacity: 0, y: -20 }}
             className="space-y-4"
           >
-            {/* One Word Result - Hero */}
+            {/* One Word Result - Hero Card */}
             {results.oneword && (
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="relative overflow-hidden"
               >
-                <Card className="p-6 bg-gradient-to-br from-amber-500 via-orange-500 to-rose-500 text-white shadow-xl">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-2">
-                      <Zap className="w-5 h-5" />
-                      <span className="font-semibold">One Word</span>
+                <Card className="p-6 bg-gradient-to-br from-amber-500 via-orange-500 to-rose-500 text-white shadow-lg overflow-hidden relative">
+                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.15),transparent_50%)]" />
+                  <div className="relative">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-2">
+                        <Zap className="w-5 h-5" />
+                        <span className="font-semibold text-sm">One Word</span>
+                      </div>
+                      <button
+                        onClick={() => handleCopy(results.oneword)}
+                        className="p-2 rounded-lg bg-white/10 hover:bg-white/20 transition-colors"
+                      >
+                        {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                      </button>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleCopy(results.oneword)}
-                      className="text-white/80 hover:text-white hover:bg-white/20"
+                    
+                    <motion.p 
+                      initial={{ scale: 0.8, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      transition={{ type: 'spring', delay: 0.2 }}
+                      className="text-4xl md:text-5xl font-bold text-center py-6"
                     >
-                      {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                    </Button>
+                      {results.oneword}
+                    </motion.p>
+                    
+                    <p className="text-center text-white/70 text-sm">
+                      The purest essence of your concept
+                    </p>
                   </div>
-                  
-                  <motion.p 
-                    initial={{ scale: 0.8, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    transition={{ type: 'spring', delay: 0.2 }}
-                    className="text-4xl md:text-5xl font-bold text-center py-8"
-                  >
-                    {results.oneword}
-                  </motion.p>
-                  
-                  <p className="text-center text-white/70 text-sm">
-                    The purest essence of your concept
-                  </p>
                 </Card>
               </motion.div>
             )}
 
-            {/* One Line Result */}
+            {/* One Sentence Result */}
             {results.oneline && (
               <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
               >
-                <Card className="p-5 bg-gradient-to-br from-violet-500/10 to-purple-500/10 border-violet-500/20">
+                <Card className="p-5 bg-card border-violet-500/20 shadow-sm">
                   <div className="flex items-center gap-2 mb-3">
-                    <Sparkles className="w-4 h-4 text-violet-500" />
+                    <div className="p-2 rounded-lg bg-violet-500/10">
+                      <Sparkles className="w-4 h-4 text-violet-500" />
+                    </div>
                     <span className="font-semibold text-foreground text-sm">One Sentence</span>
                   </div>
                   <p className="text-lg font-medium text-foreground leading-relaxed">
@@ -351,16 +282,18 @@ const EkaksharPage: React.FC<EkaksharPageProps> = ({ language }) => {
               </motion.div>
             )}
 
-            {/* Bullet Points */}
+            {/* Key Insights */}
             {results.bullets && (
               <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
               >
-                <Card className="p-5 bg-gradient-to-br from-cyan-500/10 to-blue-500/10 border-cyan-500/20">
+                <Card className="p-5 bg-card border-cyan-500/20 shadow-sm">
                   <div className="flex items-center gap-2 mb-3">
-                    <List className="w-4 h-4 text-cyan-500" />
+                    <div className="p-2 rounded-lg bg-cyan-500/10">
+                      <List className="w-4 h-4 text-cyan-500" />
+                    </div>
                     <span className="font-semibold text-foreground text-sm">Key Insights</span>
                   </div>
                   <div className="prose prose-sm dark:prose-invert max-w-none">
@@ -370,44 +303,44 @@ const EkaksharPage: React.FC<EkaksharPageProps> = ({ language }) => {
               </motion.div>
             )}
 
-            {/* Mind Map Button */}
-            {!results.visual_map && (
-              <motion.button
+            {/* Mind Map Section */}
+            {!results.visual_map ? (
+              <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.3 }}
-                onClick={() => handleSingleCompress('visual_map')}
-                disabled={isProcessing}
-                className="w-full p-4 rounded-xl border-2 border-dashed border-emerald-500/30 bg-emerald-500/5 hover:bg-emerald-500/10 hover:border-emerald-500/50 transition-all flex items-center justify-center gap-3"
               >
-                <Network className="w-5 h-5 text-emerald-500" />
-                <span className="font-medium text-foreground">Generate Mind Map</span>
-                <ArrowRight className="w-4 h-4 text-muted-foreground" />
-              </motion.button>
-            )}
-
-            {/* Mind Map Result */}
-            {results.visual_map && (
+                <button
+                  onClick={handleGenerateMindMap}
+                  disabled={isProcessing}
+                  className="w-full p-4 rounded-xl border-2 border-dashed border-emerald-500/30 bg-emerald-500/5 hover:bg-emerald-500/10 hover:border-emerald-500/50 transition-all flex items-center justify-center gap-3"
+                >
+                  <Network className="w-5 h-5 text-emerald-500" />
+                  <span className="font-medium text-foreground">Generate Mind Map</span>
+                </button>
+              </motion.div>
+            ) : (
               <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
               >
-                <Card className="p-5 bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border-emerald-500/20">
+                <Card className="p-5 bg-card border-emerald-500/20 shadow-sm">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
-                      <Network className="w-4 h-4 text-emerald-500" />
+                      <div className="p-2 rounded-lg bg-emerald-500/10">
+                        <Network className="w-4 h-4 text-emerald-500" />
+                      </div>
                       <span className="font-semibold text-foreground text-sm">Mind Map</span>
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
+                    <button
                       onClick={() => handleCopy(results.visual_map)}
+                      className="p-2 rounded-lg hover:bg-muted transition-colors"
                     >
-                      <Copy className="w-4 h-4" />
-                    </Button>
+                      <Copy className="w-4 h-4 text-muted-foreground" />
+                    </button>
                   </div>
-                  <div className="p-4 bg-background/50 rounded-xl backdrop-blur-sm">
-                    <pre className="whitespace-pre-wrap text-sm font-mono overflow-x-auto text-foreground">
+                  <div className="p-4 bg-muted/50 rounded-xl">
+                    <pre className="whitespace-pre-wrap text-sm font-mono text-foreground overflow-x-auto">
                       {results.visual_map}
                     </pre>
                   </div>
@@ -416,7 +349,7 @@ const EkaksharPage: React.FC<EkaksharPageProps> = ({ language }) => {
             )}
 
             {/* Trust Footer & Feedback */}
-            <div className="space-y-2">
+            <div className="space-y-3 pt-2">
               <TrustFooter 
                 creditCost={0}
                 confidence="high"
@@ -434,19 +367,21 @@ const EkaksharPage: React.FC<EkaksharPageProps> = ({ language }) => {
             </div>
 
             {/* Actions */}
-            <div className="flex gap-2 pt-2">
-              <Button variant="outline" onClick={handleReset} className="flex-1">
+            <div className="flex gap-3 pt-2">
+              <Button variant="outline" onClick={handleReset} className="flex-1 h-12 rounded-xl">
                 <RefreshCw className="w-4 h-4 mr-2" />
                 New Topic
               </Button>
               <Button 
                 variant="outline" 
+                className="h-12 w-12 rounded-xl"
                 onClick={() => results.oneword && handleDownload(Object.values(results).join('\n\n'))}
               >
                 <Download className="w-4 h-4" />
               </Button>
               <Button 
                 variant="outline"
+                className="h-12 w-12 rounded-xl"
                 onClick={() => results.oneword && handleShare(Object.values(results).join('\n\n'))}
               >
                 <Share2 className="w-4 h-4" />
@@ -456,43 +391,41 @@ const EkaksharPage: React.FC<EkaksharPageProps> = ({ language }) => {
         )}
       </AnimatePresence>
 
-      {/* Empty State - Mode Selector */}
+      {/* Empty State */}
       {!hasResults && !isProcessing && (
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="space-y-4"
+          className="text-center py-12"
         >
-          <div className="text-center py-8">
-            <Brain className="w-12 h-12 mx-auto text-muted-foreground/30 mb-4" />
-            <p className="text-muted-foreground text-sm">
-              Enter any topic above and watch it compress into pure understanding
-            </p>
+          <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-amber-500/10 to-orange-500/10 flex items-center justify-center mb-4">
+            <Brain className="w-8 h-8 text-amber-500/50" />
           </div>
-
+          <h3 className="font-semibold text-foreground mb-2">Compress Any Idea</h3>
+          <p className="text-muted-foreground text-sm max-w-xs mx-auto mb-6">
+            Enter any topic above and watch it transform into pure understanding
+          </p>
+          
           {/* Quick Examples */}
-          <div className="space-y-2">
-            <p className="text-xs font-medium text-muted-foreground text-center">Try these:</p>
-            <div className="flex flex-wrap gap-2 justify-center">
+          <div className="space-y-3">
+            <p className="text-xs font-medium text-muted-foreground">Try these:</p>
+            <div className="flex flex-wrap gap-2 justify-center max-w-sm mx-auto">
               {['Quantum Computing', 'Blockchain', 'Machine Learning', 'Photosynthesis'].map((example) => (
-                <motion.button
+                <button
                   key={example}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => { setInput(example); handleQuickCompress(example); }}
-                  className="px-3 py-1.5 rounded-full bg-muted/50 hover:bg-muted text-xs font-medium text-foreground transition-colors"
+                  onClick={() => {
+                    setInput(example);
+                    handleQuickCompress(example);
+                  }}
+                  className="px-4 py-2 rounded-full bg-muted hover:bg-muted/80 text-sm font-medium text-foreground transition-colors"
                 >
                   {example}
-                </motion.button>
+                </button>
               ))}
             </div>
           </div>
         </motion.div>
       )}
-
-      {/* Footer */}
-      <div className="text-center text-xs text-muted-foreground pt-4">
-        <p>Powered by AI • Compress knowledge instantly</p>
-      </div>
     </div>
   );
 };
