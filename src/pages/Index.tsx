@@ -342,12 +342,14 @@ const Index = () => {
     );
   }
 
-  if (!user && isEarlyAccess) {
-    return <EarlyAccessGate onSignIn={() => setCurrentPage('auth')} />;
-  }
-
+  // Auth page takes priority when navigating to it
   if (currentPage === 'auth') {
     return <AuthPage onBack={() => setCurrentPage('home')} onAuthSuccess={() => setCurrentPage('home')} />;
+  }
+
+  // Show early access gate only if not logged in and not navigating to auth
+  if (!user && isEarlyAccess) {
+    return <EarlyAccessGate onSignIn={() => setCurrentPage('auth')} />;
   }
 
   return (
