@@ -1,11 +1,14 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Check, Zap, Crown, Sparkles, Brain, BookOpen, MessageSquare, Shield } from 'lucide-react';
+import { Check, Zap, Crown, Sparkles, Brain, BookOpen, MessageSquare, Shield, Gift, Rocket, Clock } from 'lucide-react';
 import { useSubscription, CREDIT_COSTS } from '@/contexts/SubscriptionContext';
+import { useEarlyAccess } from '@/contexts/EarlyAccessContext';
+import EarlyAccessCreditDisplay from '@/components/EarlyAccessCreditDisplay';
 import CreditDisplay from '@/components/CreditDisplay';
 
 const SubscriptionPage: React.FC = () => {
   const { tier, credits, upgradeToPro, limits } = useSubscription();
+  const { isEarlyAccess, freeTrialDays, dailyCreditsAfterLaunch, showLifetimeReward } = useEarlyAccess();
 
   const tiers = [
     {
@@ -72,17 +75,69 @@ const SubscriptionPage: React.FC = () => {
           animate={{ opacity: 1, y: 0 }}
           className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary mb-4"
         >
-          <Sparkles className="w-4 h-4" />
-          <span className="text-sm font-medium">Pay for thinking power, not restrictions</span>
+          <Rocket className="w-4 h-4" />
+          <span className="text-sm font-medium">
+            {isEarlyAccess ? 'Coming Soon — Early Access Phase' : 'Pay for thinking power, not restrictions'}
+          </span>
         </motion.div>
         
         <h1 className="text-3xl font-heading font-bold text-foreground mb-2">
           MiniMind Subscription
         </h1>
         <p className="text-muted-foreground">
-          All modes are always unlocked. Credits fuel your learning journey.
+          {isEarlyAccess 
+            ? "MiniMind is currently free for early users. We're focused on learning from you before launching subscriptions."
+            : 'All modes are always unlocked. Credits fuel your learning journey.'}
         </p>
       </div>
+
+      {/* Early Access Lifetime Reward */}
+      {isEarlyAccess && showLifetimeReward && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="p-5 rounded-2xl bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-rose-500/10 border border-amber-500/20"
+        >
+          <div className="flex items-start gap-3">
+            <div className="p-2 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500">
+              <Gift className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-foreground mb-1">Early Adopter Reward</h3>
+              <p className="text-sm text-muted-foreground mb-2">
+                The first users who join during Early Access will receive a{' '}
+                <span className="font-semibold text-foreground">lifetime Pro subscription — free forever</span>.
+              </p>
+              <p className="text-xs text-muted-foreground/80">
+                Thank you for believing in us early. Your feedback shapes MiniMind.
+              </p>
+            </div>
+          </div>
+        </motion.div>
+      )}
+
+      {/* Free Period Clarity */}
+      {isEarlyAccess && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15 }}
+          className="p-4 rounded-xl bg-muted/50 border border-border/50"
+        >
+          <div className="flex items-center gap-3">
+            <Clock className="w-5 h-5 text-primary" />
+            <div>
+              <p className="text-sm text-foreground">
+                <span className="font-medium">Free access for the first {freeTrialDays} days.</span>
+              </p>
+              <p className="text-xs text-muted-foreground">
+                After launch, free users receive {dailyCreditsAfterLaunch} credits per day.
+              </p>
+            </div>
+          </div>
+        </motion.div>
+      )}
 
       {/* Current Credits */}
       <motion.div
@@ -90,7 +145,11 @@ const SubscriptionPage: React.FC = () => {
         animate={{ opacity: 1, y: 0 }}
         className="flex justify-center"
       >
-        <CreditDisplay variant="detailed" />
+        {isEarlyAccess ? (
+          <EarlyAccessCreditDisplay variant="detailed" />
+        ) : (
+          <CreditDisplay variant="detailed" />
+        )}
       </motion.div>
 
       {/* How Credits Work - Fixed grid layout */}
@@ -199,7 +258,11 @@ const SubscriptionPage: React.FC = () => {
               ))}
             </ul>
 
-            {tierInfo.cta && (
+            {isEarlyAccess ? (
+              <div className="w-full py-3 px-4 rounded-xl font-medium text-center bg-muted/50 text-muted-foreground border border-dashed border-border">
+                Coming Soon
+              </div>
+            ) : tierInfo.cta && (
               <motion.button
                 className={`w-full py-3 px-4 rounded-xl font-medium transition-colors ${
                   tierInfo.current

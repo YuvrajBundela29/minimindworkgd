@@ -17,12 +17,14 @@ import FullscreenMode from '@/components/FullscreenMode';
 import RefinePromptDialog from '@/components/RefinePromptDialog';
 import OnboardingGuide from '@/components/OnboardingGuide';
 import QuestionLimitBanner from '@/components/QuestionLimitBanner';
+import EarlyAccessGate from '@/components/EarlyAccessGate';
 import { modes, ModeKey, LanguageKey, NavigationId } from '@/config/minimind';
 import AIService from '@/services/aiService';
 import speechService from '@/services/speechService';
 import { downloadPDF, sharePDF } from '@/utils/pdfGenerator';
 import { supabase } from '@/integrations/supabase/client';
 import { useSubscription, CREDIT_COSTS } from '@/contexts/SubscriptionContext';
+import { useEarlyAccess } from '@/contexts/EarlyAccessContext';
 
 // Types for history
 export interface HistoryItem {
@@ -42,6 +44,8 @@ const defaultAnswers: Record<ModeKey, string | null> = {
 };
 
 const Index = () => {
+  const { isEarlyAccess } = useEarlyAccess();
+  
   // State Management
   const [currentPage, setCurrentPage] = useState<NavigationId | 'auth'>('home');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -49,6 +53,7 @@ const Index = () => {
   const [selectedLanguage, setSelectedLanguage] = useState<LanguageKey>('en');
   const [hasAskedQuestion, setHasAskedQuestion] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   
   // Question & Answers
   const [question, setQuestion] = useState('');
@@ -123,9 +128,11 @@ const Index = () => {
     // Auth listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user ?? null);
+      setIsCheckingAuth(false);
     });
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
+      setIsCheckingAuth(false);
     });
     
     return () => subscription.unsubscribe();
@@ -322,6 +329,22 @@ const Index = () => {
   const handleSignOut = async () => { await supabase.auth.signOut(); setUser(null); toast.success('Signed out!'); };
 
   const isAnyLoading = Object.values(loadingModes).some(l => l);
+
+  // Mandatory sign-in gate for early access
+  if (isCheckingAuth) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-pulse flex items-center gap-2">
+          <img src="https://i.ibb.co/fGLH5Dxs/minimind-logo.png" alt="MiniMind" className="w-10 h-10" />
+          <span className="text-muted-foreground">Loading...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user && isEarlyAccess) {
+    return <EarlyAccessGate onSignIn={() => setCurrentPage('auth')} />;
+  }
 
   if (currentPage === 'auth') {
     return <AuthPage onBack={() => setCurrentPage('home')} onAuthSuccess={() => setCurrentPage('home')} />;

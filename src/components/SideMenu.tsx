@@ -1,8 +1,10 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Home, BarChart3, Zap, History, Settings, Sun, Moon, HelpCircle, User, BookOpen, Crown, FileSearch, Sparkles, MessageCircle, LayoutDashboard } from 'lucide-react';
+import { X, Home, BarChart3, Zap, History, Settings, Sun, Moon, HelpCircle, User, BookOpen, Crown, FileSearch, Sparkles, MessageCircle, LayoutDashboard, MessageSquareHeart } from 'lucide-react';
 import { navigationItems, NavigationId } from '@/config/minimind';
 import { useSubscription } from '@/contexts/SubscriptionContext';
+import { useEarlyAccess } from '@/contexts/EarlyAccessContext';
+import EarlyAccessCreditDisplay from './EarlyAccessCreditDisplay';
 import CreditDisplay from './CreditDisplay';
 
 const iconMap: Record<string, React.FC<{ className?: string }>> = {
@@ -40,6 +42,7 @@ const SideMenu: React.FC<SideMenuProps> = ({
   onShowGuide,
 }) => {
   const { tier } = useSubscription();
+  const { isEarlyAccess } = useEarlyAccess();
 
   return (
     <AnimatePresence>
@@ -85,7 +88,11 @@ const SideMenu: React.FC<SideMenuProps> = ({
 
             {/* Credit Display */}
             <div className="p-4 border-b border-border">
-              <CreditDisplay variant="compact" />
+              {isEarlyAccess ? (
+                <EarlyAccessCreditDisplay variant="compact" />
+              ) : (
+                <CreditDisplay variant="compact" />
+              )}
             </div>
             
             <nav className="p-4">
@@ -149,6 +156,18 @@ const SideMenu: React.FC<SideMenuProps> = ({
                   <HelpCircle className="w-5 h-5" />
                   <span className="font-medium">App Guide</span>
                 </motion.button>
+              )}
+              
+              {/* Send Feedback - Early Access */}
+              {isEarlyAccess && (
+                <motion.a
+                  href="mailto:feedback@minimind.app?subject=MiniMind Early Access Feedback"
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <MessageSquareHeart className="w-5 h-5" />
+                  <span className="font-medium">Send Feedback</span>
+                </motion.a>
               )}
             </div>
           </motion.div>

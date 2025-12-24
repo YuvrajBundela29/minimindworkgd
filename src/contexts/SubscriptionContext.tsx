@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
 import { toast } from 'sonner';
+import { EARLY_ACCESS_CONFIG } from './EarlyAccessContext';
 
 export type SubscriptionTier = 'free' | 'pro';
 
@@ -189,6 +190,11 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({ chil
   }, [availableCredits]);
 
   const useCredits = useCallback((cost: number, mode?: string) => {
+    // Early Access: No credit deduction
+    if (EARLY_ACCESS_CONFIG.isEarlyAccess && EARLY_ACCESS_CONFIG.unlimitedCredits) {
+      return true;
+    }
+    
     if (!hasCredits(cost)) {
       showUpgradePrompt('More Credits');
       return false;
