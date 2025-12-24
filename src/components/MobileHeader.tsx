@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Menu, User } from 'lucide-react';
 import { motion } from 'framer-motion';
 import EarlyAccessCreditDisplay from './EarlyAccessCreditDisplay';
 import { useEarlyAccess } from '@/contexts/EarlyAccessContext';
+import { supabase } from '@/integrations/supabase/client';
 
 interface MobileHeaderProps {
   onMenuClick: () => void;
@@ -11,6 +12,33 @@ interface MobileHeaderProps {
 
 const MobileHeader: React.FC<MobileHeaderProps> = ({ onMenuClick, onProfileClick }) => {
   const { isEarlyAccess } = useEarlyAccess();
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchAvatar = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('avatar_url')
+          .eq('user_id', user.id)
+          .single();
+        
+        if (profile?.avatar_url) {
+          setAvatarUrl(profile.avatar_url);
+        }
+      }
+    };
+
+    fetchAvatar();
+
+    // Listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
+      fetchAvatar();
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   return (
     <header className="mobile-header">
@@ -37,12 +65,20 @@ const MobileHeader: React.FC<MobileHeaderProps> = ({ onMenuClick, onProfileClick
         {isEarlyAccess && <EarlyAccessCreditDisplay variant="minimal" />}
         
         <motion.button
-          className="icon-btn icon-btn-surface"
+          className="icon-btn icon-btn-surface w-9 h-9 rounded-full overflow-hidden p-0"
           onClick={onProfileClick}
           whileTap={{ scale: 0.95 }}
           aria-label="Profile"
         >
-          <User className="w-5 h-5" />
+          {avatarUrl ? (
+            <img 
+              src={avatarUrl} 
+              alt="Profile" 
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <User className="w-5 h-5" />
+          )}
         </motion.button>
       </div>
     </header>
