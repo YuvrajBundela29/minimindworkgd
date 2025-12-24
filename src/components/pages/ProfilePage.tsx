@@ -198,26 +198,39 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSignOut }) => {
     setIsUploadingAvatar(true);
 
     try {
-      // Create a local preview URL
-      const previewUrl = URL.createObjectURL(file);
-      setAvatarUrl(previewUrl);
+      // Create file path: user_id/avatar.ext
+      const fileExt = file.name.split('.').pop();
+      const filePath = `${user.id}/avatar.${fileExt}`;
 
-      // Convert to base64 for storage in profile (since we don't have storage bucket set up)
-      const reader = new FileReader();
-      reader.onloadend = async () => {
-        const base64 = reader.result as string;
-        
-        const { error } = await supabase
-          .from('profiles')
-          .update({ avatar_url: base64 })
-          .eq('user_id', user.id);
+      // Delete old avatar if exists (ignore errors)
+      await supabase.storage.from('avatars').remove([filePath]);
 
-        if (error) throw error;
+      // Upload new avatar to storage bucket
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, file, { 
+          upsert: true,
+          contentType: file.type 
+        });
 
-        setProfile({ ...profile, avatar_url: base64 });
-        toast.success('Profile picture updated!');
-      };
-      reader.readAsDataURL(file);
+      if (uploadError) throw uploadError;
+
+      // Get the public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath);
+
+      // Update profile with the URL
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: publicUrl })
+        .eq('user_id', user.id);
+
+      if (updateError) throw updateError;
+
+      setAvatarUrl(publicUrl);
+      setProfile({ ...profile, avatar_url: publicUrl });
+      toast.success('Profile picture updated!');
     } catch (error) {
       console.error('Error uploading avatar:', error);
       toast.error('Failed to upload profile picture');
