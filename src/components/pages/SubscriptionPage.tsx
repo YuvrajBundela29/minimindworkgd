@@ -1,73 +1,82 @@
-import React from 'react';
-import { motion } from 'framer-motion';
-import { Check, Zap, Crown, Sparkles, Brain, BookOpen, MessageSquare, Shield, Gift, Rocket, Clock } from 'lucide-react';
+import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  Check, Zap, Crown, Sparkles, Brain, BookOpen, MessageSquare, Shield, 
+  Gift, Rocket, Clock, TrendingUp, Calendar, CreditCard, ChevronRight,
+  Star, Lock, Unlock, IndianRupee, ArrowRight, AlertCircle
+} from 'lucide-react';
 import { useSubscription, CREDIT_COSTS } from '@/contexts/SubscriptionContext';
 import { useEarlyAccess } from '@/contexts/EarlyAccessContext';
-import EarlyAccessCreditDisplay from '@/components/EarlyAccessCreditDisplay';
-import CreditDisplay from '@/components/CreditDisplay';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
+import { toast } from 'sonner';
 
 const SubscriptionPage: React.FC = () => {
-  const { tier, credits, upgradeToPro, limits } = useSubscription();
+  const { tier, credits, upgradeToPro, limits, showLowCreditsWarning } = useSubscription();
   const { isEarlyAccess, freeTrialDays, dailyCreditsAfterLaunch, showLifetimeReward } = useEarlyAccess();
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'yearly'>('monthly');
 
-  const tiers = [
-    {
-      name: 'Free',
-      price: '₹0',
-      period: 'forever',
-      description: 'Explore all modes with daily credits',
-      credits: '15 credits/day',
-      features: [
-        'Access to ALL 4 learning modes',
-        '15 daily credits (reset every 24h)',
-        'Basic Learning Paths',
-        'Last 20 history items',
-        'Standard response speed',
-      ],
-      limitations: [
-        'No monthly credit pool',
-        'Limited Learning Path depth',
-        'No weekly reports',
-      ],
-      current: tier === 'free',
-      cta: tier === 'free' ? 'Current Plan' : null,
-    },
-    {
-      name: 'Pro',
-      price: '₹199',
-      period: '/month',
-      description: 'Unlimited thinking power',
-      credits: '100/day + 500/month',
-      features: [
-        'Everything in Free, plus:',
-        '100 daily + 500 monthly credits',
-        'Full Learning Paths with all depths',
-        'Multi-perspective answers',
-        'Weekly Mind Reports',
-        'Advanced Ekakshar++',
-        'Priority AI responses',
-        'Unlimited history',
-        'Offline smart notes',
-        'AI Mentor Personas',
-      ],
-      limitations: [],
-      current: tier === 'pro',
-      cta: tier === 'pro' ? 'Current Plan' : 'Upgrade to Pro',
-      highlighted: true,
-    },
+  const pricing = {
+    monthly: { price: 199, period: 'month', savings: null },
+    yearly: { price: 1999, period: 'year', savings: '17% off', monthlyEquiv: 167 },
+  };
+
+  const handleUpgrade = async (plan: 'monthly' | 'yearly') => {
+    setIsProcessing(true);
+    
+    // Razorpay integration placeholder
+    // In production, this will call your backend to create an order
+    // and then open the Razorpay checkout
+    
+    try {
+      // Simulating API call for demo
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // This is where Razorpay will be integrated
+      // const order = await createRazorpayOrder(plan);
+      // openRazorpayCheckout(order);
+      
+      toast.info('Payment integration coming soon!', {
+        description: 'Razorpay checkout will open here in production.',
+      });
+      
+      // For demo, upgrade immediately
+      upgradeToPro();
+    } catch (error) {
+      toast.error('Payment failed. Please try again.');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const dailyUsagePercent = (credits.dailyUsed / credits.dailyLimit) * 100;
+  const monthlyUsagePercent = tier === 'pro' ? (credits.monthlyUsed / credits.monthlyLimit) * 100 : 0;
+
+  const proFeatures = [
+    { icon: Zap, text: '100 daily + 500 monthly credits', highlight: true },
+    { icon: Brain, text: 'All 4 learning modes unlocked' },
+    { icon: Sparkles, text: 'Advanced Ekakshar++ compression' },
+    { icon: TrendingUp, text: 'Unlimited Learning Paths' },
+    { icon: Star, text: 'AI Mentor Personas' },
+    { icon: BookOpen, text: 'Weekly Mind Reports' },
+    { icon: Shield, text: 'Priority AI responses' },
+    { icon: MessageSquare, text: 'Unlimited history storage' },
   ];
 
-  const creditExplanation = [
-    { mode: 'Beginner', cost: CREDIT_COSTS.beginner, description: 'Simple explanations', icon: '🌱' },
-    { mode: 'Thinker', cost: CREDIT_COSTS.thinker, description: 'Logical depth', icon: '🧠' },
-    { mode: 'Story', cost: CREDIT_COSTS.story, description: 'Narrative learning', icon: '📖' },
-    { mode: 'Mastery', cost: CREDIT_COSTS.mastery, description: 'Expert detail', icon: '🎓' },
-    { mode: 'Ekakshar', cost: CREDIT_COSTS.ekakshar, description: 'Compression', icon: '⚡' },
-    { mode: 'Learning Path', cost: CREDIT_COSTS.learningPath, description: 'Structured', icon: '🗺️' },
+  const creditCosts = [
+    { mode: 'Beginner', cost: CREDIT_COSTS.beginner, icon: '🌱', color: 'bg-emerald-500' },
+    { mode: 'Thinker', cost: CREDIT_COSTS.thinker, icon: '🧠', color: 'bg-blue-500' },
+    { mode: 'Story', cost: CREDIT_COSTS.story, icon: '📖', color: 'bg-purple-500' },
+    { mode: 'Mastery', cost: CREDIT_COSTS.mastery, icon: '🎓', color: 'bg-amber-500' },
+    { mode: 'Ekakshar', cost: CREDIT_COSTS.ekakshar, icon: '⚡', color: 'bg-pink-500' },
+    { mode: 'Learning Path', cost: CREDIT_COSTS.learningPath, icon: '🗺️', color: 'bg-cyan-500' },
   ];
 
   return (
-    <div className="space-y-8 pb-8">
+    <div className="space-y-6 pb-8">
       {/* Header */}
       <div className="text-center">
         <motion.div
@@ -75,234 +84,417 @@ const SubscriptionPage: React.FC = () => {
           animate={{ opacity: 1, y: 0 }}
           className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary mb-4"
         >
-          <Rocket className="w-4 h-4" />
-          <span className="text-sm font-medium">
-            {isEarlyAccess ? 'Coming Soon — Early Access Phase' : 'Pay for thinking power, not restrictions'}
-          </span>
+          {isEarlyAccess ? (
+            <>
+              <Gift className="w-4 h-4" />
+              <span className="text-sm font-medium">Early Access — Free Forever for Early Users</span>
+            </>
+          ) : (
+            <>
+              <Rocket className="w-4 h-4" />
+              <span className="text-sm font-medium">Unlock unlimited learning power</span>
+            </>
+          )}
         </motion.div>
         
         <h1 className="text-3xl font-heading font-bold text-foreground mb-2">
-          MiniMind Subscription
+          {tier === 'pro' ? 'Your Pro Dashboard' : 'Upgrade to Pro'}
         </h1>
-        <p className="text-muted-foreground">
-          {isEarlyAccess 
-            ? "MiniMind is currently free for early users. We're focused on learning from you before launching subscriptions."
-            : 'All modes are always unlocked. Credits fuel your learning journey.'}
+        <p className="text-muted-foreground max-w-md mx-auto">
+          {tier === 'pro' 
+            ? 'Manage your subscription and track your learning credits'
+            : 'Get unlimited access to all features and never run out of credits'}
         </p>
       </div>
 
-      {/* Early Access Lifetime Reward */}
-      {isEarlyAccess && showLifetimeReward && (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="p-5 rounded-2xl bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-rose-500/10 border border-amber-500/20"
-        >
-          <div className="flex items-start gap-3">
-            <div className="p-2 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500">
-              <Gift className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <h3 className="font-semibold text-foreground mb-1">Early Adopter Reward</h3>
-              <p className="text-sm text-muted-foreground mb-2">
-                The first users who join during Early Access will receive a{' '}
-                <span className="font-semibold text-foreground">lifetime Pro subscription — free forever</span>.
-              </p>
-              <p className="text-xs text-muted-foreground/80">
-                Thank you for believing in us early. Your feedback shapes MiniMind.
-              </p>
-            </div>
-          </div>
-        </motion.div>
-      )}
-
-      {/* Free Period Clarity */}
-      {isEarlyAccess && (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.15 }}
-          className="p-4 rounded-xl bg-muted/50 border border-border/50"
-        >
-          <div className="flex items-center gap-3">
-            <Clock className="w-5 h-5 text-primary" />
-            <div>
-              <p className="text-sm text-foreground">
-                <span className="font-medium">Free access for the first {freeTrialDays} days.</span>
-              </p>
-              <p className="text-xs text-muted-foreground">
-                After launch, free users receive {dailyCreditsAfterLaunch} credits per day.
-              </p>
-            </div>
-          </div>
-        </motion.div>
-      )}
-
-      {/* Current Credits */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex justify-center"
-      >
-        {isEarlyAccess ? (
-          <EarlyAccessCreditDisplay variant="detailed" />
-        ) : (
-          <CreditDisplay variant="detailed" />
-        )}
-      </motion.div>
-
-      {/* How Credits Work - Fixed grid layout */}
+      {/* Current Usage Card */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className="bg-card rounded-2xl border border-border p-5"
       >
-        <div className="flex items-center gap-2 mb-4">
-          <Zap className="w-5 h-5 text-primary" />
-          <h2 className="text-lg font-semibold text-foreground">How Credits Work</h2>
-        </div>
-        
-        <p className="text-sm text-muted-foreground mb-4">
-          Each AI response costs credits based on depth and complexity. 
-          Deeper explanations require more processing power.
-        </p>
-
-        <div className="grid grid-cols-2 gap-2.5">
-          {creditExplanation.map((item) => (
-            <motion.div
-              key={item.mode}
-              className="flex items-center gap-2.5 p-3 rounded-xl bg-muted/50 border border-border/50"
-              whileHover={{ scale: 1.02 }}
-              transition={{ duration: 0.2 }}
-            >
-              <span className="text-xl shrink-0">{item.icon}</span>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1.5">
-                  <p className="text-sm font-medium text-foreground">{item.mode}</p>
-                  <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-semibold">
-                    <Zap className="w-2.5 h-2.5" />
-                    {item.cost}
-                  </span>
-                </div>
-                <p className="text-xs text-muted-foreground">{item.description}</p>
-              </div>
-            </motion.div>
-          ))}
-        </div>
-      </motion.div>
-
-      {/* Pricing Tiers */}
-      <div className="grid md:grid-cols-2 gap-6">
-        {tiers.map((tierInfo, index) => (
-          <motion.div
-            key={tierInfo.name}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 + index * 0.1 }}
-            className={`relative bg-card rounded-2xl border-2 p-6 ${
-              tierInfo.highlighted 
-                ? 'border-primary shadow-lg shadow-primary/20' 
-                : 'border-border'
-            } ${tierInfo.current ? 'ring-2 ring-primary/30' : ''}`}
-          >
-            {tierInfo.highlighted && (
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-gradient-to-r from-primary to-accent text-primary-foreground text-xs font-semibold">
-                MOST POPULAR
-              </div>
-            )}
-
-            <div className="flex items-start justify-between mb-4">
-              <div>
-                <div className="flex items-center gap-2">
-                  {tierInfo.highlighted ? (
-                    <Crown className="w-5 h-5 text-primary" />
+        <Card className="glass-card border-border/50 overflow-hidden">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className={`p-2 rounded-xl ${tier === 'pro' ? 'bg-gradient-to-br from-amber-500 to-orange-500' : 'bg-primary'}`}>
+                  {tier === 'pro' ? (
+                    <Crown className="w-5 h-5 text-white" />
                   ) : (
-                    <Brain className="w-5 h-5 text-muted-foreground" />
+                    <Zap className="w-5 h-5 text-primary-foreground" />
                   )}
-                  <h3 className="text-xl font-bold text-foreground">{tierInfo.name}</h3>
                 </div>
-                <p className="text-sm text-muted-foreground mt-1">{tierInfo.description}</p>
+                <div>
+                  <CardTitle className="text-lg">
+                    {tier === 'pro' ? 'Pro Member' : 'Free Plan'}
+                  </CardTitle>
+                  <CardDescription>
+                    {isEarlyAccess ? 'Unlimited credits during Early Access' : 'Your credit usage'}
+                  </CardDescription>
+                </div>
               </div>
-              
-              {tierInfo.current && (
-                <span className="px-2 py-1 rounded-full bg-emerald-500/10 text-emerald-600 text-xs font-medium">
-                  Active
-                </span>
+              {tier === 'pro' && (
+                <Badge className="bg-gradient-to-r from-amber-500 to-orange-500 text-white border-0">
+                  <Crown className="w-3 h-3 mr-1" />
+                  PRO
+                </Badge>
               )}
             </div>
-
-            <div className="mb-4">
-              <span className="text-3xl font-bold text-foreground">{tierInfo.price}</span>
-              <span className="text-muted-foreground">{tierInfo.period}</span>
-            </div>
-
-            <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-primary/5 mb-4">
-              <Zap className="w-4 h-4 text-primary" />
-              <span className="text-sm font-medium text-foreground">{tierInfo.credits}</span>
-            </div>
-
-            <ul className="space-y-2 mb-6">
-              {tierInfo.features.map((feature, i) => (
-                <li key={i} className="flex items-start gap-2 text-sm">
-                  <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                  <span className="text-foreground">{feature}</span>
-                </li>
-              ))}
-              {tierInfo.limitations.map((limitation, i) => (
-                <li key={`limit-${i}`} className="flex items-start gap-2 text-sm text-muted-foreground">
-                  <span className="w-4 h-4 shrink-0 text-center">–</span>
-                  <span>{limitation}</span>
-                </li>
-              ))}
-            </ul>
-
-            {isEarlyAccess ? (
-              <div className="w-full py-3 px-4 rounded-xl font-medium text-center bg-muted/50 text-muted-foreground border border-dashed border-border">
-                Coming Soon
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Daily Credits */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Daily Credits</span>
+                <span className="font-semibold text-foreground">
+                  {Math.floor(credits.dailyLimit - credits.dailyUsed)} / {credits.dailyLimit} remaining
+                </span>
               </div>
-            ) : tierInfo.cta && (
-              <motion.button
-                className={`w-full py-3 px-4 rounded-xl font-medium transition-colors ${
-                  tierInfo.current
-                    ? 'bg-muted text-muted-foreground cursor-default'
-                    : 'bg-gradient-to-r from-primary to-accent text-primary-foreground hover:opacity-90'
-                }`}
-                onClick={tierInfo.current ? undefined : upgradeToPro}
-                whileTap={tierInfo.current ? undefined : { scale: 0.98 }}
-              >
-                {tierInfo.cta}
-              </motion.button>
+              <div className="relative">
+                <Progress 
+                  value={100 - dailyUsagePercent} 
+                  className={`h-3 ${showLowCreditsWarning ? 'bg-amber-200 dark:bg-amber-900' : ''}`}
+                />
+                {showLowCreditsWarning && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="absolute -right-1 -top-1"
+                  >
+                    <AlertCircle className="w-4 h-4 text-amber-500" />
+                  </motion.div>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Resets at midnight • {credits.dailyUsed} credits used today
+              </p>
+            </div>
+
+            {/* Monthly Credits (Pro only) */}
+            {tier === 'pro' && (
+              <div className="space-y-2 pt-2 border-t border-border/50">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Monthly Pool</span>
+                  <span className="font-semibold text-foreground">
+                    {credits.monthlyLimit - credits.monthlyUsed} / {credits.monthlyLimit} remaining
+                  </span>
+                </div>
+                <Progress value={100 - monthlyUsagePercent} className="h-3" />
+                <p className="text-xs text-muted-foreground">
+                  Resets on billing date • {credits.monthlyUsed} credits used this month
+                </p>
+              </div>
             )}
-          </motion.div>
-        ))}
-      </div>
+
+            {/* Upgrade prompt for free users */}
+            {tier === 'free' && !isEarlyAccess && (
+              <motion.div
+                initial={{ opacity: 0, y: 5 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex items-center gap-3 p-3 rounded-xl bg-gradient-to-r from-primary/10 to-accent/10 border border-primary/20"
+              >
+                <div className="p-2 rounded-lg bg-primary/20">
+                  <TrendingUp className="w-4 h-4 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-foreground">Running low on credits?</p>
+                  <p className="text-xs text-muted-foreground">Upgrade to Pro for 100 daily + 500 monthly credits</p>
+                </div>
+                <ChevronRight className="w-4 h-4 text-muted-foreground" />
+              </motion.div>
+            )}
+          </CardContent>
+        </Card>
+      </motion.div>
+
+      {/* Early Access Notice */}
+      {isEarlyAccess && showLifetimeReward && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15 }}
+        >
+          <Card className="border-amber-500/30 bg-gradient-to-r from-amber-500/5 via-orange-500/5 to-rose-500/5">
+            <CardContent className="p-4">
+              <div className="flex items-start gap-3">
+                <div className="p-2 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 shrink-0">
+                  <Gift className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-foreground mb-1">🎉 Early Adopter Reward</h3>
+                  <p className="text-sm text-muted-foreground">
+                    You're one of our first users! Enjoy{' '}
+                    <span className="font-semibold text-foreground">lifetime Pro access — free forever</span>.
+                    Thank you for believing in MiniMind.
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      )}
+
+      {/* Pricing Section (only for non-pro users and not in early access) */}
+      {tier !== 'pro' && !isEarlyAccess && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="space-y-4"
+        >
+          {/* Plan Toggle */}
+          <div className="flex justify-center">
+            <div className="inline-flex items-center p-1 rounded-xl bg-muted/50 border border-border">
+              <button
+                onClick={() => setSelectedPlan('monthly')}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                  selectedPlan === 'monthly'
+                    ? 'bg-background text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                Monthly
+              </button>
+              <button
+                onClick={() => setSelectedPlan('yearly')}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
+                  selectedPlan === 'yearly'
+                    ? 'bg-background text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                Yearly
+                {pricing.yearly.savings && (
+                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0 bg-emerald-500/10 text-emerald-600 border-0">
+                    {pricing.yearly.savings}
+                  </Badge>
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* Pricing Card */}
+          <Card className="border-primary/50 shadow-lg shadow-primary/10 overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5" />
+            <CardHeader className="relative pb-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Crown className="w-6 h-6 text-primary" />
+                  <CardTitle className="text-xl">MiniMind Pro</CardTitle>
+                </div>
+                <Badge className="bg-primary text-primary-foreground">
+                  RECOMMENDED
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent className="relative space-y-6">
+              {/* Price */}
+              <div className="text-center py-4">
+                <div className="flex items-center justify-center gap-1">
+                  <IndianRupee className="w-8 h-8 text-foreground" />
+                  <span className="text-5xl font-bold text-foreground">
+                    {selectedPlan === 'monthly' ? pricing.monthly.price : pricing.yearly.price}
+                  </span>
+                </div>
+                <p className="text-muted-foreground mt-1">
+                  per {pricing[selectedPlan].period}
+                  {selectedPlan === 'yearly' && (
+                    <span className="text-emerald-600 ml-2">
+                      (₹{pricing.yearly.monthlyEquiv}/mo)
+                    </span>
+                  )}
+                </p>
+              </div>
+
+              {/* Features */}
+              <div className="grid gap-3">
+                {proFeatures.map((feature, index) => (
+                  <motion.div
+                    key={feature.text}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.3 + index * 0.05 }}
+                    className={`flex items-center gap-3 p-2 rounded-lg ${
+                      feature.highlight ? 'bg-primary/10' : ''
+                    }`}
+                  >
+                    <div className={`p-1.5 rounded-lg ${feature.highlight ? 'bg-primary' : 'bg-muted'}`}>
+                      <feature.icon className={`w-4 h-4 ${feature.highlight ? 'text-primary-foreground' : 'text-muted-foreground'}`} />
+                    </div>
+                    <span className={`text-sm ${feature.highlight ? 'font-medium text-foreground' : 'text-muted-foreground'}`}>
+                      {feature.text}
+                    </span>
+                    {feature.highlight && (
+                      <Badge variant="secondary" className="ml-auto text-[10px] bg-primary/10 text-primary border-0">
+                        Top Value
+                      </Badge>
+                    )}
+                  </motion.div>
+                ))}
+              </div>
+
+              {/* CTA Button */}
+              <Button
+                onClick={() => handleUpgrade(selectedPlan)}
+                disabled={isProcessing}
+                className="w-full py-6 text-lg font-semibold bg-gradient-to-r from-primary to-accent hover:opacity-90 transition-opacity"
+              >
+                {isProcessing ? (
+                  <>
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                      className="w-5 h-5 border-2 border-white border-t-transparent rounded-full mr-2"
+                    />
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    <CreditCard className="w-5 h-5 mr-2" />
+                    Upgrade Now — ₹{selectedPlan === 'monthly' ? pricing.monthly.price : pricing.yearly.price}
+                  </>
+                )}
+              </Button>
+
+              <p className="text-center text-xs text-muted-foreground">
+                🔒 Secure payment via Razorpay • Cancel anytime • Instant access
+              </p>
+            </CardContent>
+          </Card>
+        </motion.div>
+      )}
+
+      {/* Pro Member Management */}
+      {tier === 'pro' && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+        >
+          <Card className="glass-card">
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <CreditCard className="w-5 h-5" />
+                Subscription Details
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between p-3 rounded-xl bg-muted/50">
+                <div>
+                  <p className="text-sm font-medium text-foreground">Pro Monthly</p>
+                  <p className="text-xs text-muted-foreground">Next billing: February 28, 2026</p>
+                </div>
+                <Badge className="bg-emerald-500/10 text-emerald-600 border-0">Active</Badge>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-3">
+                <Button variant="outline" className="w-full">
+                  <Calendar className="w-4 h-4 mr-2" />
+                  Billing History
+                </Button>
+                <Button variant="outline" className="w-full text-destructive hover:text-destructive">
+                  Cancel Plan
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      )}
+
+      {/* Credit Costs Reference */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.25 }}
+      >
+        <Card className="glass-card">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Zap className="w-5 h-5 text-primary" />
+              Credit Costs
+            </CardTitle>
+            <CardDescription>
+              Each mode costs different credits based on AI processing depth
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-2">
+              {creditCosts.map((item) => (
+                <div
+                  key={item.mode}
+                  className="flex items-center gap-3 p-3 rounded-xl bg-muted/30 border border-border/50"
+                >
+                  <span className="text-xl">{item.icon}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-foreground truncate">{item.mode}</p>
+                  </div>
+                  <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-primary/10">
+                    <Zap className="w-3 h-3 text-primary" />
+                    <span className="text-xs font-semibold text-primary">{item.cost}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
 
       {/* Trust Signals */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4 }}
-        className="grid grid-cols-3 gap-4 text-center"
+        transition={{ delay: 0.3 }}
+        className="grid grid-cols-3 gap-3"
       >
-        <div className="p-4 rounded-xl bg-muted/30">
+        <div className="p-4 rounded-xl bg-muted/30 text-center">
           <Shield className="w-6 h-6 mx-auto mb-2 text-emerald-500" />
-          <p className="text-xs font-medium text-foreground">No Hidden Fees</p>
+          <p className="text-xs font-medium text-foreground">Secure Payments</p>
+          <p className="text-[10px] text-muted-foreground">via Razorpay</p>
         </div>
-        <div className="p-4 rounded-xl bg-muted/30">
+        <div className="p-4 rounded-xl bg-muted/30 text-center">
           <MessageSquare className="w-6 h-6 mx-auto mb-2 text-blue-500" />
           <p className="text-xs font-medium text-foreground">Cancel Anytime</p>
+          <p className="text-[10px] text-muted-foreground">No lock-in</p>
         </div>
-        <div className="p-4 rounded-xl bg-muted/30">
-          <BookOpen className="w-6 h-6 mx-auto mb-2 text-purple-500" />
-          <p className="text-xs font-medium text-foreground">Credits Never Expire*</p>
+        <div className="p-4 rounded-xl bg-muted/30 text-center">
+          <Clock className="w-6 h-6 mx-auto mb-2 text-purple-500" />
+          <p className="text-xs font-medium text-foreground">Instant Access</p>
+          <p className="text-[10px] text-muted-foreground">Credits added immediately</p>
         </div>
       </motion.div>
-      
-      <p className="text-xs text-center text-muted-foreground">
-        *While subscribed. Daily credits reset every 24 hours. Monthly credits reset each billing cycle.
-      </p>
+
+      {/* FAQ Section */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.35 }}
+      >
+        <Card className="glass-card">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg">Frequently Asked Questions</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <h4 className="text-sm font-medium text-foreground mb-1">What happens when I run out of credits?</h4>
+              <p className="text-xs text-muted-foreground">
+                Daily credits reset at midnight. If you run out, upgrade to Pro for more or wait for the reset.
+              </p>
+            </div>
+            <div>
+              <h4 className="text-sm font-medium text-foreground mb-1">Can I change plans?</h4>
+              <p className="text-xs text-muted-foreground">
+                Yes! Switch between monthly and yearly anytime. Prorated credits apply.
+              </p>
+            </div>
+            <div>
+              <h4 className="text-sm font-medium text-foreground mb-1">How do refunds work?</h4>
+              <p className="text-xs text-muted-foreground">
+                Full refund within 7 days of purchase if you're not satisfied. No questions asked.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </motion.div>
     </div>
   );
 };
