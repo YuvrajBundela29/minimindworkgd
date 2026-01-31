@@ -1,8 +1,11 @@
 import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 import { EARLY_ACCESS_CONFIG } from './EarlyAccessContext';
 
 export type SubscriptionTier = 'free' | 'pro';
+export type SubscriptionStatus = 'active' | 'cancelled' | 'expired' | 'pending';
+export type PlanType = 'monthly' | 'yearly';
 
 // Credit costs per mode (deeper = more credits)
 export const CREDIT_COSTS = {
@@ -38,7 +41,7 @@ const FREE_LIMITS: SubscriptionLimits = {
   historyItems: 20,
   features: {
     ekaksharAdvanced: false,
-    learningPaths: true, // Available but limited depth
+    learningPaths: true,
     truthMode: false,
     multiPerspective: false,
     offlineNotes: false,
@@ -68,11 +71,13 @@ const PRO_LIMITS: SubscriptionLimits = {
   },
 };
 
-interface CreditUsage {
-  daily: number;
-  monthly: number;
-  lastDailyReset: string;
-  lastMonthlyReset: string;
+interface SubscriptionData {
+  tier: SubscriptionTier;
+  status: SubscriptionStatus;
+  planType: PlanType | null;
+  currentPeriodEnd: string | null;
+  creditsDaily: number;
+  creditsMonthly: number;
 }
 
 interface SubscriptionContextType {
@@ -85,9 +90,11 @@ interface SubscriptionContextType {
     dailyLimit: number;
     monthlyLimit: number;
   };
+  subscription: SubscriptionData | null;
+  isLoading: boolean;
   isProFeature: (feature: keyof SubscriptionLimits['features']) => boolean;
   hasCredits: (cost?: number) => boolean;
-  useCredits: (cost: number, mode?: string) => boolean;
+  useCredits: (cost: number, mode?: string) => Promise<boolean>;
   getCreditCost: (mode: string) => number;
   upgradeToPro: () => void;
   showUpgradePrompt: (feature: string) => void;
@@ -95,6 +102,7 @@ interface SubscriptionContextType {
   setUpgradeModalOpen: (open: boolean) => void;
   upgradeFeature: string;
   showLowCreditsWarning: boolean;
+  refreshSubscription: () => Promise<void>;
 }
 
 const SubscriptionContext = createContext<SubscriptionContextType | undefined>(undefined);
@@ -113,11 +121,11 @@ interface SubscriptionProviderProps {
 
 export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({ children }) => {
   const [tier, setTier] = useState<SubscriptionTier>('free');
-  const [creditUsage, setCreditUsage] = useState<CreditUsage>({
+  const [subscription, setSubscription] = useState<SubscriptionData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [creditUsage, setCreditUsage] = useState({
     daily: 0,
     monthly: 0,
-    lastDailyReset: new Date().toDateString(),
-    lastMonthlyReset: new Date().toISOString().slice(0, 7),
   });
   const [isUpgradeModalOpen, setUpgradeModalOpen] = useState(false);
   const [upgradeFeature, setUpgradeFeature] = useState('');
@@ -132,44 +140,155 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({ chil
     ? Math.min(dailyRemaining, monthlyRemaining + dailyRemaining)
     : dailyRemaining;
 
-  // Load and manage subscription state
+  // Clear any stale localStorage tier data on mount
   useEffect(() => {
-    const savedTier = localStorage.getItem('minimind-tier') as SubscriptionTier;
-    const savedUsage = localStorage.getItem('minimind-credit-usage');
-    
-    if (savedTier === 'pro') {
-      setTier('pro');
-    }
-    
-    if (savedUsage) {
-      try {
-        const usage = JSON.parse(savedUsage) as CreditUsage;
-        const today = new Date().toDateString();
-        const thisMonth = new Date().toISOString().slice(0, 7);
-        
-        // Reset daily if new day
-        if (usage.lastDailyReset !== today) {
-          usage.daily = 0;
-          usage.lastDailyReset = today;
-        }
-        
-        // Reset monthly if new month
-        if (usage.lastMonthlyReset !== thisMonth) {
-          usage.monthly = 0;
-          usage.lastMonthlyReset = thisMonth;
-        }
-        
-        setCreditUsage(usage);
-      } catch (e) {
-        console.error('Error parsing credit usage:', e);
+    localStorage.removeItem('minimind-tier');
+  }, []);
+
+  // Fetch subscription from database
+  const fetchSubscription = useCallback(async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        setTier('free');
+        setSubscription(null);
+        setCreditUsage({ daily: 0, monthly: 0 });
+        setIsLoading(false);
+        return;
       }
+
+      // Fetch subscription from database
+      const { data: subData, error } = await supabase
+        .from('user_subscriptions')
+        .select('*')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (error) {
+        console.error('Error fetching subscription:', error);
+        setTier('free');
+        setIsLoading(false);
+        return;
+      }
+
+      if (!subData) {
+        // No subscription record exists - create one
+        const { data: newSub, error: insertError } = await supabase
+          .from('user_subscriptions')
+          .insert({ user_id: user.id })
+          .select()
+          .single();
+
+        if (insertError) {
+          console.error('Error creating subscription:', insertError);
+          setTier('free');
+          setIsLoading(false);
+          return;
+        }
+
+        setTier('free');
+        setSubscription({
+          tier: 'free',
+          status: 'active',
+          planType: null,
+          currentPeriodEnd: null,
+          creditsDaily: 0,
+          creditsMonthly: 0,
+        });
+        setCreditUsage({ daily: 0, monthly: 0 });
+        setIsLoading(false);
+        return;
+      }
+
+      // Check if we need to reset credits
+      const today = new Date().toISOString().split('T')[0];
+      const thisMonth = new Date().toISOString().slice(0, 7);
+      
+      let dailyUsed = subData.credits_daily_used;
+      let monthlyUsed = subData.credits_monthly_used;
+      let needsUpdate = false;
+
+      // Reset daily credits if new day
+      if (subData.credits_last_daily_reset !== today) {
+        dailyUsed = 0;
+        needsUpdate = true;
+      }
+
+      // Reset monthly credits if new month
+      const lastMonthlyReset = subData.credits_last_monthly_reset?.slice(0, 7);
+      if (lastMonthlyReset !== thisMonth) {
+        monthlyUsed = 0;
+        needsUpdate = true;
+      }
+
+      // Update database if resets occurred
+      if (needsUpdate) {
+        await supabase
+          .from('user_subscriptions')
+          .update({
+            credits_daily_used: dailyUsed,
+            credits_monthly_used: monthlyUsed,
+            credits_last_daily_reset: today,
+            credits_last_monthly_reset: new Date().toISOString().split('T')[0],
+          })
+          .eq('user_id', user.id);
+      }
+
+      // Check if subscription has expired
+      const subscriptionTier = subData.tier as SubscriptionTier;
+      const subscriptionStatus = subData.status as SubscriptionStatus;
+      
+      let effectiveTier = subscriptionTier;
+      if (subscriptionTier === 'pro' && subData.current_period_end) {
+        const periodEnd = new Date(subData.current_period_end);
+        if (periodEnd < new Date() && subscriptionStatus !== 'active') {
+          effectiveTier = 'free';
+        }
+      }
+
+      setTier(effectiveTier);
+      setSubscription({
+        tier: effectiveTier,
+        status: subscriptionStatus,
+        planType: subData.plan_type as PlanType | null,
+        currentPeriodEnd: subData.current_period_end,
+        creditsDaily: dailyUsed,
+        creditsMonthly: monthlyUsed,
+      });
+      setCreditUsage({
+        daily: dailyUsed,
+        monthly: monthlyUsed,
+      });
+      setIsLoading(false);
+    } catch (err) {
+      console.error('Error in fetchSubscription:', err);
+      setTier('free');
+      setIsLoading(false);
     }
   }, []);
 
-  // Save credit usage
+  // Initial fetch and auth state listener
   useEffect(() => {
-    localStorage.setItem('minimind-credit-usage', JSON.stringify(creditUsage));
-  }, [creditUsage]);
+    fetchSubscription();
+
+    const { data: { subscription: authSubscription } } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        if (session) {
+          fetchSubscription();
+        } else {
+          setTier('free');
+          setSubscription(null);
+          setCreditUsage({ daily: 0, monthly: 0 });
+          setIsLoading(false);
+        }
+      }
+    );
+
+    return () => {
+      authSubscription.unsubscribe();
+    };
+  }, [fetchSubscription]);
 
   // Check for low credits warning
   useEffect(() => {
@@ -189,7 +308,7 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({ chil
     return availableCredits >= cost;
   }, [availableCredits]);
 
-  const useCredits = useCallback((cost: number, mode?: string) => {
+  const useCredits = useCallback(async (cost: number, mode?: string) => {
     // Early Access: No credit deduction
     if (EARLY_ACCESS_CONFIG.isEarlyAccess && EARLY_ACCESS_CONFIG.unlimitedCredits) {
       return true;
@@ -200,29 +319,46 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({ chil
       return false;
     }
     
-    setCreditUsage(prev => ({
-      ...prev,
-      daily: prev.daily + cost,
-      monthly: prev.monthly + cost,
-    }));
+    const newDailyUsed = creditUsage.daily + cost;
+    const newMonthlyUsed = creditUsage.monthly + cost;
+    
+    setCreditUsage({
+      daily: newDailyUsed,
+      monthly: newMonthlyUsed,
+    });
+    
+    // Update database
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      await supabase
+        .from('user_subscriptions')
+        .update({
+          credits_daily_used: newDailyUsed,
+          credits_monthly_used: newMonthlyUsed,
+        })
+        .eq('user_id', user.id);
+    }
     
     return true;
-  }, [hasCredits]);
+  }, [hasCredits, creditUsage]);
 
   const upgradeToPro = useCallback(() => {
-    // Demo mode: just toggle the tier
-    setTier('pro');
-    localStorage.setItem('minimind-tier', 'pro');
-    toast.success('🎉 Welcome to MiniMind Pro!', {
-      description: 'All premium features and bonus credits unlocked.',
+    // This now only opens the upgrade modal
+    // Actual upgrade happens via Razorpay webhook
+    setUpgradeModalOpen(true);
+    toast.info('Select a plan to upgrade', {
+      description: 'Complete payment via Razorpay to activate Pro.',
     });
-    setUpgradeModalOpen(false);
   }, []);
 
   const showUpgradePrompt = useCallback((feature: string) => {
     setUpgradeFeature(feature);
     setUpgradeModalOpen(true);
   }, []);
+
+  const refreshSubscription = useCallback(async () => {
+    await fetchSubscription();
+  }, [fetchSubscription]);
 
   return (
     <SubscriptionContext.Provider
@@ -236,6 +372,8 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({ chil
           dailyLimit: limits.dailyCredits,
           monthlyLimit: limits.monthlyCredits,
         },
+        subscription,
+        isLoading,
         isProFeature,
         hasCredits,
         useCredits,
@@ -246,6 +384,7 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({ chil
         setUpgradeModalOpen,
         upgradeFeature,
         showLowCreditsWarning,
+        refreshSubscription,
       }}
     >
       {children}
