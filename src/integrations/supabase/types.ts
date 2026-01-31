@@ -211,6 +211,63 @@ export type Database = {
         }
         Relationships: []
       }
+      user_subscriptions: {
+        Row: {
+          created_at: string
+          credits_daily_used: number
+          credits_last_daily_reset: string | null
+          credits_last_monthly_reset: string | null
+          credits_monthly_used: number
+          current_period_end: string | null
+          current_period_start: string | null
+          id: string
+          plan_type: Database["public"]["Enums"]["plan_type"] | null
+          razorpay_customer_id: string | null
+          razorpay_order_id: string | null
+          razorpay_subscription_id: string | null
+          status: Database["public"]["Enums"]["subscription_status"]
+          tier: Database["public"]["Enums"]["subscription_tier"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          credits_daily_used?: number
+          credits_last_daily_reset?: string | null
+          credits_last_monthly_reset?: string | null
+          credits_monthly_used?: number
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          plan_type?: Database["public"]["Enums"]["plan_type"] | null
+          razorpay_customer_id?: string | null
+          razorpay_order_id?: string | null
+          razorpay_subscription_id?: string | null
+          status?: Database["public"]["Enums"]["subscription_status"]
+          tier?: Database["public"]["Enums"]["subscription_tier"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          credits_daily_used?: number
+          credits_last_daily_reset?: string | null
+          credits_last_monthly_reset?: string | null
+          credits_monthly_used?: number
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string
+          plan_type?: Database["public"]["Enums"]["plan_type"] | null
+          razorpay_customer_id?: string | null
+          razorpay_order_id?: string | null
+          razorpay_subscription_id?: string | null
+          status?: Database["public"]["Enums"]["subscription_status"]
+          tier?: Database["public"]["Enums"]["subscription_tier"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -219,7 +276,9 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      plan_type: "monthly" | "yearly"
+      subscription_status: "active" | "cancelled" | "expired" | "pending"
+      subscription_tier: "free" | "pro"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -346,6 +405,10 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      plan_type: ["monthly", "yearly"],
+      subscription_status: ["active", "cancelled", "expired", "pending"],
+      subscription_tier: ["free", "pro"],
+    },
   },
 } as const

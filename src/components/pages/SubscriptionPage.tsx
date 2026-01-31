@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { 
-  Check, Zap, Crown, Sparkles, Brain, BookOpen, MessageSquare, Shield, 
+  Zap, Crown, Sparkles, Brain, BookOpen, MessageSquare, Shield, 
   Gift, Rocket, Clock, TrendingUp, Calendar, CreditCard, ChevronRight,
-  Star, Lock, Unlock, IndianRupee, ArrowRight, AlertCircle
+  Star, IndianRupee, AlertCircle
 } from 'lucide-react';
 import { useSubscription, CREDIT_COSTS } from '@/contexts/SubscriptionContext';
 import { useEarlyAccess } from '@/contexts/EarlyAccessContext';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -14,8 +15,8 @@ import { Progress } from '@/components/ui/progress';
 import { toast } from 'sonner';
 
 const SubscriptionPage: React.FC = () => {
-  const { tier, credits, upgradeToPro, limits, showLowCreditsWarning } = useSubscription();
-  const { isEarlyAccess, freeTrialDays, dailyCreditsAfterLaunch, showLifetimeReward } = useEarlyAccess();
+  const { tier, credits, limits, showLowCreditsWarning, subscription, isLoading } = useSubscription();
+  const { isEarlyAccess, showLifetimeReward } = useEarlyAccess();
   const [isProcessing, setIsProcessing] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'yearly'>('monthly');
 
@@ -27,27 +28,91 @@ const SubscriptionPage: React.FC = () => {
   const handleUpgrade = async (plan: 'monthly' | 'yearly') => {
     setIsProcessing(true);
     
-    // Razorpay integration placeholder
-    // In production, this will call your backend to create an order
-    // and then open the Razorpay checkout
-    
     try {
-      // Simulating API call for demo
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Call backend to create Razorpay order
+      const { data: { session } } = await supabase.auth.getSession();
       
-      // This is where Razorpay will be integrated
-      // const order = await createRazorpayOrder(plan);
-      // openRazorpayCheckout(order);
-      
-      toast.info('Payment integration coming soon!', {
-        description: 'Razorpay checkout will open here in production.',
+      if (!session) {
+        toast.error('Please log in to upgrade', {
+          description: 'You need to be logged in to purchase a subscription.',
+        });
+        setIsProcessing(false);
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke('create-razorpay-order', {
+        body: { plan_type: plan },
       });
-      
-      // For demo, upgrade immediately
-      upgradeToPro();
+
+      if (error || !data) {
+        console.error('Error creating order:', error);
+        toast.error('Failed to start checkout', {
+          description: 'Please try again or contact support.',
+        });
+        setIsProcessing(false);
+        return;
+      }
+
+      // Open Razorpay checkout
+      const options = {
+        key: data.key_id,
+        amount: data.amount,
+        currency: data.currency,
+        name: 'MiniMind Pro',
+        description: `${plan === 'monthly' ? 'Monthly' : 'Yearly'} Subscription`,
+        order_id: data.order_id,
+        handler: async function (response: {
+          razorpay_payment_id: string;
+          razorpay_order_id: string;
+          razorpay_signature: string;
+        }) {
+          // Verify payment on backend
+          const { data: verifyData, error: verifyError } = await supabase.functions.invoke('razorpay-webhook', {
+            body: response,
+          });
+
+          if (verifyError || !verifyData?.success) {
+            toast.error('Payment verification failed', {
+              description: 'Please contact support with your payment ID.',
+            });
+          } else {
+            toast.success('🎉 Welcome to MiniMind Pro!', {
+              description: 'Your subscription is now active.',
+            });
+            // Refresh subscription data
+            window.location.reload();
+          }
+        },
+        prefill: {
+          email: session.user.email,
+        },
+        theme: {
+          color: '#7c3aed',
+        },
+        modal: {
+          ondismiss: function () {
+            setIsProcessing(false);
+          },
+        },
+      };
+
+      // Load Razorpay script if not already loaded
+      if (!(window as unknown as Record<string, unknown>).Razorpay) {
+        const script = document.createElement('script');
+        script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+        script.async = true;
+        script.onload = () => {
+          const razorpay = new (window as unknown as Record<string, new (options: unknown) => { open: () => void }>).Razorpay(options);
+          razorpay.open();
+        };
+        document.body.appendChild(script);
+      } else {
+        const razorpay = new (window as unknown as Record<string, new (options: unknown) => { open: () => void }>).Razorpay(options);
+        razorpay.open();
+      }
     } catch (error) {
+      console.error('Upgrade error:', error);
       toast.error('Payment failed. Please try again.');
-    } finally {
       setIsProcessing(false);
     }
   };
@@ -365,7 +430,7 @@ const SubscriptionPage: React.FC = () => {
       )}
 
       {/* Pro Member Management */}
-      {tier === 'pro' && (
+      {tier === 'pro' && subscription && (
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -381,10 +446,28 @@ const SubscriptionPage: React.FC = () => {
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between p-3 rounded-xl bg-muted/50">
                 <div>
-                  <p className="text-sm font-medium text-foreground">Pro Monthly</p>
-                  <p className="text-xs text-muted-foreground">Next billing: February 28, 2026</p>
+                  <p className="text-sm font-medium text-foreground">
+                    Pro {subscription.planType === 'yearly' ? 'Yearly' : 'Monthly'}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {subscription.currentPeriodEnd 
+                      ? `Next billing: ${new Date(subscription.currentPeriodEnd).toLocaleDateString('en-IN', { 
+                          day: 'numeric', 
+                          month: 'long', 
+                          year: 'numeric' 
+                        })}`
+                      : 'Active subscription'}
+                  </p>
                 </div>
-                <Badge className="bg-emerald-500/10 text-emerald-600 border-0">Active</Badge>
+                <Badge className={`border-0 ${
+                  subscription.status === 'active' 
+                    ? 'bg-emerald-500/10 text-emerald-600' 
+                    : subscription.status === 'cancelled'
+                    ? 'bg-amber-500/10 text-amber-600'
+                    : 'bg-destructive/10 text-destructive'
+                }`}>
+                  {subscription.status.charAt(0).toUpperCase() + subscription.status.slice(1)}
+                </Badge>
               </div>
               
               <div className="grid grid-cols-2 gap-3">
