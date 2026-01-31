@@ -1,13 +1,14 @@
 import React, { createContext, useContext, ReactNode } from 'react';
 
 // Early Access Configuration - Central place to manage launch phase settings
+// Early Access is now DISABLED - Credit-based monetization is ACTIVE
 export const EARLY_ACCESS_CONFIG = {
-  isEarlyAccess: true,
-  unlimitedCredits: true,
-  freeTrialDays: 30,
-  dailyCreditsAfterLaunch: 50,
-  showLifetimeReward: true,
-  launchDate: null as Date | null, // Set when ready to launch
+  isEarlyAccess: false,
+  unlimitedCredits: false,
+  freeTrialDays: 0,
+  dailyCreditsAfterLaunch: 15,
+  showLifetimeReward: false,
+  launchDate: new Date(), // Launched!
 };
 
 interface EarlyAccessContextType {
