@@ -2,10 +2,7 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Home, BarChart3, Zap, History, Settings, Sun, Moon, HelpCircle, User, BookOpen, Crown, FileSearch, Sparkles, MessageCircle, LayoutDashboard, MessageSquareHeart, Target } from 'lucide-react';
 import { navigationItems, NavigationId } from '@/config/minimind';
-import { useSubscription } from '@/contexts/SubscriptionContext';
-import { useEarlyAccess } from '@/contexts/EarlyAccessContext';
-import EarlyAccessCreditDisplay from './EarlyAccessCreditDisplay';
-import CreditDisplay from './CreditDisplay';
+import { useSubscription, FREE_DAILY_LIMIT } from '@/contexts/SubscriptionContext';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 const iconMap: Record<string, React.FC<{ className?: string }>> = {
@@ -43,8 +40,8 @@ const SideMenu: React.FC<SideMenuProps> = ({
   onToggleTheme,
   onShowGuide,
 }) => {
-  const { tier } = useSubscription();
-  const { isEarlyAccess } = useEarlyAccess();
+  const { tier, subscription, getRemainingQuestions } = useSubscription();
+  const remaining = getRemainingQuestions();
 
   return (
     <AnimatePresence>
@@ -78,6 +75,11 @@ const SideMenu: React.FC<SideMenuProps> = ({
                     PRO
                   </span>
                 )}
+                {tier === 'plus' && (
+                  <span className="px-2 py-0.5 rounded-full bg-gradient-to-r from-violet-500 to-purple-500 text-white text-xs font-semibold">
+                    PLUS
+                  </span>
+                )}
               </div>
               <motion.button
                 className="icon-btn icon-btn-ghost"
@@ -88,13 +90,19 @@ const SideMenu: React.FC<SideMenuProps> = ({
               </motion.button>
             </div>
 
-            {/* Credit Display */}
+            {/* Usage Display */}
             <div className="p-4 border-b border-border">
-              {isEarlyAccess ? (
-                <EarlyAccessCreditDisplay variant="compact" />
-              ) : (
-                <CreditDisplay variant="compact" />
-              )}
+              <div className="flex items-center justify-between p-3 rounded-xl bg-muted/50">
+                <div className="flex items-center gap-2">
+                  <Zap className="w-4 h-4 text-primary" />
+                  <span className="text-sm font-medium text-foreground">
+                    {tier === 'free' ? 'Free Plan' : `${tier.charAt(0).toUpperCase() + tier.slice(1)} Plan`}
+                  </span>
+                </div>
+                <span className="text-sm text-muted-foreground">
+                  {remaining === 'unlimited' ? '∞ questions' : `${remaining}/${FREE_DAILY_LIMIT} today`}
+                </span>
+              </div>
             </div>
             
             <nav className="p-4">
@@ -208,17 +216,15 @@ const SideMenu: React.FC<SideMenuProps> = ({
                 </motion.button>
               )}
               
-              {/* Send Feedback - Early Access */}
-              {isEarlyAccess && (
-                <motion.a
-                  href="mailto:feedback@minimind.app?subject=MiniMind Early Access Feedback"
-                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
-                  whileTap={{ scale: 0.98 }}
-                >
-                  <MessageSquareHeart className="w-5 h-5" />
-                  <span className="font-medium">Send Feedback</span>
-                </motion.a>
-              )}
+              {/* Send Feedback */}
+              <motion.a
+                href="mailto:feedback@minimind.app?subject=MiniMind Feedback"
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+                whileTap={{ scale: 0.98 }}
+              >
+                <MessageSquareHeart className="w-5 h-5" />
+                <span className="font-medium">Send Feedback</span>
+              </motion.a>
             </div>
           </motion.div>
         </>

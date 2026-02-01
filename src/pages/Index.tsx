@@ -17,7 +17,7 @@ import { apiCache } from '@/services/apiCache';
 import speechService from '@/services/speechService';
 import { downloadPDF, sharePDF, SharePlatform } from '@/utils/pdfGenerator';
 import { supabase } from '@/integrations/supabase/client';
-import { useSubscription, CREDIT_COSTS } from '@/contexts/SubscriptionContext';
+import { useSubscription } from '@/contexts/SubscriptionContext';
 import { useEarlyAccess } from '@/contexts/EarlyAccessContext';
 
 // Lazy load heavy page components

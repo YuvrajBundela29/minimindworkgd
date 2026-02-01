@@ -226,7 +226,10 @@ export type Database = {
           credits_monthly_used: number
           current_period_end: string | null
           current_period_start: string | null
+          daily_questions_used: number | null
+          grace_period_end: string | null
           id: string
+          last_question_reset: string | null
           plan_type: Database["public"]["Enums"]["plan_type"] | null
           razorpay_customer_id: string | null
           razorpay_order_id: string | null
@@ -244,7 +247,10 @@ export type Database = {
           credits_monthly_used?: number
           current_period_end?: string | null
           current_period_start?: string | null
+          daily_questions_used?: number | null
+          grace_period_end?: string | null
           id?: string
+          last_question_reset?: string | null
           plan_type?: Database["public"]["Enums"]["plan_type"] | null
           razorpay_customer_id?: string | null
           razorpay_order_id?: string | null
@@ -262,7 +268,10 @@ export type Database = {
           credits_monthly_used?: number
           current_period_end?: string | null
           current_period_start?: string | null
+          daily_questions_used?: number | null
+          grace_period_end?: string | null
           id?: string
+          last_question_reset?: string | null
           plan_type?: Database["public"]["Enums"]["plan_type"] | null
           razorpay_customer_id?: string | null
           razorpay_order_id?: string | null
@@ -353,11 +362,12 @@ export type Database = {
         }
         Returns: boolean
       }
+      use_daily_question: { Args: never; Returns: boolean }
     }
     Enums: {
       plan_type: "monthly" | "yearly"
       subscription_status: "active" | "cancelled" | "expired" | "pending"
-      subscription_tier: "free" | "pro"
+      subscription_tier: "free" | "plus" | "pro"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -487,7 +497,7 @@ export const Constants = {
     Enums: {
       plan_type: ["monthly", "yearly"],
       subscription_status: ["active", "cancelled", "expired", "pending"],
-      subscription_tier: ["free", "pro"],
+      subscription_tier: ["free", "plus", "pro"],
     },
   },
 } as const

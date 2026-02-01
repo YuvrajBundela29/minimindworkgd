@@ -1,70 +1,76 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Check, Zap, Crown, Sparkles, Brain, BookOpen, MessageSquare, Shield, Gift, Rocket, Clock } from 'lucide-react';
-import { useSubscription, CREDIT_COSTS } from '@/contexts/SubscriptionContext';
-import { useEarlyAccess } from '@/contexts/EarlyAccessContext';
-import EarlyAccessCreditDisplay from '@/components/EarlyAccessCreditDisplay';
-import CreditDisplay from '@/components/CreditDisplay';
+import { Check, Crown, Sparkles, Zap, Brain, BookOpen, Rocket, Shield, Clock, X } from 'lucide-react';
+import { useSubscription, PRICING, FREE_DAILY_LIMIT } from '@/contexts/SubscriptionContext';
+import { Button } from '@/components/ui/button';
 
 const SubscriptionPage: React.FC = () => {
-  const { tier, credits, upgradeToPro, limits } = useSubscription();
-  const { isEarlyAccess, freeTrialDays, dailyCreditsAfterLaunch, showLifetimeReward } = useEarlyAccess();
+  const { tier, subscription, initiateCheckout, isCheckoutLoading } = useSubscription();
+  const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'yearly'>('yearly');
 
   const tiers = [
     {
+      id: 'free' as const,
       name: 'Free',
-      price: '₹0',
-      period: 'forever',
-      description: 'Explore all modes with daily credits',
-      credits: '15 credits/day',
+      description: 'Explore with limits',
+      monthlyPrice: 0,
+      yearlyPrice: 0,
       features: [
-        'Access to ALL 4 learning modes',
-        '15 daily credits (reset every 24h)',
-        'Basic Learning Paths',
-        'Last 20 history items',
-        'Standard response speed',
+        `${FREE_DAILY_LIMIT} questions per day`,
+        'All 4 learning modes',
+        'Basic explanations',
       ],
       limitations: [
-        'No monthly credit pool',
-        'Limited Learning Path depth',
-        'No weekly reports',
+        'No personalization memory',
+        'No learning history',
+        'Standard response time',
       ],
-      current: tier === 'free',
       cta: tier === 'free' ? 'Current Plan' : null,
+      current: tier === 'free',
     },
     {
-      name: 'Pro',
-      price: '₹199',
-      period: '/month',
-      description: 'Unlimited thinking power',
-      credits: '100/day + 500/month',
+      id: 'plus' as const,
+      name: 'MiniMind Plus',
+      description: 'Unlimited learning',
+      monthlyPrice: PRICING.plus.monthly,
+      yearlyPrice: PRICING.plus.yearly,
+      yearlyMonthly: PRICING.plus.yearlyMonthly,
       features: [
-        'Everything in Free, plus:',
-        '100 daily + 500 monthly credits',
-        'Full Learning Paths with all depths',
-        'Multi-perspective answers',
-        'Weekly Mind Reports',
-        'Advanced Ekakshar++',
-        'Priority AI responses',
-        'Unlimited history',
-        'Offline smart notes',
-        'AI Mentor Personas',
+        'Unlimited questions',
+        'Purpose Lens personalization',
+        'Explain-it-back feedback',
+        'Full learning history',
+        'All 4 learning modes',
       ],
       limitations: [],
-      current: tier === 'pro',
-      cta: tier === 'pro' ? 'Current Plan' : 'Upgrade to Pro',
+      cta: tier === 'plus' ? 'Current Plan' : 'Get Plus',
+      current: tier === 'plus',
       highlighted: true,
+      popular: true,
+    },
+    {
+      id: 'pro' as const,
+      name: 'MiniMind Pro',
+      description: 'Maximum depth',
+      monthlyPrice: PRICING.pro.monthly,
+      yearlyPrice: PRICING.pro.yearly,
+      yearlyMonthly: PRICING.pro.yearlyMonthly,
+      features: [
+        'Everything in Plus',
+        'Priority AI responses',
+        'Deeper mastery explanations',
+        'Advanced learning paths',
+        'Early feature access',
+      ],
+      limitations: [],
+      cta: tier === 'pro' ? 'Current Plan' : 'Get Pro',
+      current: tier === 'pro',
     },
   ];
 
-  const creditExplanation = [
-    { mode: 'Beginner', cost: CREDIT_COSTS.beginner, description: 'Simple explanations', icon: '🌱' },
-    { mode: 'Thinker', cost: CREDIT_COSTS.thinker, description: 'Logical depth', icon: '🧠' },
-    { mode: 'Story', cost: CREDIT_COSTS.story, description: 'Narrative learning', icon: '📖' },
-    { mode: 'Mastery', cost: CREDIT_COSTS.mastery, description: 'Expert detail', icon: '🎓' },
-    { mode: 'Ekakshar', cost: CREDIT_COSTS.ekakshar, description: 'Compression', icon: '⚡' },
-    { mode: 'Learning Path', cost: CREDIT_COSTS.learningPath, description: 'Structured', icon: '🗺️' },
-  ];
+  const handleSubscribe = (tierId: 'plus' | 'pro') => {
+    initiateCheckout(tierId, selectedPlan);
+  };
 
   return (
     <div className="space-y-8 pb-8">
@@ -73,142 +79,85 @@ const SubscriptionPage: React.FC = () => {
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary mb-4"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-violet-500/10 text-violet-400 mb-4"
         >
-          <Rocket className="w-4 h-4" />
-          <span className="text-sm font-medium">
-            {isEarlyAccess ? 'Coming Soon — Early Access Phase' : 'Pay for thinking power, not restrictions'}
-          </span>
+          <Sparkles className="w-4 h-4" />
+          <span className="text-sm font-medium">Invest in understanding</span>
         </motion.div>
         
         <h1 className="text-3xl font-heading font-bold text-foreground mb-2">
-          MiniMind Subscription
+          Choose Your Journey
         </h1>
-        <p className="text-muted-foreground">
-          {isEarlyAccess 
-            ? "MiniMind is currently free for early users. We're focused on learning from you before launching subscriptions."
-            : 'All modes are always unlocked. Credits fuel your learning journey.'}
+        <p className="text-muted-foreground max-w-md mx-auto">
+          MiniMind helps you truly understand concepts. Pick the plan that matches your learning pace.
         </p>
       </div>
 
-      {/* Early Access Lifetime Reward */}
-      {isEarlyAccess && showLifetimeReward && (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="p-5 rounded-2xl bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-rose-500/10 border border-amber-500/20"
-        >
-          <div className="flex items-start gap-3">
-            <div className="p-2 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500">
-              <Gift className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <h3 className="font-semibold text-foreground mb-1">Early Adopter Reward</h3>
-              <p className="text-sm text-muted-foreground mb-2">
-                The first users who join during Early Access will receive a{' '}
-                <span className="font-semibold text-foreground">lifetime Pro subscription — free forever</span>.
-              </p>
-              <p className="text-xs text-muted-foreground/80">
-                Thank you for believing in us early. Your feedback shapes MiniMind.
-              </p>
-            </div>
-          </div>
-        </motion.div>
-      )}
+      {/* Plan Toggle */}
+      <div className="flex justify-center">
+        <div className="flex gap-2 p-1 bg-muted rounded-xl">
+          <button
+            onClick={() => setSelectedPlan('monthly')}
+            className={`py-2 px-4 rounded-lg text-sm font-medium transition-all ${
+              selectedPlan === 'monthly'
+                ? 'bg-background text-foreground shadow'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            Monthly
+          </button>
+          <button
+            onClick={() => setSelectedPlan('yearly')}
+            className={`py-2 px-4 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
+              selectedPlan === 'yearly'
+                ? 'bg-background text-foreground shadow'
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            Yearly
+            <span className="px-1.5 py-0.5 text-[10px] font-bold bg-emerald-500 text-white rounded-full">
+              SAVE 33%
+            </span>
+          </button>
+        </div>
+      </div>
 
-      {/* Free Period Clarity */}
-      {isEarlyAccess && (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.15 }}
-          className="p-4 rounded-xl bg-muted/50 border border-border/50"
-        >
-          <div className="flex items-center gap-3">
-            <Clock className="w-5 h-5 text-primary" />
-            <div>
-              <p className="text-sm text-foreground">
-                <span className="font-medium">Free access for the first {freeTrialDays} days.</span>
-              </p>
-              <p className="text-xs text-muted-foreground">
-                After launch, free users receive {dailyCreditsAfterLaunch} credits per day.
-              </p>
-            </div>
-          </div>
-        </motion.div>
-      )}
-
-      {/* Current Credits */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex justify-center"
-      >
-        {isEarlyAccess ? (
-          <EarlyAccessCreditDisplay variant="detailed" />
-        ) : (
-          <CreditDisplay variant="detailed" />
-        )}
-      </motion.div>
-
-      {/* How Credits Work - Fixed grid layout */}
+      {/* Early Learner Advantage */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className="bg-card rounded-2xl border border-border p-5"
+        className="p-5 rounded-2xl bg-gradient-to-r from-violet-500/10 via-purple-500/10 to-pink-500/10 border border-violet-500/20"
       >
-        <div className="flex items-center gap-2 mb-4">
-          <Zap className="w-5 h-5 text-primary" />
-          <h2 className="text-lg font-semibold text-foreground">How Credits Work</h2>
-        </div>
-        
-        <p className="text-sm text-muted-foreground mb-4">
-          Each AI response costs credits based on depth and complexity. 
-          Deeper explanations require more processing power.
-        </p>
-
-        <div className="grid grid-cols-2 gap-2.5">
-          {creditExplanation.map((item) => (
-            <motion.div
-              key={item.mode}
-              className="flex items-center gap-2.5 p-3 rounded-xl bg-muted/50 border border-border/50"
-              whileHover={{ scale: 1.02 }}
-              transition={{ duration: 0.2 }}
-            >
-              <span className="text-xl shrink-0">{item.icon}</span>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1.5">
-                  <p className="text-sm font-medium text-foreground">{item.mode}</p>
-                  <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-semibold">
-                    <Zap className="w-2.5 h-2.5" />
-                    {item.cost}
-                  </span>
-                </div>
-                <p className="text-xs text-muted-foreground">{item.description}</p>
-              </div>
-            </motion.div>
-          ))}
+        <div className="flex items-start gap-3">
+          <div className="p-2 rounded-xl bg-gradient-to-br from-violet-500 to-purple-500">
+            <Clock className="w-5 h-5 text-white" />
+          </div>
+          <div>
+            <h3 className="font-semibold text-foreground mb-1">Early Learner Advantage</h3>
+            <p className="text-sm text-muted-foreground">
+              Join now and lock in this pricing forever. We believe in rewarding early believers with honest, stable pricing — no surprise hikes.
+            </p>
+          </div>
         </div>
       </motion.div>
 
-      {/* Pricing Tiers */}
-      <div className="grid md:grid-cols-2 gap-6">
+      {/* Pricing Cards */}
+      <div className="grid md:grid-cols-3 gap-4">
         {tiers.map((tierInfo, index) => (
           <motion.div
-            key={tierInfo.name}
+            key={tierInfo.id}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 + index * 0.1 }}
+            transition={{ delay: 0.15 + index * 0.1 }}
             className={`relative bg-card rounded-2xl border-2 p-6 ${
               tierInfo.highlighted 
-                ? 'border-primary shadow-lg shadow-primary/20' 
+                ? 'border-violet-500 shadow-lg shadow-violet-500/10' 
                 : 'border-border'
-            } ${tierInfo.current ? 'ring-2 ring-primary/30' : ''}`}
+            } ${tierInfo.current ? 'ring-2 ring-emerald-500/30' : ''}`}
           >
-            {tierInfo.highlighted && (
-              <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-gradient-to-r from-primary to-accent text-primary-foreground text-xs font-semibold">
+            {tierInfo.popular && (
+              <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-gradient-to-r from-violet-500 to-purple-500 text-white text-xs font-semibold">
                 MOST POPULAR
               </div>
             )}
@@ -216,8 +165,10 @@ const SubscriptionPage: React.FC = () => {
             <div className="flex items-start justify-between mb-4">
               <div>
                 <div className="flex items-center gap-2">
-                  {tierInfo.highlighted ? (
-                    <Crown className="w-5 h-5 text-primary" />
+                  {tierInfo.id === 'pro' ? (
+                    <Crown className="w-5 h-5 text-amber-500" />
+                  ) : tierInfo.id === 'plus' ? (
+                    <Sparkles className="w-5 h-5 text-violet-500" />
                   ) : (
                     <Brain className="w-5 h-5 text-muted-foreground" />
                   )}
@@ -227,20 +178,30 @@ const SubscriptionPage: React.FC = () => {
               </div>
               
               {tierInfo.current && (
-                <span className="px-2 py-1 rounded-full bg-emerald-500/10 text-emerald-600 text-xs font-medium">
+                <span className="px-2 py-1 rounded-full bg-emerald-500/10 text-emerald-500 text-xs font-medium">
                   Active
                 </span>
               )}
             </div>
 
-            <div className="mb-4">
-              <span className="text-3xl font-bold text-foreground">{tierInfo.price}</span>
-              <span className="text-muted-foreground">{tierInfo.period}</span>
-            </div>
-
-            <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-primary/5 mb-4">
-              <Zap className="w-4 h-4 text-primary" />
-              <span className="text-sm font-medium text-foreground">{tierInfo.credits}</span>
+            <div className="mb-6">
+              {tierInfo.id === 'free' ? (
+                <div className="text-3xl font-bold text-foreground">Free</div>
+              ) : (
+                <>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-3xl font-bold text-foreground">
+                      ₹{selectedPlan === 'yearly' ? tierInfo.yearlyMonthly : tierInfo.monthlyPrice}
+                    </span>
+                    <span className="text-muted-foreground">/month</span>
+                  </div>
+                  {selectedPlan === 'yearly' && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Billed ₹{tierInfo.yearlyPrice}/year
+                    </p>
+                  )}
+                </>
+              )}
             </div>
 
             <ul className="space-y-2 mb-6">
@@ -252,28 +213,36 @@ const SubscriptionPage: React.FC = () => {
               ))}
               {tierInfo.limitations.map((limitation, i) => (
                 <li key={`limit-${i}`} className="flex items-start gap-2 text-sm text-muted-foreground">
-                  <span className="w-4 h-4 shrink-0 text-center">–</span>
+                  <X className="w-4 h-4 shrink-0 mt-0.5" />
                   <span>{limitation}</span>
                 </li>
               ))}
             </ul>
 
-            {isEarlyAccess ? (
-              <div className="w-full py-3 px-4 rounded-xl font-medium text-center bg-muted/50 text-muted-foreground border border-dashed border-border">
-                Coming Soon
-              </div>
-            ) : tierInfo.cta && (
-              <motion.button
-                className={`w-full py-3 px-4 rounded-xl font-medium transition-colors ${
-                  tierInfo.current
-                    ? 'bg-muted text-muted-foreground cursor-default'
-                    : 'bg-gradient-to-r from-primary to-accent text-primary-foreground hover:opacity-90'
+            {tierInfo.id !== 'free' && !tierInfo.current && (
+              <Button
+                onClick={() => handleSubscribe(tierInfo.id as 'plus' | 'pro')}
+                disabled={isCheckoutLoading}
+                className={`w-full py-3 font-medium rounded-xl ${
+                  tierInfo.highlighted
+                    ? 'bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 text-white'
+                    : 'bg-muted text-foreground hover:bg-muted/80'
                 }`}
-                onClick={tierInfo.current ? undefined : upgradeToPro}
-                whileTap={tierInfo.current ? undefined : { scale: 0.98 }}
               >
-                {tierInfo.cta}
-              </motion.button>
+                {isCheckoutLoading ? 'Processing...' : tierInfo.cta}
+              </Button>
+            )}
+
+            {tierInfo.current && (
+              <div className="w-full py-3 text-center font-medium text-muted-foreground bg-muted rounded-xl">
+                Current Plan
+              </div>
+            )}
+
+            {tierInfo.id === 'free' && !tierInfo.current && (
+              <div className="w-full py-3 text-center text-sm text-muted-foreground">
+                Included by default
+              </div>
             )}
           </motion.div>
         ))}
@@ -289,20 +258,35 @@ const SubscriptionPage: React.FC = () => {
         <div className="p-4 rounded-xl bg-muted/30">
           <Shield className="w-6 h-6 mx-auto mb-2 text-emerald-500" />
           <p className="text-xs font-medium text-foreground">No Hidden Fees</p>
+          <p className="text-[10px] text-muted-foreground mt-1">What you see is what you pay</p>
         </div>
         <div className="p-4 rounded-xl bg-muted/30">
-          <MessageSquare className="w-6 h-6 mx-auto mb-2 text-blue-500" />
+          <Zap className="w-6 h-6 mx-auto mb-2 text-violet-500" />
           <p className="text-xs font-medium text-foreground">Cancel Anytime</p>
+          <p className="text-[10px] text-muted-foreground mt-1">No questions asked</p>
         </div>
         <div className="p-4 rounded-xl bg-muted/30">
-          <BookOpen className="w-6 h-6 mx-auto mb-2 text-purple-500" />
-          <p className="text-xs font-medium text-foreground">Credits Never Expire*</p>
+          <BookOpen className="w-6 h-6 mx-auto mb-2 text-blue-500" />
+          <p className="text-xs font-medium text-foreground">Secure Payments</p>
+          <p className="text-[10px] text-muted-foreground mt-1">Powered by Razorpay</p>
         </div>
       </motion.div>
-      
-      <p className="text-xs text-center text-muted-foreground">
-        *While subscribed. Daily credits reset every 24 hours. Monthly credits reset each billing cycle.
-      </p>
+
+      {/* Subscription Status */}
+      {subscription.currentPeriodEnd && tier !== 'free' && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="p-4 rounded-xl bg-muted/50 text-center"
+        >
+          <p className="text-sm text-muted-foreground">
+            {subscription.status === 'cancelled' 
+              ? `Your subscription ends on ${subscription.currentPeriodEnd.toLocaleDateString()}`
+              : `Next billing date: ${subscription.currentPeriodEnd.toLocaleDateString()}`
+            }
+          </p>
+        </motion.div>
+      )}
     </div>
   );
 };
