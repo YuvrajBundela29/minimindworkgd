@@ -79,8 +79,18 @@ const ModeCard: React.FC<ModeCardProps> = ({
   const handleChatSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (chatInputValue.trim()) {
-      onChatSubmit(chatInputValue, modeKey);
+      // Open fullscreen first, then submit the chat
+      onFullscreen(modeKey);
+      // Small delay to ensure fullscreen opens before submitting
+      setTimeout(() => {
+        onChatSubmit(chatInputValue, modeKey);
+      }, 100);
     }
+  };
+  
+  const handleInputFocus = () => {
+    // Open fullscreen when user focuses on input to continue chat there
+    onFullscreen(modeKey);
   };
 
   const thinkingMessages = [
@@ -208,26 +218,25 @@ const ModeCard: React.FC<ModeCardProps> = ({
         </div>
       )}
       
-      {/* Chat Input */}
-      <form onSubmit={handleChatSubmit} className="capsule-input">
-        <input
-          type="text"
-          value={chatInputValue}
-          onChange={(e) => onChatInputChange(modeKey, e.target.value)}
-          placeholder={`Ask follow-up in ${mode.name} style...`}
-          className="flex-1 bg-transparent border-none outline-none text-foreground text-sm"
-          aria-label={`Continue conversation with ${mode.name} mode`}
-        />
-        <motion.button
-          type="submit"
-          className="w-10 h-10 rounded-full flex items-center justify-center bg-primary text-primary-foreground"
-          whileTap={{ scale: 0.95 }}
-          disabled={!chatInputValue.trim()}
-          aria-label="Send follow-up question"
-        >
+      {/* Chat Input - Opens fullscreen on focus */}
+      <div 
+        className="capsule-input cursor-pointer"
+        onClick={handleInputFocus}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            handleInputFocus();
+          }
+        }}
+      >
+        <span className="flex-1 text-muted-foreground text-sm">
+          Continue chat in {mode.name} mode...
+        </span>
+        <div className="w-10 h-10 rounded-full flex items-center justify-center bg-primary text-primary-foreground">
           <Send className="w-4 h-4" />
-        </motion.button>
-      </form>
+        </div>
+      </div>
     </motion.div>
   );
 };
