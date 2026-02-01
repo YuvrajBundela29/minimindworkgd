@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { Menu, User } from 'lucide-react';
+import { Menu, User, Crown, Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
-import EarlyAccessCreditDisplay from './EarlyAccessCreditDisplay';
-import { useEarlyAccess } from '@/contexts/EarlyAccessContext';
+import { useSubscription } from '@/contexts/SubscriptionContext';
 import { supabase } from '@/integrations/supabase/client';
 import { purposeLenses, PurposeLensKey } from '@/config/minimind';
 
@@ -13,7 +12,7 @@ interface MobileHeaderProps {
 }
 
 const MobileHeader: React.FC<MobileHeaderProps> = ({ onMenuClick, onProfileClick, currentLens = 'general' }) => {
-  const { isEarlyAccess } = useEarlyAccess();
+  const { tier } = useSubscription();
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const lensData = purposeLenses[currentLens];
 
@@ -35,7 +34,6 @@ const MobileHeader: React.FC<MobileHeaderProps> = ({ onMenuClick, onProfileClick
 
     fetchAvatar();
 
-    // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
       fetchAvatar();
     });
@@ -76,8 +74,19 @@ const MobileHeader: React.FC<MobileHeaderProps> = ({ onMenuClick, onProfileClick
           </motion.span>
         )}
         
-        {/* Persistent Credit Pill */}
-        {isEarlyAccess && <EarlyAccessCreditDisplay variant="minimal" />}
+        {/* Tier Badge */}
+        {tier === 'pro' && (
+          <span className="flex items-center gap-1 px-2 py-1 rounded-full bg-gradient-to-r from-amber-500 to-orange-500 text-white text-xs font-semibold">
+            <Crown className="w-3 h-3" />
+            PRO
+          </span>
+        )}
+        {tier === 'plus' && (
+          <span className="flex items-center gap-1 px-2 py-1 rounded-full bg-gradient-to-r from-violet-500 to-purple-500 text-white text-xs font-semibold">
+            <Sparkles className="w-3 h-3" />
+            PLUS
+          </span>
+        )}
         
         <motion.button
           className="icon-btn icon-btn-surface w-9 h-9 rounded-full overflow-hidden p-0"
