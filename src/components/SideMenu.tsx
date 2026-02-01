@@ -6,6 +6,7 @@ import { useSubscription } from '@/contexts/SubscriptionContext';
 import { useEarlyAccess } from '@/contexts/EarlyAccessContext';
 import EarlyAccessCreditDisplay from './EarlyAccessCreditDisplay';
 import CreditDisplay from './CreditDisplay';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 const iconMap: Record<string, React.FC<{ className?: string }>> = {
   Home,
@@ -96,28 +97,76 @@ const SideMenu: React.FC<SideMenuProps> = ({
             </div>
             
             <nav className="p-4">
-              <div className="space-y-1">
-                {navigationItems.map((item) => {
+              {/* Learn Section */}
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-4">Learn</p>
+              <div className="space-y-1 mb-4">
+                {navigationItems.slice(0, 4).map((item) => {
                   const Icon = iconMap[item.icon] || Home;
                   const isActive = currentPage === item.id;
                   
                   return (
-                    <motion.button
-                      key={item.id}
-                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors ${
-                        isActive 
-                          ? 'bg-primary text-primary-foreground' 
-                          : 'hover:bg-muted text-foreground'
-                      }`}
-                      onClick={() => {
-                        onNavigate(item.id);
-                        onClose();
-                      }}
-                      whileTap={{ scale: 0.98 }}
-                    >
-                      <Icon className="w-5 h-5" />
-                      <span className="font-medium">{item.label}</span>
-                    </motion.button>
+                    <TooltipProvider key={item.id} delayDuration={300}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <motion.button
+                            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors touch-target ${
+                              isActive 
+                                ? 'bg-primary text-primary-foreground' 
+                                : 'hover:bg-muted text-foreground'
+                            }`}
+                            onClick={() => {
+                              onNavigate(item.id);
+                              onClose();
+                            }}
+                            whileTap={{ scale: 0.98 }}
+                            aria-label={item.label}
+                          >
+                            <Icon className="w-5 h-5" />
+                            <span className="font-medium">{item.label}</span>
+                          </motion.button>
+                        </TooltipTrigger>
+                        <TooltipContent side="right" className="max-w-[200px]">
+                          <p className="text-xs">{item.description}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  );
+                })}
+              </div>
+
+              {/* Account Section */}
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-4">Account</p>
+              <div className="space-y-1">
+                {navigationItems.slice(4).map((item) => {
+                  const Icon = iconMap[item.icon] || Home;
+                  const isActive = currentPage === item.id;
+                  
+                  return (
+                    <TooltipProvider key={item.id} delayDuration={300}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <motion.button
+                            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors touch-target ${
+                              isActive 
+                                ? 'bg-primary text-primary-foreground' 
+                                : 'hover:bg-muted text-foreground'
+                            }`}
+                            onClick={() => {
+                              onNavigate(item.id);
+                              onClose();
+                            }}
+                            whileTap={{ scale: 0.98 }}
+                            aria-label={item.label}
+                          >
+                            <Icon className="w-5 h-5" />
+                            <span className="font-medium">{item.label}</span>
+                          </motion.button>
+                        </TooltipTrigger>
+                        <TooltipContent side="right" className="max-w-[200px]">
+                          <p className="text-xs">{item.description}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   );
                 })}
               </div>

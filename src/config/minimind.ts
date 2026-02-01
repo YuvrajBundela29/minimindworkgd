@@ -85,16 +85,16 @@ export const suggestedPrompts = [
   "What would the world be like if the Internet was never invented?",
 ];
 
-// Cleaned up navigation - removed duplicate pages, file analysis moved to chat bar
+// Navigation with clearer labels for Indian students
 export const navigationItems = [
-  { id: 'home', label: 'Learn', icon: 'Home' },
-  { id: 'learningpath', label: 'Learning Paths', icon: 'BookOpen' },
-  { id: 'ekakshar', label: 'Ekakshar', icon: 'Zap' },
-  { id: 'explainback', label: 'Explain Back', icon: 'MessageCircle' },
-  { id: 'profile', label: 'Profile', icon: 'User' },
-  { id: 'history', label: 'History', icon: 'History' },
-  { id: 'subscription', label: 'Subscription', icon: 'Crown' },
-  { id: 'settings', label: 'Settings', icon: 'Cog' },
+  { id: 'home', label: 'Ask AI 🎓', icon: 'Home', description: 'Get explanations in 4 styles' },
+  { id: 'learningpath', label: 'Study Plans 📚', icon: 'BookOpen', description: 'Structured learning paths' },
+  { id: 'ekakshar', label: 'Quick Recall ⚡', icon: 'Zap', description: 'Flashcard-style summaries' },
+  { id: 'explainback', label: 'Test Yourself 🧠', icon: 'MessageCircle', description: 'Explain concepts to check understanding' },
+  { id: 'profile', label: 'Profile', icon: 'User', description: 'Your account & stats' },
+  { id: 'history', label: 'History', icon: 'History', description: 'Past questions & answers' },
+  { id: 'subscription', label: 'Subscription', icon: 'Crown', description: 'Manage your plan' },
+  { id: 'settings', label: 'Settings', icon: 'Cog', description: 'Language & preferences' },
 ] as const;
 
 export type NavigationId = typeof navigationItems[number]['id'];

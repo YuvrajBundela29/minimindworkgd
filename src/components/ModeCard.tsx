@@ -114,34 +114,34 @@ const ModeCard: React.FC<ModeCardProps> = ({
         
         <div className="flex items-center gap-1.5 shrink-0">
           <motion.button
-            className="action-btn bg-muted hover:bg-primary hover:text-primary-foreground w-7 h-7"
+            className="action-btn bg-muted hover:bg-primary hover:text-primary-foreground w-10 h-10"
             onClick={() => onFullscreen(modeKey)}
             whileTap={{ scale: 0.95 }}
-            aria-label="Fullscreen"
+            aria-label={`Open ${mode.name} in fullscreen`}
           >
-            <Maximize2 className="w-3.5 h-3.5" />
+            <Maximize2 className="w-4 h-4" />
           </motion.button>
           
           {answer && (
             <motion.button
-              className="action-btn bg-muted hover:bg-primary hover:text-primary-foreground w-7 h-7"
+              className="action-btn bg-muted hover:bg-primary hover:text-primary-foreground w-10 h-10"
               onClick={() => onSpeak(answer, modeKey)}
               whileTap={{ scale: 0.95 }}
-              aria-label="Read aloud"
+              aria-label={isSpeaking ? 'Stop reading' : `Read ${mode.name} explanation aloud`}
             >
-              <Volume2 className={`w-3.5 h-3.5 ${isSpeaking ? 'text-primary animate-pulse-glow' : ''}`} />
+              <Volume2 className={`w-4 h-4 ${isSpeaking ? 'text-primary animate-pulse-glow' : ''}`} />
             </motion.button>
           )}
         </div>
       </div>
       
       {/* Content */}
-      <div className="card-content-scroll custom-scrollbar mb-3">
+      <div className="card-content-scroll custom-scrollbar mb-3" role="region" aria-label={`${mode.name} explanation`}>
         {isLoading ? (
           <SkeletonLoader 
             variant="paragraph" 
             lines={4} 
-            message={randomMessage}
+            modeKey={modeKey}
           />
         ) : answer ? (
           <>
@@ -184,28 +184,28 @@ const ModeCard: React.FC<ModeCardProps> = ({
           </motion.button>
           
           <motion.button
-            className="action-btn bg-muted hover:bg-muted/80"
+            className="action-btn bg-muted hover:bg-muted/80 w-10 h-10"
             onClick={() => onCopy(answer)}
             whileTap={{ scale: 0.95 }}
-            aria-label="Copy"
+            aria-label="Copy explanation to clipboard"
           >
             <Copy className="w-4 h-4" />
           </motion.button>
           
           <motion.button
-            className="action-btn bg-muted hover:bg-muted/80"
+            className="action-btn bg-muted hover:bg-muted/80 w-10 h-10"
             onClick={() => onDownload(answer, modeKey, currentQuestion)}
             whileTap={{ scale: 0.95 }}
-            aria-label="Download"
+            aria-label="Download as PDF"
           >
             <Download className="w-4 h-4" />
           </motion.button>
           
           <motion.button
-            className="action-btn bg-muted hover:bg-muted/80"
+            className="action-btn bg-muted hover:bg-muted/80 w-10 h-10"
             onClick={() => onShare(answer, modeKey, currentQuestion)}
             whileTap={{ scale: 0.95 }}
-            aria-label="Share"
+            aria-label="Share explanation"
           >
             <Share2 className="w-4 h-4" />
           </motion.button>
@@ -218,14 +218,16 @@ const ModeCard: React.FC<ModeCardProps> = ({
           type="text"
           value={chatInputValue}
           onChange={(e) => onChatInputChange(modeKey, e.target.value)}
-          placeholder={`Chat with ${mode.name}...`}
+          placeholder={`Ask follow-up in ${mode.name} style...`}
           className="flex-1 bg-transparent border-none outline-none text-foreground text-sm"
+          aria-label={`Continue conversation with ${mode.name} mode`}
         />
         <motion.button
           type="submit"
-          className="w-8 h-8 rounded-full flex items-center justify-center bg-primary text-primary-foreground"
+          className="w-10 h-10 rounded-full flex items-center justify-center bg-primary text-primary-foreground"
           whileTap={{ scale: 0.95 }}
           disabled={!chatInputValue.trim()}
+          aria-label="Send follow-up question"
         >
           <Send className="w-4 h-4" />
         </motion.button>
