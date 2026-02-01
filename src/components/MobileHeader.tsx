@@ -73,8 +73,21 @@ const MobileHeader: React.FC<MobileHeaderProps> = ({ onMenuClick, onProfileClick
         </motion.div>
         <div className="flex flex-col items-start">
           <span className="logo-text-india">MiniMind</span>
-          <span className="made-in-india-badge">
-            🇮🇳 Made in India
+          <span className="made-in-india-badge flex items-center gap-1">
+            <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="12" r="10" />
+              <circle cx="12" cy="12" r="3" />
+              {/* 12 spokes for Ashoka Chakra representation */}
+              {[...Array(12)].map((_, i) => {
+                const angle = (i * 30 * Math.PI) / 180;
+                const x1 = 12 + 4 * Math.cos(angle);
+                const y1 = 12 + 4 * Math.sin(angle);
+                const x2 = 12 + 9 * Math.cos(angle);
+                const y2 = 12 + 9 * Math.sin(angle);
+                return <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} />;
+              })}
+            </svg>
+            Made in India
           </span>
         </div>
       </div>
