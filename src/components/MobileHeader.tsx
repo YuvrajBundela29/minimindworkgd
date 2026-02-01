@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Menu, User, Flame } from 'lucide-react';
+import { Menu, User } from 'lucide-react';
 import { motion } from 'framer-motion';
 import EarlyAccessCreditDisplay from './EarlyAccessCreditDisplay';
 import { useEarlyAccess } from '@/contexts/EarlyAccessContext';
@@ -13,13 +13,11 @@ interface MobileHeaderProps {
 const MobileHeader: React.FC<MobileHeaderProps> = ({ onMenuClick, onProfileClick }) => {
   const { isEarlyAccess } = useEarlyAccess();
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-  const [streakCount, setStreakCount] = useState<number>(0);
 
   useEffect(() => {
-    const fetchUserData = async () => {
+    const fetchAvatar = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        // Fetch avatar
         const { data: profile } = await supabase
           .from('profiles')
           .select('avatar_url')
@@ -29,37 +27,18 @@ const MobileHeader: React.FC<MobileHeaderProps> = ({ onMenuClick, onProfileClick
         if (profile?.avatar_url) {
           setAvatarUrl(profile.avatar_url);
         }
-
-        // Fetch streak
-        const { data: streakData } = await supabase
-          .from('user_streaks')
-          .select('current_streak')
-          .eq('user_id', user.id)
-          .single();
-        
-        if (streakData?.current_streak) {
-          setStreakCount(streakData.current_streak);
-        }
       }
     };
 
-    fetchUserData();
+    fetchAvatar();
 
     // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
-      fetchUserData();
+      fetchAvatar();
     });
 
     return () => subscription.unsubscribe();
   }, []);
-
-  const getFlameColor = () => {
-    if (streakCount === 0) return 'text-muted-foreground';
-    if (streakCount >= 30) return 'text-red-500';
-    if (streakCount >= 7) return 'text-orange-500';
-    if (streakCount >= 3) return 'text-amber-500';
-    return 'text-yellow-500';
-  };
 
   return (
     <header className="mobile-header">
@@ -82,25 +61,6 @@ const MobileHeader: React.FC<MobileHeaderProps> = ({ onMenuClick, onProfileClick
       </div>
 
       <div className="flex items-center gap-2">
-        {/* Streak Counter Mini */}
-        {streakCount > 0 && (
-          <motion.div
-            className="flex items-center gap-1 px-2.5 py-1 rounded-full glass-card-subtle"
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <motion.div
-              animate={{ scale: [1, 1.15, 1] }}
-              transition={{ duration: 1.5, repeat: Infinity }}
-            >
-              <Flame className={`w-4 h-4 ${getFlameColor()}`} />
-            </motion.div>
-            <span className="text-sm font-bold">{streakCount}</span>
-          </motion.div>
-        )}
-
         {/* Persistent Credit Pill */}
         {isEarlyAccess && <EarlyAccessCreditDisplay variant="minimal" />}
         

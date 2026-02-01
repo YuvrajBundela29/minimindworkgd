@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { 
   User, Trophy, Flame, Calendar, Edit2, Save, X, LogOut,
-  TrendingUp, Brain, BarChart3, Camera, Upload, Zap
+  TrendingUp, Brain, BarChart3, Camera, Upload
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -11,8 +11,6 @@ import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ModeKey, modes } from '@/config/minimind';
-import StreakCounter from '@/components/StreakCounter';
-import XPProgressBar from '@/components/XPProgressBar';
 
 const displayNameSchema = z.string()
   .max(100, 'Display name must be less than 100 characters')
@@ -377,54 +375,32 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSignOut }) => {
 
         {/* Overview Tab */}
         <TabsContent value="overview" className="mt-4 space-y-4">
-          {/* Gamification Cards */}
-          <div className="grid grid-cols-1 gap-4">
-            <StreakCounter variant="compact" />
-            <XPProgressBar variant="compact" />
-          </div>
-
           {/* Quick Stats */}
           <div className="grid grid-cols-2 gap-3">
-            <Card className="p-4 glass-card border-amber-500/20">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="p-2 rounded-xl bg-amber-500/20">
-                  <Flame className="w-5 h-5 text-amber-500" />
-                </div>
-              </div>
+            <Card className="p-4 bg-gradient-to-br from-amber-500/10 to-orange-500/5 border-amber-500/20">
+              <Flame className="w-6 h-6 text-amber-500 mb-2" />
               <p className="text-2xl font-bold text-foreground">{statistics?.current_streak || localStats.streak || 0}</p>
               <p className="text-xs text-muted-foreground">Day Streak</p>
             </Card>
-            <Card className="p-4 glass-card border-purple-500/20">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="p-2 rounded-xl bg-purple-500/20">
-                  <Brain className="w-5 h-5 text-purple-500" />
-                </div>
-              </div>
+            <Card className="p-4 bg-gradient-to-br from-purple-500/10 to-pink-500/5 border-purple-500/20">
+              <Brain className="w-6 h-6 text-purple-500 mb-2" />
               <p className="text-2xl font-bold text-foreground">{statistics?.total_questions || localStats.totalQuestions || 0}</p>
               <p className="text-xs text-muted-foreground">Questions</p>
             </Card>
-            <Card className="p-4 glass-card border-emerald-500/20">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="p-2 rounded-xl bg-emerald-500/20">
-                  <Calendar className="w-5 h-5 text-emerald-500" />
-                </div>
-              </div>
+            <Card className="p-4 bg-gradient-to-br from-emerald-500/10 to-teal-500/5 border-emerald-500/20">
+              <Calendar className="w-6 h-6 text-emerald-500 mb-2" />
               <p className="text-2xl font-bold text-foreground">{statistics?.questions_today || localStats.todayQuestions || 0}</p>
               <p className="text-xs text-muted-foreground">Today</p>
             </Card>
-            <Card className="p-4 glass-card border-blue-500/20">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="p-2 rounded-xl bg-blue-500/20">
-                  <Trophy className="w-5 h-5 text-blue-500" />
-                </div>
-              </div>
+            <Card className="p-4 bg-gradient-to-br from-blue-500/10 to-cyan-500/5 border-blue-500/20">
+              <Trophy className="w-6 h-6 text-blue-500 mb-2" />
               <p className="text-2xl font-bold text-foreground">{unlockedCount}/{achievements.length}</p>
               <p className="text-xs text-muted-foreground">Badges</p>
             </Card>
           </div>
 
           {/* Preferences */}
-          <Card className="p-5 glass-card">
+          <Card className="p-5 bg-card/80 backdrop-blur-sm border-border/50">
             <h3 className="text-sm font-semibold text-foreground mb-4">Preferences</h3>
             <div className="space-y-3">
               <div className="flex items-center justify-between py-2">
@@ -442,11 +418,8 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSignOut }) => {
 
         {/* Progress Tab */}
         <TabsContent value="progress" className="mt-4 space-y-4">
-          {/* Full XP Progress */}
-          <XPProgressBar variant="full" />
-
           {/* Mode Usage */}
-          <Card className="p-5 glass-card">
+          <Card className="p-5 bg-card/80 backdrop-blur-sm border-border/50">
             <div className="flex items-center gap-2 mb-4">
               <BarChart3 className="w-5 h-5 text-primary" />
               <h3 className="font-semibold text-foreground">Mode Usage</h3>
@@ -466,7 +439,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSignOut }) => {
                     </div>
                     <div className="h-2 bg-muted rounded-full overflow-hidden">
                       <motion.div
-                        className="h-full xp-progress-bar rounded-full"
+                        className="h-full bg-gradient-to-r from-primary to-accent rounded-full"
                         initial={{ width: 0 }}
                         animate={{ width: `${percentage}%` }}
                         transition={{ duration: 0.5 }}
@@ -479,7 +452,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSignOut }) => {
           </Card>
 
           {/* Skills Growing */}
-          <Card className="p-5 glass-card">
+          <Card className="p-5 bg-card/80 backdrop-blur-sm border-border/50">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold text-foreground">Skills Growing</h3>
               <span className="text-xs text-emerald-500 flex items-center gap-1">
