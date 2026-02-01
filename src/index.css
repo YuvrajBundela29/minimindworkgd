@@ -200,7 +200,7 @@
   /* Logo Glow Container */
   .logo-glow-container {
     @apply rounded-xl p-0.5;
-    background: linear-gradient(135deg, hsl(var(--india-saffron) / 0.1) 0%, hsl(var(--india-warm-orange) / 0.05) 100%);
+    background: linear-gradient(135deg, hsl(var(--brand-primary) / 0.1) 0%, hsl(var(--brand-secondary) / 0.05) 100%);
   }
   
   /* Logo Styling */
@@ -213,11 +213,11 @@
     background-clip: text;
   }
   
-  /* Indian-themed Logo Text - Smooth Tricolor */
+  /* Professional Logo Text - Trust-Building Gradient */
   .logo-text-india {
     font-family: var(--font-logo);
     @apply text-xl font-bold tracking-tight leading-none;
-    background: linear-gradient(90deg, hsl(var(--india-saffron)) 0%, hsl(var(--india-saffron)) 20%, hsl(35 100% 85%) 35%, hsl(0 0% 98%) 50%, hsl(120 40% 80%) 65%, hsl(var(--india-green)) 80%, hsl(var(--india-green)) 100%);
+    background: linear-gradient(135deg, hsl(221 83% 53%) 0%, hsl(263 70% 50%) 50%, hsl(189 94% 37%) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
