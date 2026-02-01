@@ -1,77 +1,133 @@
 
-# Enhanced MiniMind Title - Professional Trust-Building Colors
+# Fix: Back Button Navigation & Session Persistence
 
 ## Overview
-Replace the tricolor (Indian flag) gradient on the "MiniMind" title with a professional, trust-building color scheme using the existing brand palette. The "Made in India" badge with the Ashoka Chakra will remain unchanged.
-
-## Color Psychology for Trust
-The new title will use your existing brand colors which are perfect for building trust:
-- **Blue (Primary)**: Reliability, professionalism, intelligence
-- **Purple (Secondary)**: Premium, wisdom, creativity  
-- **Teal/Cyan (Accent)**: Modern, innovative, calming
-
-These colors together create a sense of innovation, intelligence, and premium quality - perfect for an AI learning app.
+This plan addresses two critical mobile UX bugs:
+1. **Swipe-from-corner closes app** instead of navigating back
+2. **Answers vanish on page refresh** despite persistence code
 
 ---
 
-## Changes
+## Problem 1: Back Button/Swipe Not Working
 
-### File: `src/index.css`
+### Root Cause
+The current approach relies on `event.preventDefault()` in the `popstate` handler, but **this doesn't work** - by the time `popstate` fires, the browser has already navigated. The app only pushes one history entry on load, so swiping back immediately exits to the previous page (before the app).
 
-**Update `.logo-text-india` class** (will rename to `.logo-text-premium` for clarity):
+### Solution
+Create a proper history stack with multiple entries:
+1. Push a "home" state on initial load
+2. Push additional states when user:
+   - Navigates to subpages (profile, settings, etc.)
+   - Asks a question (so back can clear answers)
+3. When `popstate` fires, handle the state that's now active rather than trying to prevent navigation
 
-Current tricolor gradient:
-```css
-background: linear-gradient(90deg, saffron → white → green);
+### Changes to `src/pages/Index.tsx`
+
+**Update the back button handler:**
+```text
+1. Remove all event.preventDefault() calls (they don't work for popstate)
+2. Push TWO initial history entries to create a "buffer"
+3. When popstate fires, immediately re-push a state to restore the history entry
+4. Handle the actual navigation based on current app state
 ```
 
-New professional gradient:
-```css
-background: linear-gradient(135deg, 
-  hsl(221 83% 53%) 0%,      /* Brand Blue - Trust */
-  hsl(263 70% 50%) 50%,      /* Brand Purple - Premium */
-  hsl(189 94% 37%) 100%      /* Brand Teal - Innovation */
-);
-```
+**Push history when asking a question:**
+- Add `window.history.pushState({ page: 'answers' }, '')` in `handleSubmit` after setting `hasAskedQuestion`
+- This creates a history entry that back button can navigate from
 
-This is essentially your existing `--gradient-text` but applied with the black outline for better visibility.
-
-**Update `.logo-glow-container`** to use blue/purple glow instead of saffron:
-```css
-background: linear-gradient(135deg, 
-  hsl(var(--brand-primary) / 0.1) 0%, 
-  hsl(var(--brand-secondary) / 0.05) 100%
-);
-```
-
-### File: `src/components/MobileHeader.tsx`
-
-**Update the glow animation** to pulse with blue/purple instead of saffron:
-```tsx
-boxShadow: [
-  '0 0 8px hsl(var(--brand-primary) / 0.3)',
-  '0 0 16px hsl(var(--brand-primary) / 0.5)',
-  '0 0 8px hsl(var(--brand-primary) / 0.3)'
-]
-```
-
-**Update profile button ring** from `ring-india-navy/20` to `ring-primary/20` for consistency.
+**Push history when navigating to subpages:**
+- Add a `handleNavigate` wrapper function that pushes history before calling `setCurrentPage`
+- Update `SideMenu` and `MobileHeader` to use this new handler
 
 ---
 
-## Visual Result
+## Problem 2: Session Persistence Not Working
 
-| Element | Before | After |
-|---------|--------|-------|
-| Title "MiniMind" | Saffron → White → Green | Blue → Purple → Teal |
-| Logo Glow | Saffron pulse | Blue pulse |
-| Made in India Badge | Unchanged (keeps tricolor) | Unchanged |
-| Profile Ring | Navy tint | Blue tint |
+### Root Cause
+The save logic only runs when `hasAskedQuestion && currentQuestion` are both truthy. During initial load, there may be a race condition where states update asynchronously, and the restore happens but then gets overwritten by default states.
+
+### Solution
+1. Add a "restored" flag to prevent overwriting restored data
+2. Ensure the full answers object (including nulls for loading modes) doesn't overwrite complete answers
+3. Add a small delay before saving to ensure all state updates complete
+
+### Changes to `src/pages/Index.tsx`
+
+**Add a restoration flag:**
+```typescript
+const restoredRef = useRef(false);
+```
+
+**Update the restore logic:**
+- Set `restoredRef.current = true` after restoring session
+- Skip initial re-save if just restored
+
+**Update the save logic:**
+- Only save when answers have at least one non-null value
+- Add a check: `if (!restoredRef.current || Object.values(answers).some(a => a !== null))`
+
+---
+
+## Technical Implementation
+
+### Updated Back Button Flow
+
+```text
+User opens app
+├── Push "buffer" state (allows one back press)
+├── Push "home" state (current state)
+
+User asks question
+├── Push "answers" state
+├── Back gesture → Clear answers, stay on home
+├── Back gesture → Show toast "Press again to exit"  
+├── Back gesture (within 2s) → App closes
+
+User navigates to Profile
+├── Push "profile" state
+├── Back gesture → Return to home with answers
+```
+
+### Session Persistence Flow
+
+```text
+On Load:
+├── Check localStorage for session
+├── Validate timestamp (< 24 hours)
+├── Restore states: currentQuestion, answers, hasAskedQuestion, chatHistories
+├── Set restoredRef = true
+
+On State Change:
+├── Check if hasAskedQuestion is true
+├── Check if at least one answer exists
+├── Skip if just restored (prevent immediate re-save with partial data)
+├── Save to localStorage with timestamp
+```
 
 ---
 
 ## Files to Modify
-1. `src/index.css` - Update `.logo-text-india` gradient and `.logo-glow-container`
-2. `src/components/MobileHeader.tsx` - Update glow animation colors and profile ring
 
-The "Made in India" badge with the Ashoka Chakra will remain exactly as it is - only the title gradient changes.
+1. **`src/pages/Index.tsx`**
+   - Add `restoredRef` to prevent race conditions
+   - Rewrite back button handler with proper history stack management
+   - Add history push in `handleSubmit`
+   - Create `handleNavigate` wrapper for page changes
+   - Update save logic to check for valid data
+
+2. **`src/components/SideMenu.tsx`**
+   - Update `onNavigate` calls to use new handler (already uses it via props)
+
+3. **`src/components/MobileHeader.tsx`**
+   - Ensure profile click pushes history (will receive updated handler)
+
+---
+
+## Expected Behavior After Fix
+
+| Action | Before (Broken) | After (Fixed) |
+|--------|-----------------|---------------|
+| Swipe back from corner | App closes | Clear answers / Navigate back / Toast |
+| Refresh with answers | Answers gone | Answers restored |
+| Navigate to Profile → Back | Sometimes works | Returns to home with answers |
+| Double-back on empty home | Inconsistent | Toast → Exit |
