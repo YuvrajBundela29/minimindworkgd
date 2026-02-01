@@ -36,7 +36,7 @@
     --secondary-foreground: 220 14% 10%;
     
     --muted: 210 40% 96%;
-    --muted-foreground: 215 16% 47%;
+    --muted-foreground: 215 20% 40%; /* Improved contrast for WCAG AA */
     
     --accent: 189 94% 37%;
     --accent-foreground: 0 0% 100%;
@@ -291,11 +291,11 @@
     @apply bg-muted text-foreground hover:bg-muted/80;
   }
   
-  /* Action Button Row */
+  /* Action Button Row - 44px minimum for accessibility */
   .action-btn {
-    @apply flex items-center justify-center w-9 h-9 rounded-lg transition-all duration-200;
-    min-width: 36px;
-    min-height: 36px;
+    @apply flex items-center justify-center w-10 h-10 rounded-lg transition-all duration-200;
+    min-width: 44px;
+    min-height: 44px;
   }
   
   /* Capsule Chat Input */

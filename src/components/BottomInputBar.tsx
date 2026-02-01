@@ -152,7 +152,7 @@ const BottomInputBar: React.FC<BottomInputBarProps> = ({
       </AnimatePresence>
 
       <form onSubmit={handleSubmit} className="flex items-center gap-2">
-        {/* File Upload Button */}
+        {/* File Upload Button - 44px touch target */}
         {onFileAnalysis && (
           <>
             <input
@@ -161,13 +161,14 @@ const BottomInputBar: React.FC<BottomInputBarProps> = ({
               className="hidden"
               accept=".jpg,.jpeg,.png,.webp,.pdf,.txt,.csv"
               onChange={handleFileSelect}
+              aria-label="Select file to analyze"
             />
             <motion.button
               type="button"
               className="icon-btn icon-btn-ghost flex-shrink-0"
               onClick={() => fileInputRef.current?.click()}
               whileTap={{ scale: 0.95 }}
-              aria-label="Attach file"
+              aria-label="Attach file for AI analysis"
               disabled={isLoading}
             >
               <Paperclip className="w-5 h-5 text-muted-foreground" />
@@ -175,13 +176,13 @@ const BottomInputBar: React.FC<BottomInputBarProps> = ({
           </>
         )}
 
-        {/* Voice Input Button */}
+        {/* Voice Input Button - 44px touch target */}
         <motion.button
           type="button"
           className="icon-btn icon-btn-ghost flex-shrink-0"
           onClick={onVoiceInput}
           whileTap={{ scale: 0.95 }}
-          aria-label="Voice input"
+          aria-label="Use voice to ask a question"
           disabled={isLoading}
         >
           <Mic className="w-5 h-5 text-muted-foreground" />
@@ -199,14 +200,14 @@ const BottomInputBar: React.FC<BottomInputBarProps> = ({
           />
         </div>
         
-        {/* Refine Prompt Button */}
+        {/* Refine Prompt Button - 44px touch target */}
         {onRefinePrompt && value.trim() && !attachedFile && (
           <motion.button
             type="button"
             className="icon-btn icon-btn-ghost flex-shrink-0"
             onClick={onRefinePrompt}
             whileTap={{ scale: 0.95 }}
-            aria-label="Refine prompt"
+            aria-label="Improve your question with AI"
             disabled={isLoading || isRefining}
             title="Refine your prompt with AI"
           >
@@ -214,16 +215,16 @@ const BottomInputBar: React.FC<BottomInputBarProps> = ({
           </motion.button>
         )}
         
-        {/* Send Button */}
+        {/* Send Button - 44px touch target */}
         <motion.button
           type="submit"
           className="icon-btn icon-btn-primary flex-shrink-0"
           whileTap={{ scale: 0.95 }}
           disabled={(!value.trim() && !attachedFile) || isLoading}
-          aria-label="Send message"
+          aria-label={attachedFile ? "Analyze attached file" : "Send question"}
         >
           {isLoading ? (
-            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" aria-hidden="true" />
           ) : (
             <Send className="w-5 h-5" />
           )}
