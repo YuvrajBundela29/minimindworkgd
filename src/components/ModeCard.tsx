@@ -70,9 +70,9 @@ const ModeCard: React.FC<ModeCardProps> = ({
   currentQuestion,
 }) => {
   const mode = modes[modeKey];
-  const { getCreditCost } = useSubscription();
+  const { hasCredits } = useSubscription();
   const { isEarlyAccess } = useEarlyAccess();
-  const creditCost = getCreditCost(modeKey);
+  const creditCost = CREDIT_COSTS[modeKey] || 1;
   const [showFeedback, setShowFeedback] = useState(true);
   
   const handleChatSubmit = (e: React.FormEvent) => {

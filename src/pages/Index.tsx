@@ -450,7 +450,18 @@ const Index = () => {
   const handleLoadHistory = useCallback((item: HistoryItem) => { setAnswers(item.answers); setCurrentQuestion(item.question); setHasAskedQuestion(true); setCurrentPage('home'); toast.success('Loaded from history!'); }, []);
   const handleClearHistory = useCallback(() => { setHistory([]); localStorage.removeItem('minimind-history'); toast.success('History cleared!'); }, []);
   const handleFullscreen = useCallback((mode: string) => { setFullscreenMode(mode as ModeKey); }, []);
-  const handleSignOut = async () => { await supabase.auth.signOut(); setUser(null); toast.success('Signed out!'); };
+  const handleSignOut = async () => { 
+    await supabase.auth.signOut(); 
+    setUser(null); 
+    // Clear all localStorage data on logout for security
+    const keysToRemove = [
+      'minimind-history', 'minimind-stats', 'minimind-learning-paths',
+      'minimind-purpose-lens', 'minimind-custom-lens-prompt',
+      'minimind-ekakshar-history', 'minimind-explainback-history'
+    ];
+    keysToRemove.forEach(key => localStorage.removeItem(key));
+    toast.success('Signed out!'); 
+  };
   
   // Purpose Lens handlers
   const handlePurposeLensSelect = useCallback(async (lens: PurposeLensKey, customPrompt?: string) => {

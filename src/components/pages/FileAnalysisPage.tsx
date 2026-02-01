@@ -41,7 +41,7 @@ const ANALYSIS_MODES = [
 ];
 
 const FileAnalysisPage: React.FC = () => {
-  const { credits, hasCredits, useCredits, showUpgradePrompt, getCreditCost } = useSubscription();
+  const { getCredits, hasCredits, useCredits, showUpgradePrompt } = useSubscription();
   const [file, setFile] = useState<FileInfo | null>(null);
   const [selectedMode, setSelectedMode] = useState<ModeKey>('beginner');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -122,7 +122,7 @@ const FileAnalysisPage: React.FC = () => {
   const analyzeFile = useCallback(async () => {
     if (!file) return;
 
-    const cost = getCreditCost('file_analysis_basic' as any) || 5;
+    const cost = CREDIT_COSTS.ekakshar || 5; // Use ekakshar cost for file analysis
     if (!hasCredits(cost)) {
       showUpgradePrompt('File Analysis');
       return;
@@ -150,7 +150,7 @@ const FileAnalysisPage: React.FC = () => {
     } finally {
       setIsAnalyzing(false);
     }
-  }, [file, selectedMode, hasCredits, useCredits, showUpgradePrompt, getCreditCost]);
+  }, [file, selectedMode, hasCredits, useCredits, showUpgradePrompt]);
 
   const clearFile = () => {
     setFile(null);

@@ -32,7 +32,7 @@ interface DashboardStats {
 }
 
 const ProgressDashboard: React.FC = () => {
-  const { credits, tier } = useSubscription();
+  const { getCredits, tier } = useSubscription();
   const [stats, setStats] = useState<DashboardStats>({
     totalQuestions: 0,
     streak: 0,
