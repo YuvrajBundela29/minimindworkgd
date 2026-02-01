@@ -270,10 +270,83 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      user_subscription_view: {
+        Row: {
+          created_at: string | null
+          credits_daily_used: number | null
+          credits_last_daily_reset: string | null
+          credits_last_monthly_reset: string | null
+          credits_monthly_used: number | null
+          current_period_end: string | null
+          current_period_start: string | null
+          id: string | null
+          plan_type: Database["public"]["Enums"]["plan_type"] | null
+          status: Database["public"]["Enums"]["subscription_status"] | null
+          tier: Database["public"]["Enums"]["subscription_tier"] | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          credits_daily_used?: number | null
+          credits_last_daily_reset?: string | null
+          credits_last_monthly_reset?: string | null
+          credits_monthly_used?: number | null
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string | null
+          plan_type?: Database["public"]["Enums"]["plan_type"] | null
+          status?: Database["public"]["Enums"]["subscription_status"] | null
+          tier?: Database["public"]["Enums"]["subscription_tier"] | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          credits_daily_used?: number | null
+          credits_last_daily_reset?: string | null
+          credits_last_monthly_reset?: string | null
+          credits_monthly_used?: number | null
+          current_period_end?: string | null
+          current_period_start?: string | null
+          id?: string | null
+          plan_type?: Database["public"]["Enums"]["plan_type"] | null
+          status?: Database["public"]["Enums"]["subscription_status"] | null
+          tier?: Database["public"]["Enums"]["subscription_tier"] | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
-      [_ in never]: never
+      get_user_subscription: {
+        Args: never
+        Returns: {
+          created_at: string
+          credits_daily_used: number
+          credits_last_daily_reset: string
+          credits_last_monthly_reset: string
+          credits_monthly_used: number
+          current_period_end: string
+          current_period_start: string
+          id: string
+          plan_type: Database["public"]["Enums"]["plan_type"]
+          status: Database["public"]["Enums"]["subscription_status"]
+          tier: Database["public"]["Enums"]["subscription_tier"]
+          updated_at: string
+          user_id: string
+        }[]
+      }
+      update_user_credits: {
+        Args: {
+          p_daily_reset?: string
+          p_daily_used: number
+          p_monthly_reset?: string
+          p_monthly_used: number
+        }
+        Returns: boolean
+      }
     }
     Enums: {
       plan_type: "monthly" | "yearly"
