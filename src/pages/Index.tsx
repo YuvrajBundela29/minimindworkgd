@@ -82,7 +82,7 @@ const Index = () => {
   });
   
   // Chat history per mode
-  const [chatHistories, setChatHistories] = useState<Record<ModeKey, Array<{ role: string; content: string }>>>({
+  const [chatHistories, setChatHistories] = useState<Record<ModeKey, Array<{ role: 'user' | 'assistant'; content: string }>>>({
     beginner: [], thinker: [], story: [], mastery: [],
   });
   
@@ -438,7 +438,25 @@ const Index = () => {
       
       {currentPage === 'home' && <BottomInputBar value={question} onChange={setQuestion} onSubmit={handleSubmit} onVoiceInput={handleVoiceInput} onRefinePrompt={handleRefinePrompt} placeholder="Ask anything... MiniMind explains it 4 ways!" isLoading={isAnyLoading} isRefining={isRefining} />}
       
-      {fullscreenMode && <FullscreenMode isOpen={!!fullscreenMode} modeKey={fullscreenMode} answer={answers[fullscreenMode]} onClose={() => setFullscreenMode(null)} onSpeak={handleSpeak} onCopy={handleCopy} onDownload={handleDownload} onShare={handleShare} onChatSubmit={handleChatSubmit} isSpeaking={isSpeaking} chatInputValue={chatInputs[fullscreenMode]} onChatInputChange={handleChatInputChange} currentQuestion={currentQuestion} />}
+      {fullscreenMode && (
+        <FullscreenMode 
+          isOpen={!!fullscreenMode} 
+          modeKey={fullscreenMode} 
+          answer={answers[fullscreenMode]} 
+          chatHistory={chatHistories[fullscreenMode]}
+          isLoading={loadingModes[fullscreenMode]}
+          onClose={() => setFullscreenMode(null)} 
+          onSpeak={handleSpeak} 
+          onCopy={handleCopy} 
+          onDownload={handleDownload} 
+          onShare={handleShare} 
+          onChatSubmit={handleChatSubmit} 
+          isSpeaking={isSpeaking} 
+          chatInputValue={chatInputs[fullscreenMode]} 
+          onChatInputChange={handleChatInputChange} 
+          currentQuestion={currentQuestion} 
+        />
+      )}
       
       <RefinePromptDialog isOpen={showRefineDialog} originalPrompt={originalPrompt} refinedPrompt={refinedPrompt} onAccept={handleAcceptRefinedPrompt} onReject={() => setShowRefineDialog(false)} onReRefine={handleReRefine} isRefining={isRefining} />
       

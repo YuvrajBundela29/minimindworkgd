@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 interface ShareMenuProps {
   onShare: (platform: 'whatsapp' | 'email' | 'copy' | 'native' | 'download') => void;
   disabled?: boolean;
+  compact?: boolean;
 }
 
 const shareOptions = [
@@ -51,7 +52,7 @@ const shareOptions = [
   },
 ];
 
-const ShareMenu: React.FC<ShareMenuProps> = ({ onShare, disabled }) => {
+const ShareMenu: React.FC<ShareMenuProps> = ({ onShare, disabled, compact }) => {
   const [open, setOpen] = React.useState(false);
 
   const handleSelect = (platform: 'whatsapp' | 'email' | 'copy' | 'native' | 'download') => {
@@ -62,14 +63,25 @@ const ShareMenu: React.FC<ShareMenuProps> = ({ onShare, disabled }) => {
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
-        <motion.button
-          className="action-btn bg-muted hover:bg-muted/80 w-10 h-10"
-          whileTap={{ scale: 0.95 }}
-          disabled={disabled}
-          aria-label="Share explanation"
-        >
-          <Share2 className="w-4 h-4" />
-        </motion.button>
+        {compact ? (
+          <button
+            className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
+            disabled={disabled}
+            aria-label="Share explanation"
+          >
+            <Share2 className="w-3 h-3" />
+            Share
+          </button>
+        ) : (
+          <motion.button
+            className="action-btn bg-muted hover:bg-muted/80 w-10 h-10"
+            whileTap={{ scale: 0.95 }}
+            disabled={disabled}
+            aria-label="Share explanation"
+          >
+            <Share2 className="w-4 h-4" />
+          </motion.button>
+        )}
       </PopoverTrigger>
       <PopoverContent 
         className="w-48 p-2 bg-card border-border shadow-lg z-50" 
