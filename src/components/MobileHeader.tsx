@@ -58,9 +58,9 @@ const MobileHeader: React.FC<MobileHeaderProps> = ({ onMenuClick, onProfileClick
           className="logo-glow-container"
           animate={{ 
             boxShadow: [
-              '0 0 8px hsl(var(--india-saffron) / 0.3)',
-              '0 0 16px hsl(var(--india-saffron) / 0.5)',
-              '0 0 8px hsl(var(--india-saffron) / 0.3)'
+              '0 0 8px hsl(221 83% 53% / 0.3)',
+              '0 0 16px hsl(221 83% 53% / 0.5)',
+              '0 0 8px hsl(221 83% 53% / 0.3)'
             ]
           }}
           transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
@@ -120,7 +120,7 @@ const MobileHeader: React.FC<MobileHeaderProps> = ({ onMenuClick, onProfileClick
         )}
         
         <motion.button
-          className="icon-btn icon-btn-surface w-9 h-9 rounded-full overflow-hidden p-0 ring-2 ring-india-navy/20"
+          className="icon-btn icon-btn-surface w-9 h-9 rounded-full overflow-hidden p-0 ring-2 ring-primary/20"
           onClick={onProfileClick}
           whileTap={{ scale: 0.95 }}
           aria-label="Profile"
