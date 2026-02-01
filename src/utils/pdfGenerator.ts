@@ -220,57 +220,90 @@ export function downloadPDF(content: string, modeKey: ModeKey, question: string)
   doc.save(filename);
 }
 
-export async function sharePDF(content: string, modeKey: ModeKey, question: string): Promise<boolean> {
-  const doc = generatePDF(content, modeKey, question);
-  const filename = generateFilename(modeKey, question);
-  
-  // Convert to blob
-  const pdfBlob = doc.output('blob');
-  const file = new File([pdfBlob], filename, { type: 'application/pdf' });
-  
-  // Check if Web Share API with files is supported
-  if (navigator.share && navigator.canShare) {
-    const shareData = {
-      title: `MiniMind ${modes[modeKey].name}`,
-      text: `Check out this ${modes[modeKey].name} explanation from MiniMind: "${question.substring(0, 50)}..."`,
-      files: [file],
-    };
-    
-    // Check if we can share files
-    if (navigator.canShare(shareData)) {
-      try {
-        await navigator.share(shareData);
-        return true; // Successfully shared
-      } catch (error: any) {
-        if (error.name === 'AbortError') {
-          // User cancelled - that's okay
-          return false;
-        }
-        console.error('Share failed:', error);
-      }
-    }
-  }
-  
-  // Try sharing without files as fallback (for browsers that support share but not file sharing)
-  if (navigator.share) {
-    try {
-      await navigator.share({
-        title: `MiniMind ${modes[modeKey].name}`,
-        text: `Check out this ${modes[modeKey].name} explanation from MiniMind: "${question.substring(0, 50)}..."`,
-      });
-      // Also download the PDF since we couldn't share the file
-      downloadPDF(content, modeKey, question);
+export type SharePlatform = 'whatsapp' | 'email' | 'copy' | 'native' | 'download';
+
+export async function sharePDF(
+  content: string, 
+  modeKey: ModeKey, 
+  question: string,
+  platform: SharePlatform = 'native'
+): Promise<boolean> {
+  const mode = modes[modeKey];
+  const shareText = `Check out this ${mode.name} explanation from MiniMind:\n\n"${question.substring(0, 100)}..."\n\n${content.substring(0, 500)}...\n\n📚 Learn more at MiniMind`;
+  const shareTitle = `MiniMind ${mode.name} - ${question.substring(0, 50)}`;
+
+  switch (platform) {
+    case 'whatsapp': {
+      const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(shareText)}`;
+      window.open(whatsappUrl, '_blank');
       return true;
-    } catch (error: any) {
-      if (error.name === 'AbortError') {
+    }
+
+    case 'email': {
+      const subject = encodeURIComponent(shareTitle);
+      const body = encodeURIComponent(shareText);
+      window.location.href = `mailto:?subject=${subject}&body=${body}`;
+      return true;
+    }
+
+    case 'copy': {
+      try {
+        await navigator.clipboard.writeText(shareText);
+        return true;
+      } catch {
         return false;
       }
     }
+
+    case 'download': {
+      downloadPDF(content, modeKey, question);
+      return true;
+    }
+
+    case 'native':
+    default: {
+      const doc = generatePDF(content, modeKey, question);
+      const filename = generateFilename(modeKey, question);
+      const pdfBlob = doc.output('blob');
+      const file = new File([pdfBlob], filename, { type: 'application/pdf' });
+
+      if (navigator.share && navigator.canShare) {
+        const shareData = {
+          title: shareTitle,
+          text: `Check out this ${mode.name} explanation from MiniMind: "${question.substring(0, 50)}..."`,
+          files: [file],
+        };
+
+        if (navigator.canShare(shareData)) {
+          try {
+            await navigator.share(shareData);
+            return true;
+          } catch (error: any) {
+            if (error.name === 'AbortError') return false;
+            console.error('Share failed:', error);
+          }
+        }
+      }
+
+      // Fallback to text-only share
+      if (navigator.share) {
+        try {
+          await navigator.share({
+            title: shareTitle,
+            text: `Check out this ${mode.name} explanation from MiniMind: "${question.substring(0, 50)}..."`,
+          });
+          downloadPDF(content, modeKey, question);
+          return true;
+        } catch (error: any) {
+          if (error.name === 'AbortError') return false;
+        }
+      }
+
+      // Final fallback: just download
+      downloadPDF(content, modeKey, question);
+      return false;
+    }
   }
-  
-  // Final fallback: just download
-  downloadPDF(content, modeKey, question);
-  return false;
 }
 
 function generateFilename(modeKey: ModeKey, question: string): string {
@@ -281,7 +314,7 @@ function generateFilename(modeKey: ModeKey, question: string): string {
     .replace(/\s+/g, '_')
     .toLowerCase()
     .trim();
-  
+
   const timestamp = new Date().toISOString().split('T')[0];
   return `MiniMind_${mode.name}_${sanitizedQuestion || 'answer'}_${timestamp}.pdf`;
 }

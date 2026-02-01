@@ -22,7 +22,7 @@ import HeroEmptyState from '@/components/HeroEmptyState';
 import { modes, ModeKey, LanguageKey, NavigationId } from '@/config/minimind';
 import AIService from '@/services/aiService';
 import speechService from '@/services/speechService';
-import { downloadPDF, sharePDF } from '@/utils/pdfGenerator';
+import { downloadPDF, sharePDF, SharePlatform } from '@/utils/pdfGenerator';
 import { supabase } from '@/integrations/supabase/client';
 import { useSubscription, CREDIT_COSTS } from '@/contexts/SubscriptionContext';
 import { useEarlyAccess } from '@/contexts/EarlyAccessContext';
@@ -293,10 +293,17 @@ const Index = () => {
     toast.success('PDF downloaded!');
   }, [currentQuestion]);
   
-  const handleShare = useCallback(async (text: string, mode: string, q: string) => {
-    const shared = await sharePDF(text, mode as ModeKey, q || currentQuestion);
+  const handleShare = useCallback(async (text: string, mode: string, q: string, platform: SharePlatform = 'native') => {
+    const shared = await sharePDF(text, mode as ModeKey, q || currentQuestion, platform);
     if (shared) {
-      toast.success('Shared successfully!');
+      const messages: Record<SharePlatform, string> = {
+        whatsapp: 'Opening WhatsApp...',
+        email: 'Opening email...',
+        copy: 'Copied to clipboard!',
+        download: 'PDF downloaded!',
+        native: 'Shared successfully!',
+      };
+      toast.success(messages[platform]);
     }
   }, [currentQuestion]);
   

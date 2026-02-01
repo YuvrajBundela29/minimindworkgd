@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Volume2, Copy, Download, Share2, Send, Wand2, Maximize2, Zap } from 'lucide-react';
+import { Volume2, Copy, Download, Send, Wand2, Maximize2, Zap } from 'lucide-react';
 import { modes, ModeKey } from '@/config/minimind';
 import MarkdownRenderer from './MarkdownRenderer';
 import FeedbackPrompt from './FeedbackPrompt';
 import TrustFooter from './TrustFooter';
 import SkeletonLoader from './SkeletonLoader';
+import ShareMenu from './ShareMenu';
 import { useSubscription, CREDIT_COSTS } from '@/contexts/SubscriptionContext';
 import { useEarlyAccess } from '@/contexts/EarlyAccessContext';
 
@@ -16,7 +17,7 @@ interface ModeCardProps {
   onSpeak: (text: string, mode: string) => void;
   onCopy: (text: string) => void;
   onDownload: (text: string, mode: string, question: string) => void;
-  onShare: (text: string, mode: string, question: string) => void;
+  onShare: (text: string, mode: string, question: string, platform: 'whatsapp' | 'email' | 'copy' | 'native' | 'download') => void;
   onGetOneWord: (mode: string) => void;
   onChatSubmit: (message: string, mode: string) => void;
   onFullscreen: (mode: string) => void;
@@ -201,14 +202,9 @@ const ModeCard: React.FC<ModeCardProps> = ({
             <Download className="w-4 h-4" />
           </motion.button>
           
-          <motion.button
-            className="action-btn bg-muted hover:bg-muted/80 w-10 h-10"
-            onClick={() => onShare(answer, modeKey, currentQuestion)}
-            whileTap={{ scale: 0.95 }}
-            aria-label="Share explanation"
-          >
-            <Share2 className="w-4 h-4" />
-          </motion.button>
+          <ShareMenu 
+            onShare={(platform) => onShare(answer, modeKey, currentQuestion, platform)} 
+          />
         </div>
       )}
       
