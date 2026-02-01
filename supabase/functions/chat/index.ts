@@ -247,43 +247,41 @@ function validateMessages(messages: unknown): Array<{ role: string; content: str
   });
 }
 
-// Extract user ID from JWT token
-function getUserIdFromAuthHeader(authHeader: string | null): string | null {
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return null;
-  }
-  
-  try {
-    const token = authHeader.substring(7);
-    // Decode JWT payload (second part)
-    const payloadBase64 = token.split(".")[1];
-    if (!payloadBase64) return null;
-    
-    const payload = JSON.parse(atob(payloadBase64));
-    return payload.sub || null;
-  } catch {
-    return null;
-  }
-}
-
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Get user ID from auth header (required - JWT verification is enabled)
+    // Properly validate JWT using Supabase auth (JWT is pre-verified via verify_jwt = true in config)
     const authHeader = req.headers.get("Authorization");
-    const userId = getUserIdFromAuthHeader(authHeader);
-    
-    if (!userId) {
-      console.error("Authentication required: No valid user ID found in token");
+    if (!authHeader?.startsWith("Bearer ")) {
+      console.error("Authentication required: No Authorization header");
       return new Response(
         JSON.stringify({ error: "Authentication required" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    // Create authenticated Supabase client and validate user
+    const supabaseClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claims, error: authError } = await supabaseClient.auth.getClaims(token);
     
+    if (authError || !claims?.claims) {
+      console.error("Authentication failed:", authError?.message || "Invalid claims");
+      return new Response(
+        JSON.stringify({ error: "Authentication required" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const userId = claims.claims.sub;
     console.log(`Processing request for authenticated user: ${userId.substring(0, 8)}...`);
 
     // Parse and validate input
