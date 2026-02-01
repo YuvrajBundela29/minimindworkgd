@@ -42,7 +42,7 @@ const MobileHeader: React.FC<MobileHeaderProps> = ({ onMenuClick, onProfileClick
   }, []);
 
   return (
-    <header className="mobile-header">
+    <header className="mobile-header-enhanced">
       <motion.button
         className="icon-btn icon-btn-ghost"
         onClick={onMenuClick}
@@ -52,13 +52,31 @@ const MobileHeader: React.FC<MobileHeaderProps> = ({ onMenuClick, onProfileClick
         <Menu className="w-6 h-6" />
       </motion.button>
       
-      <div className="flex items-center gap-2">
-        <img 
-          src="https://i.ibb.co/fGLH5Dxs/minimind-logo.png" 
-          alt="MiniMind Logo" 
-          className="w-8 h-8 object-contain"
-        />
-        <span className="logo-text">MiniMind</span>
+      {/* Enhanced Logo Section */}
+      <div className="flex items-center gap-2.5">
+        <motion.div 
+          className="logo-glow-container"
+          animate={{ 
+            boxShadow: [
+              '0 0 8px hsl(var(--india-saffron) / 0.3)',
+              '0 0 16px hsl(var(--india-saffron) / 0.5)',
+              '0 0 8px hsl(var(--india-saffron) / 0.3)'
+            ]
+          }}
+          transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+        >
+          <img 
+            src="https://i.ibb.co/fGLH5Dxs/minimind-logo.png" 
+            alt="MiniMind Logo" 
+            className="w-9 h-9 object-contain"
+          />
+        </motion.div>
+        <div className="flex flex-col items-start">
+          <span className="logo-text-india">MiniMind</span>
+          <span className="made-in-india-badge">
+            🇮🇳 Made in India
+          </span>
+        </div>
       </div>
 
       <div className="flex items-center gap-2">
@@ -89,7 +107,7 @@ const MobileHeader: React.FC<MobileHeaderProps> = ({ onMenuClick, onProfileClick
         )}
         
         <motion.button
-          className="icon-btn icon-btn-surface w-9 h-9 rounded-full overflow-hidden p-0"
+          className="icon-btn icon-btn-surface w-9 h-9 rounded-full overflow-hidden p-0 ring-2 ring-india-navy/20"
           onClick={onProfileClick}
           whileTap={{ scale: 0.95 }}
           aria-label="Profile"

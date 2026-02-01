@@ -78,6 +78,12 @@ export default {
             accent: "hsl(var(--mastery-accent))",
           },
         },
+        india: {
+          saffron: "hsl(var(--india-saffron))",
+          navy: "hsl(var(--india-navy))",
+          green: "hsl(var(--india-green))",
+          orange: "hsl(var(--india-warm-orange))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
