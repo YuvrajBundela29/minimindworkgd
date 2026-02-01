@@ -1,307 +1,140 @@
 
-
-# PURPOSE_LENS System for MiniMind (Updated)
-
-This plan implements a context-aware adaptation layer that keeps the 4 fixed modes (Beginner, Thinker, Story, Mastery) unchanged while internally adapting their content based on WHY the user is learning.
-
----
-
-## Key Changes from Original Plan
-
-1. **One-Time Setup**: Purpose lens is asked ONLY on first launch, then persists permanently
-2. **Dedicated Navigation Page**: New "Learning Purpose" page accessible from the side menu
-3. **Custom Lens Option**: Users can create their own custom prompt to define their learning context
-
----
+# MiniMind Mobile Experience Enhancement Plan
 
 ## Overview
-
-```text
-FIRST LAUNCH:
-User sees Purpose Lens selector → Selects "JEE" → Saved permanently
-     ↓
-SUBSEQUENT LAUNCHES:
-User goes directly to home → Lens already active
-     ↓
-TO CHANGE:
-Side Menu → "Learning Purpose" page → Change or create custom
-```
+This plan addresses three critical mobile UX issues:
+1. **Data Persistence** - Answers vanishing on page refresh
+2. **Back Button Behavior** - App closing instead of navigating back (double-tap to exit)
+3. **Header Enhancement** - Making the MiniMind header more professional and trust-inspiring with an "Indian-made" identity
 
 ---
 
-## What Will Change
+## Issue 1: Data Persistence on Refresh
 
-### 1. New Configuration: Purpose Lens Options
+### Problem
+When users refresh the app on mobile, all answers from the home screen disappear. The app starts fresh instead of restoring the previous session.
 
-**File: `src/config/minimind.ts`**
+### Solution
+Persist the current session state (question, answers, loading states) to localStorage and restore it on app load.
 
-Add `purposeLenses` configuration:
-
-| Lens ID | Name | Icon | Description |
-|---------|------|------|-------------|
-| `general` | General | 🌐 | Exploratory, curiosity-led learning |
-| `jee` | JEE Prep | 🎯 | JEE Main/Advanced focused |
-| `neet` | NEET Prep | 🩺 | NEET medical entrance focused |
-| `student` | School Student | 📚 | Generic school curriculum |
-| `parent` | Parent | 👨‍👩‍👧 | Helping your child learn |
-| `teacher` | Teacher | 👩‍🏫 | Teaching methodology focused |
-| `professional` | Professional | 💼 | Workplace/career context |
-| `custom` | Custom | ✨ | User-defined purpose |
-
-Each preset lens will have:
-- Name, icon, and description
-- Pre-built prompt adaptation rules
-- Keywords for context
-
----
-
-### 2. First-Time Purpose Lens Onboarding
-
-**New File: `src/components/PurposeLensOnboarding.tsx`**
-
-A full-screen overlay shown ONLY on first launch:
-- Welcoming message: "What brings you to MiniMind?"
-- Grid of lens options with icons and descriptions
-- "Custom" option at the bottom
-- Once selected, never shows again (saved to localStorage + database)
-
-**Logic:**
-```text
-if (!localStorage.get('purposeLensSelected') && !userSettings.purpose_lens) {
-  show PurposeLensOnboarding
-} else {
-  show normal home page
-}
-```
-
----
-
-### 3. Dedicated Purpose Lens Page (Navigation)
-
-**New File: `src/components/pages/PurposeLensPage.tsx`**
-
-A full settings page for managing Purpose Lens:
-
-**Sections:**
-
-1. **Current Lens Display**
-   - Shows active lens with icon and description
-   - "Change" button
-
-2. **Preset Lenses Grid**
-   - All 7 preset options in a card grid
-   - Selected one highlighted
-   - Tap to switch instantly
-
-3. **Custom Lens Section**
-   - Text area for custom prompt (max 500 chars)
-   - Preview of how it will affect responses
-   - Save button
-   - Examples: "I'm a UPSC aspirant focusing on Indian History and Polity"
-
-4. **How It Works**
-   - Brief explanation of how lens affects all 4 modes
-
-**File: `src/config/minimind.ts` - Update Navigation**
-
-Add new navigation item:
-```typescript
-{ 
-  id: 'purposelens', 
-  label: 'Learning Purpose 🎯', 
-  icon: 'Target', 
-  description: 'Set your learning context' 
-}
-```
-
----
-
-### 4. Custom Lens Feature
-
-**User Flow:**
-1. User selects "Custom" option
-2. Text input appears: "Describe your learning purpose..."
-3. User types: "I'm preparing for GATE Computer Science exam"
-4. System saves this as their custom prompt
-5. All 4 modes now adapt to GATE CS context
-
-**Database Schema:**
-```sql
-ALTER TABLE user_settings 
-ADD COLUMN purpose_lens TEXT DEFAULT 'general',
-ADD COLUMN custom_lens_prompt TEXT DEFAULT NULL;
-```
-
-**Edge Function Handling:**
-- If `purpose_lens = 'custom'`, use `custom_lens_prompt` value
-- Inject custom prompt into the system instructions
-
----
-
-### 5. Enhanced Edge Function Prompts
-
-**File: `supabase/functions/chat/index.ts`**
-
-**Preset Lens Prompt Adapters:**
-```text
-PURPOSE_LENS_PROMPTS = {
-  jee: {
-    context: "JEE Main/Advanced competitive exam",
-    examples: "IIT-level physics, chemistry, maths problems",
-    tone: "Precise, exam-oriented, no fluff",
-    relevance: "Connect to JEE syllabus and question patterns"
-  },
-  neet: {
-    context: "NEET medical entrance exam",
-    examples: "NCERT Biology, Physics, Chemistry concepts",
-    tone: "Clinical precision, NCERT-aligned",
-    relevance: "Focus on NEET-specific topics and weightage"
-  },
-  parent: {
-    context: "Parent helping their child learn",
-    examples: "Household activities, family situations",
-    tone: "Calm, reassuring, patience-focused",
-    relevance: "How to explain this to a child at home"
-  },
-  teacher: {
-    context: "Educator preparing lessons",
-    examples: "Classroom activities, teaching methods",
-    tone: "Structured, pedagogical, question-driven",
-    relevance: "How to teach this effectively"
-  },
-  custom: {
-    // Uses user's custom_lens_prompt directly
-    context: "${custom_lens_prompt}",
-    tone: "Adapt naturally to the user's stated purpose"
-  }
-}
-```
-
-**Mode-Specific Lens Behavior remains the same:**
-- Beginner: Simple BUT with lens-appropriate examples
-- Thinker: Logical BUT with lens-appropriate reasoning
-- Story: Narrative BUT set in lens-appropriate scenarios
-- Mastery: Deep BUT focused on what mastery means for this lens
-
----
-
-### 6. Frontend Integration
+### Changes Required
 
 **File: `src/pages/Index.tsx`**
+- Add a new localStorage key: `minimind-current-session`
+- Store the active session data:
+  - `currentQuestion`
+  - `answers`
+  - `hasAskedQuestion`
+  - `chatHistories`
+- Restore this data on initial load (in the existing `useEffect` that loads saved data)
+- Add a new `useEffect` to save session data whenever it changes
+- Clear session data when user starts a new question (so old answers don't persist incorrectly)
 
-Changes:
-- Add `purposeLens` and `customLensPrompt` state
-- Check on mount: if no lens set, show onboarding overlay
-- Load from localStorage first, then sync with user_settings
-- Pass `purposeLens` and `customLensPrompt` to AIService
+---
 
-**File: `src/services/aiService.ts`**
+## Issue 2: Double-Back to Exit App
 
-Update all methods to accept:
-```typescript
-interface AIRequestOptions {
-  purposeLens: string;
-  customLensPrompt?: string;
+### Problem
+When users press the back button on their phone, the app closes immediately instead of navigating to the previous page.
+
+### Solution
+Implement a hardware back button handler using the browser's `popstate` event that:
+1. Navigates to the previous page if not on home
+2. Shows a "Press back again to exit" toast on home page
+3. Exits only on second back press within 2 seconds
+
+### Changes Required
+
+**File: `src/pages/Index.tsx`**
+- Add a `backPressCount` ref to track consecutive back presses
+- Add a `useEffect` to listen for the browser's `popstate` event
+- Push history states when navigating between pages (so back button has history to work with)
+- Show a toast message: "Press back again to exit" on first back press from home
+- Reset the counter after 2 seconds timeout
+
+**File: `src/components/SideMenu.tsx`** (if needed)
+- Ensure navigation also pushes browser history states
+
+---
+
+## Issue 3: Enhanced MiniMind Header
+
+### Problem
+The current header is basic and doesn't evoke trust or an "Indian-made" identity.
+
+### Solution
+Redesign the header with:
+- **Color Psychology for Trust**: Navy blue (reliability, professionalism) combined with saffron/orange (energy, warmth, Indian identity)
+- **Subtle Indian Identity**: Colors inspired by the Indian flag without being too literal
+- **Enhanced Typography**: Larger, bolder logo text with a refined gradient
+- **Subtle Animation**: Gentle pulse or glow on the logo for premium feel
+- **Badge**: "Made in India" or "Bharat" subtle badge
+
+### Changes Required
+
+**File: `src/components/MobileHeader.tsx`**
+- Redesign the header layout with a more premium look
+- Add a subtle "Made in India" badge (using a flag or text)
+- Use navy blue (#1a365d) as background/accent for trust
+- Add saffron/orange gradient touches for Indian identity
+- Improve logo animation with a gentle glow effect
+- Make the logo larger (from w-8 h-8 to w-9 h-9)
+- Add a subtle border or shadow for depth
+
+**File: `src/index.css`**
+- Add new CSS variables for Indian-themed colors:
+  - `--india-saffron`: Deep saffron (#FF6B35)
+  - `--india-navy`: Navy blue (#1E3A5F or #0D2137)
+  - `--india-green`: Indian green (#138808)
+- Add a new `.logo-text-india` class with an Indian-themed gradient
+- Add subtle glow animation for the header
+
+---
+
+## Technical Details
+
+### Session Persistence Data Structure
+```text
+minimind-current-session = {
+  currentQuestion: string,
+  answers: { beginner: string | null, ... },
+  hasAskedQuestion: boolean,
+  chatHistories: { beginner: [...], ... },
+  timestamp: number (for expiry check)
 }
 ```
 
-**File: `src/components/MobileHeader.tsx`**
-
-Add small lens indicator badge showing current lens icon (e.g., 🎯 for JEE)
-
-**File: `src/components/SideMenu.tsx`**
-
-Add "Learning Purpose" navigation item with Target icon
-
----
-
-### 7. Settings Page Update
-
-**File: `src/components/pages/SettingsPage.tsx`**
-
-Remove any purpose lens UI from settings (it now has its own dedicated page)
-
-Or optionally add a quick link: "Learning Purpose → Go to settings"
-
----
-
-## Files to Create
-
-| File | Purpose |
-|------|---------|
-| `src/components/PurposeLensOnboarding.tsx` | First-time lens selection overlay |
-| `src/components/pages/PurposeLensPage.tsx` | Dedicated page for managing purpose lens |
-
-## Files to Modify
-
-| File | Changes |
-|------|---------|
-| `src/config/minimind.ts` | Add `purposeLenses` config + navigation item |
-| `supabase/functions/chat/index.ts` | Add lens-aware prompt adapters with custom support |
-| `src/services/aiService.ts` | Add `purposeLens` and `customLensPrompt` parameters |
-| `src/pages/Index.tsx` | Add lens state, show onboarding on first launch |
-| `src/components/MobileHeader.tsx` | Add lens indicator badge |
-| `src/components/SideMenu.tsx` | Add Learning Purpose navigation item |
-
-## Database Migration
-
-```sql
-ALTER TABLE user_settings 
-ADD COLUMN IF NOT EXISTS purpose_lens TEXT DEFAULT 'general',
-ADD COLUMN IF NOT EXISTS custom_lens_prompt TEXT DEFAULT NULL;
-```
-
----
-
-## User Flow Summary
-
+### Back Button State Flow
 ```text
-┌─────────────────────────────────────────────────────────────┐
-│                    FIRST TIME USER                          │
-├─────────────────────────────────────────────────────────────┤
-│  Opens app → Full-screen Purpose Lens selector appears      │
-│  Selects "JEE Prep" → Saved → Never asked again             │
-└─────────────────────────────────────────────────────────────┘
-                              ↓
-┌─────────────────────────────────────────────────────────────┐
-│                   RETURNING USER                            │
-├─────────────────────────────────────────────────────────────┤
-│  Opens app → Goes directly to home with JEE lens active     │
-│  Sees 🎯 badge in header indicating current lens            │
-└─────────────────────────────────────────────────────────────┘
-                              ↓
-┌─────────────────────────────────────────────────────────────┐
-│                   WANTS TO CHANGE                           │
-├─────────────────────────────────────────────────────────────┤
-│  Opens side menu → Taps "Learning Purpose 🎯"               │
-│  Full page with all options + Custom input                  │
-│  Selects new lens or creates custom → Saved immediately     │
-└─────────────────────────────────────────────────────────────┘
+User on Home (no question) → Back → Toast "Press again to exit"
+                           → Back (within 2s) → App closes
+
+User on Home (with answers) → Back → Clear answers, show empty state
+                            → Back → Toast "Press again to exit"
+                            → Back (within 2s) → App closes
+
+User on Profile/Settings/etc → Back → Navigate to Home
 ```
 
----
-
-## Custom Lens Examples
-
-Users can enter prompts like:
-- "I'm a UPSC Civil Services aspirant focusing on Indian History, Polity, and Geography"
-- "I'm a Class 10 CBSE student preparing for board exams"
-- "I'm learning programming to switch careers into software development"
-- "I'm a medical professional wanting to explain concepts to patients"
-- "I'm preparing for CAT MBA entrance exam"
-
-The system will adapt all 4 modes to match their specific context.
+### Color Palette for Header
+| Color | Hex | Usage |
+|-------|-----|-------|
+| Navy Blue | #0D2137 | Primary header accent, trust |
+| Deep Saffron | #FF6B35 | Logo gradient start |
+| Warm Orange | #F7931E | Logo gradient middle |
+| India Green | #138808 | Subtle accent (optional) |
+| White | #FFFFFF | Text on dark backgrounds |
 
 ---
 
 ## Implementation Order
+1. **Session Persistence** - Most critical for user experience
+2. **Back Button Handler** - Second priority for mobile usability
+3. **Header Enhancement** - Visual polish last
 
-1. **Database** - Add purpose_lens and custom_lens_prompt columns
-2. **Configuration** - Add purposeLenses to minimind.ts with navigation
-3. **Edge Function** - Implement lens-aware prompt system with custom support
-4. **AIService** - Update to pass purposeLens and customLensPrompt
-5. **Onboarding Component** - Build first-time lens selector
-6. **Purpose Lens Page** - Build dedicated management page
-7. **Index.tsx** - Wire up state, persistence, and onboarding logic
-8. **Navigation** - Add to SideMenu and header indicator
+---
 
+## Files to Modify
+- `src/pages/Index.tsx` (persistence + back handler)
+- `src/components/MobileHeader.tsx` (header redesign)
+- `src/index.css` (new CSS variables and animations)
