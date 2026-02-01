@@ -135,6 +135,10 @@ const Index = () => {
   const backPressTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const canExitRef = useRef(false);
   
+  // Session restoration flag to prevent race conditions
+  const restoredRef = useRef(false);
+  const historyInitializedRef = useRef(false);
+  
   // Cleanup abort controller on unmount
   useEffect(() => {
     return () => {
@@ -199,10 +203,17 @@ const Index = () => {
         const session = JSON.parse(savedSession);
         // Only restore if session is less than 24 hours old
         if (session.timestamp && Date.now() - session.timestamp < 24 * 60 * 60 * 1000) {
-          if (session.currentQuestion) setCurrentQuestion(session.currentQuestion);
-          if (session.answers) setAnswers(session.answers);
-          if (session.hasAskedQuestion) setHasAskedQuestion(session.hasAskedQuestion);
-          if (session.chatHistories) setChatHistories(session.chatHistories);
+          // Check if session has actual data (at least one non-null answer)
+          const hasValidAnswers = session.answers && 
+            Object.values(session.answers).some((a: string | null) => a !== null);
+          
+          if (hasValidAnswers && session.currentQuestion) {
+            restoredRef.current = true; // Mark as restored to prevent immediate re-save
+            setCurrentQuestion(session.currentQuestion);
+            setAnswers(session.answers);
+            setHasAskedQuestion(session.hasAskedQuestion);
+            if (session.chatHistories) setChatHistories(session.chatHistories);
+          }
         } else {
           // Session expired, clear it
           localStorage.removeItem(SESSION_STORAGE_KEY);
@@ -234,7 +245,16 @@ const Index = () => {
   
   // Persist session state to localStorage
   useEffect(() => {
-    if (hasAskedQuestion && currentQuestion) {
+    // Skip saving if we just restored (prevents overwriting with stale/partial data)
+    if (restoredRef.current) {
+      restoredRef.current = false; // Reset flag after first skip
+      return;
+    }
+    
+    // Only save when we have actual answers (at least one non-null)
+    const hasValidAnswers = Object.values(answers).some(a => a !== null);
+    
+    if (hasAskedQuestion && currentQuestion && hasValidAnswers) {
       const sessionData = {
         currentQuestion,
         answers,
@@ -246,26 +266,31 @@ const Index = () => {
     }
   }, [currentQuestion, answers, hasAskedQuestion, chatHistories]);
   
-  // Hardware back button handler (double-back to exit)
+  // Hardware back button handler with proper history stack
   useEffect(() => {
-    // Push initial history state
-    if (window.history.state === null) {
-      window.history.pushState({ page: 'home' }, '');
+    // Initialize history stack with buffer entries (only once)
+    if (!historyInitializedRef.current) {
+      historyInitializedRef.current = true;
+      // Push two entries to create a buffer - this prevents immediate app exit
+      window.history.replaceState({ page: 'buffer', depth: 0 }, '');
+      window.history.pushState({ page: 'home', depth: 1 }, '');
     }
     
     const handlePopState = (event: PopStateEvent) => {
+      const state = event.state;
+      
       // If on a subpage, navigate back to home
       if (currentPage !== 'home') {
-        event.preventDefault();
-        window.history.pushState({ page: 'home' }, '');
+        // Re-push state to maintain history stack
+        window.history.pushState({ page: 'home', depth: 1 }, '');
         setCurrentPage('home');
         return;
       }
       
       // If has answers, clear them first
       if (hasAskedQuestion) {
-        event.preventDefault();
-        window.history.pushState({ page: 'home' }, '');
+        // Re-push state to maintain history stack
+        window.history.pushState({ page: 'home', depth: 1 }, '');
         setAnswers(defaultAnswers);
         setCurrentQuestion('');
         setHasAskedQuestion(false);
@@ -278,13 +303,14 @@ const Index = () => {
       
       // On home with no answers - implement double-back to exit
       if (canExitRef.current) {
-        // Allow exit - don't prevent default
+        // Allow exit - let the browser navigate away naturally
+        // Don't re-push state, just return
         return;
       }
       
       // First back press - show toast and wait for second
-      event.preventDefault();
-      window.history.pushState({ page: 'home' }, '');
+      // Re-push state to give user another chance
+      window.history.pushState({ page: 'home', depth: 1 }, '');
       toast.info('Press back again to exit', { duration: 2000 });
       canExitRef.current = true;
       
@@ -375,6 +401,15 @@ const Index = () => {
     return response;
   }, [purposeLens, customLensPrompt]);
   
+  // Navigation handler that pushes history for proper back button support
+  const handleNavigate = useCallback((page: NavigationId | 'auth') => {
+    if (page !== 'home') {
+      // Push history entry for subpage navigation
+      window.history.pushState({ page, depth: 2 }, '');
+    }
+    setCurrentPage(page);
+  }, []);
+  
   // Handle question submission with staggered loading
   const handleSubmit = useCallback(async () => {
     if (!question.trim()) return;
@@ -382,6 +417,9 @@ const Index = () => {
     // Cancel any pending requests
     abortControllerRef.current?.abort();
     abortControllerRef.current = new AbortController();
+    
+    // Push history state for answers so back can clear them
+    window.history.pushState({ page: 'answers', depth: 2 }, '');
     
     const questionText = question;
     setCurrentQuestion(questionText);
@@ -523,6 +561,7 @@ const Index = () => {
   const handleGetOneWord = useCallback(async (mode: string) => {
     const answer = answers[mode as ModeKey];
     if (!answer) return;
+    window.history.pushState({ page: 'ekakshar', depth: 2 }, '');
     setCurrentPage('ekakshar');
     sessionStorage.setItem('ekakshar-auto-question', currentQuestion);
   }, [answers, currentQuestion]);
@@ -547,7 +586,15 @@ const Index = () => {
   }, [chatHistories, selectedLanguage, purposeLens, customLensPrompt]);
   
   const handleChatInputChange = useCallback((mode: string, value: string) => { setChatInputs(prev => ({ ...prev, [mode as ModeKey]: value })); }, []);
-  const handleLoadHistory = useCallback((item: HistoryItem) => { setAnswers(item.answers); setCurrentQuestion(item.question); setHasAskedQuestion(true); setCurrentPage('home'); toast.success('Loaded from history!'); }, []);
+  const handleLoadHistory = useCallback((item: HistoryItem) => { 
+    // Push history state for answers loaded from history
+    window.history.pushState({ page: 'answers', depth: 2 }, '');
+    setAnswers(item.answers); 
+    setCurrentQuestion(item.question); 
+    setHasAskedQuestion(true); 
+    setCurrentPage('home'); 
+    toast.success('Loaded from history!'); 
+  }, []);
   const handleClearHistory = useCallback(() => { setHistory([]); localStorage.removeItem('minimind-history'); toast.success('History cleared!'); }, []);
   const handleFullscreen = useCallback((mode: string) => { setFullscreenMode(mode as ModeKey); }, []);
   const handleSignOut = async () => { 
@@ -599,6 +646,9 @@ const Index = () => {
     // Cancel any pending requests
     abortControllerRef.current?.abort();
     abortControllerRef.current = new AbortController();
+    
+    // Push history state for answers so back can clear them
+    window.history.pushState({ page: 'answers', depth: 2 }, '');
     
     setQuestion('');
     setCurrentQuestion(prompt);
@@ -675,20 +725,20 @@ const Index = () => {
   if (currentPage === 'auth') {
     return (
       <Suspense fallback={<PageLoadingFallback />}>
-        <AuthPage onBack={() => setCurrentPage('home')} onAuthSuccess={() => setCurrentPage('home')} />
+        <AuthPage onBack={() => handleNavigate('home')} onAuthSuccess={() => handleNavigate('home')} />
       </Suspense>
     );
   }
 
   // Show early access gate only if not logged in and not navigating to auth
   if (!user && isEarlyAccess) {
-    return <EarlyAccessGate onSignIn={() => setCurrentPage('auth')} />;
+    return <EarlyAccessGate onSignIn={() => handleNavigate('auth')} />;
   }
 
   return (
     <div className="app-container">
-      <MobileHeader onMenuClick={() => setIsMenuOpen(true)} onProfileClick={() => user ? setCurrentPage('profile') : setCurrentPage('auth')} currentLens={purposeLens} />
-      <SideMenu isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} currentPage={currentPage as NavigationId} onNavigate={setCurrentPage} theme={theme} onToggleTheme={toggleTheme} onShowGuide={() => setShowOnboarding(true)} />
+      <MobileHeader onMenuClick={() => setIsMenuOpen(true)} onProfileClick={() => user ? handleNavigate('profile') : handleNavigate('auth')} currentLens={purposeLens} />
+      <SideMenu isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} currentPage={currentPage as NavigationId} onNavigate={handleNavigate} theme={theme} onToggleTheme={toggleTheme} onShowGuide={() => setShowOnboarding(true)} />
       
       <main className="page-content px-4 custom-scrollbar">
         <AnimatePresence mode="wait">
