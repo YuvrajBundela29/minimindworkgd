@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Home, BarChart3, Zap, History, Settings, Sun, Moon, HelpCircle, User, BookOpen, Crown, FileSearch, Sparkles, MessageCircle, LayoutDashboard, MessageSquareHeart } from 'lucide-react';
+import { X, Home, BarChart3, Zap, History, Settings, Sun, Moon, HelpCircle, User, BookOpen, Crown, FileSearch, Sparkles, MessageCircle, LayoutDashboard, MessageSquareHeart, Target } from 'lucide-react';
 import { navigationItems, NavigationId } from '@/config/minimind';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { useEarlyAccess } from '@/contexts/EarlyAccessContext';
@@ -21,6 +21,7 @@ const iconMap: Record<string, React.FC<{ className?: string }>> = {
   Sparkles,
   MessageCircle,
   LayoutDashboard,
+  Target,
 };
 
 interface SideMenuProps {
@@ -100,7 +101,7 @@ const SideMenu: React.FC<SideMenuProps> = ({
               {/* Learn Section */}
               <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-4">Learn</p>
               <div className="space-y-1 mb-4">
-                {navigationItems.slice(0, 4).map((item) => {
+                {navigationItems.slice(0, 5).map((item) => {
                   const Icon = iconMap[item.icon] || Home;
                   const isActive = currentPage === item.id;
                   
@@ -137,7 +138,7 @@ const SideMenu: React.FC<SideMenuProps> = ({
               {/* Account Section */}
               <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-4">Account</p>
               <div className="space-y-1">
-                {navigationItems.slice(4).map((item) => {
+                {navigationItems.slice(5).map((item) => {
                   const Icon = iconMap[item.icon] || Home;
                   const isActive = currentPage === item.id;
                   

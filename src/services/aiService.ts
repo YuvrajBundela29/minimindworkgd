@@ -1,11 +1,28 @@
 // MiniMind AI Service - Connects to Lovable AI via Edge Function
 import { supabase } from "@/integrations/supabase/client";
 
+export interface PurposeLensOptions {
+  purposeLens?: string;
+  customLensPrompt?: string;
+}
+
 export class AIService {
-  static async getExplanation(prompt: string, mode: string, language: string): Promise<string> {
+  static async getExplanation(
+    prompt: string, 
+    mode: string, 
+    language: string,
+    lensOptions?: PurposeLensOptions
+  ): Promise<string> {
     try {
       const { data, error } = await supabase.functions.invoke('chat', {
-        body: { prompt, mode, language, type: 'explain' }
+        body: { 
+          prompt, 
+          mode, 
+          language, 
+          type: 'explain',
+          purposeLens: lensOptions?.purposeLens || 'general',
+          customLensPrompt: lensOptions?.customLensPrompt
+        }
       });
 
       if (error) {
@@ -77,11 +94,19 @@ export class AIService {
   static async continueConversation(
     messages: Array<{ role: string; content: string }>,
     mode: string,
-    language: string
+    language: string,
+    lensOptions?: PurposeLensOptions
   ): Promise<string> {
     try {
       const { data, error } = await supabase.functions.invoke('chat', {
-        body: { messages, mode, language, type: 'continue' }
+        body: { 
+          messages, 
+          mode, 
+          language, 
+          type: 'continue',
+          purposeLens: lensOptions?.purposeLens || 'general',
+          customLensPrompt: lensOptions?.customLensPrompt
+        }
       });
 
       if (error) {
