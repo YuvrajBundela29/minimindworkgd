@@ -1,359 +1,227 @@
 
-# Web App Performance Audit & Optimization Plan for MiniMind
 
-## ✅ IMPLEMENTATION COMPLETE
+# PURPOSE_LENS System for MiniMind (Updated)
 
-All optimizations have been implemented successfully.
-
----
-
-## Executive Summary
-
-### Current Performance Issues Identified
-
-| Issue | Impact | Priority |
-|-------|--------|----------|
-| All page components loaded upfront | High bundle size, slow initial load | Critical |
-| 4 parallel AI API calls on submit | Network congestion, slow response | High |
-| Large framer-motion animations | Render blocking, high CPU usage | High |
-| External fonts blocking render | Delayed First Contentful Paint | Medium |
-| jsPDF loaded eagerly | Unnecessary initial bundle bloat | Medium |
-| No API response caching | Duplicate requests waste resources | Medium |
-| Large component re-renders | Poor FID scores on mobile | Medium |
-
-### Target Metrics
-
-| Metric | Current (Est.) | Target | Description |
-|--------|---------------|--------|-------------|
-| LCP | ~3.5s | <2.5s | Largest Contentful Paint |
-| FID | ~150ms | <100ms | First Input Delay |
-| CLS | ~0.15 | <0.1 | Cumulative Layout Shift |
-| TTI | ~4s | <3s | Time to Interactive |
+This plan implements a context-aware adaptation layer that keeps the 4 fixed modes (Beginner, Thinker, Story, Mastery) unchanged while internally adapting their content based on WHY the user is learning.
 
 ---
 
-## Phase 1: Lazy Loading Heavy Components
+## Key Changes from Original Plan
 
-### Problem
-All 12 page components in `src/components/pages/` are imported synchronously in `Index.tsx`, bloating the initial bundle.
-
-### Solution
-Use React.lazy() and Suspense for route-based code splitting.
-
-### Files to Modify
-
-**`src/pages/Index.tsx`**
-- Convert static imports to dynamic imports for all page components
-- Wrap lazy components with Suspense and loading fallbacks
-
-**Components to Lazy Load:**
-```text
-- EkaksharPage (~15KB)
-- HistoryPage (~8KB)
-- SettingsPage (~10KB)
-- ProfilePage (~12KB)
-- SubscriptionPage (~18KB)
-- LearningPathPage (~25KB) ← Largest
-- ExplainBackPage (~15KB)
-- AuthPage (~10KB)
-- OnboardingGuide (~8KB)
-- FullscreenMode (~12KB)
-```
-
-**New File: `src/components/PageLoadingFallback.tsx`**
-- Lightweight skeleton component for page transitions
-- Uses simple CSS animations (no framer-motion)
-
-### Implementation Pattern
-```typescript
-// Before
-import LearningPathPage from '@/components/pages/LearningPathPage';
-
-// After
-const LearningPathPage = React.lazy(() => 
-  import('@/components/pages/LearningPathPage')
-);
-
-// Usage with Suspense
-<Suspense fallback={<PageLoadingFallback />}>
-  <LearningPathPage />
-</Suspense>
-```
-
-### Expected Impact
-- Initial bundle reduction: ~80KB (estimated 25-30% smaller)
-- Faster Time to Interactive on first load
+1. **One-Time Setup**: Purpose lens is asked ONLY on first launch, then persists permanently
+2. **Dedicated Navigation Page**: New "Learning Purpose" page accessible from the side menu
+3. **Custom Lens Option**: Users can create their own custom prompt to define their learning context
 
 ---
 
-## Phase 2: Optimize AI API Calls
-
-### Problem
-When user submits a question, 4 parallel API calls fire immediately to the edge function. This causes:
-- Network congestion on slow connections
-- All-or-nothing loading experience
-- Wasted credits if user navigates away
-
-### Solution: Staggered Loading with Priority
-
-**`src/pages/Index.tsx` - handleSubmit modification**
-
-1. **Priority-based loading**: Load `beginner` mode first (fastest, most common)
-2. **Sequential with delay**: Stagger remaining calls by 500ms
-3. **Abort controller**: Cancel pending requests on navigation
-
-**`src/services/aiService.ts` - Add request management**
-
-- Add AbortController support to all API methods
-- Implement request deduplication
-- Add response caching layer
-
-### New File: `src/services/apiCache.ts`
-
-```typescript
-interface CacheEntry {
-  response: string;
-  timestamp: number;
-  expiresIn: number; // 5 minutes default
-}
-
-class APICache {
-  private cache: Map<string, CacheEntry>;
-  
-  get(key: string): string | null;
-  set(key: string, response: string): void;
-  generateKey(prompt: string, mode: string, language: string): string;
-  clear(): void;
-}
-```
-
-### Loading Strategy
+## Overview
 
 ```text
-User submits question
-    ↓
-Load Beginner mode immediately (visible first)
-    ↓
-After Beginner responds OR 500ms, load Thinker
-    ↓
-After Thinker responds OR 500ms, load Story
-    ↓
-After Story responds OR 500ms, load Mastery
+FIRST LAUNCH:
+User sees Purpose Lens selector → Selects "JEE" → Saved permanently
+     ↓
+SUBSEQUENT LAUNCHES:
+User goes directly to home → Lens already active
+     ↓
+TO CHANGE:
+Side Menu → "Learning Purpose" page → Change or create custom
 ```
-
-### Expected Impact
-- Perceived performance improvement: 40-50%
-- Reduced network congestion
-- Better mobile experience
 
 ---
 
-## Phase 3: Reduce Render-Blocking Resources
+## What Will Change
 
-### Problem 1: Google Fonts blocking render
+### 1. New Configuration: Purpose Lens Options
 
-**Current `index.html`:**
-```html
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-```
+**File: `src/config/minimind.ts`**
 
-**Current `src/index.css`:**
-```css
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Poppins:wght@300;400;500;600;700&family=Orbitron:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
-```
+Add `purposeLenses` configuration:
 
-### Solution: Font Loading Optimization
+| Lens ID | Name | Icon | Description |
+|---------|------|------|-------------|
+| `general` | General | 🌐 | Exploratory, curiosity-led learning |
+| `jee` | JEE Prep | 🎯 | JEE Main/Advanced focused |
+| `neet` | NEET Prep | 🩺 | NEET medical entrance focused |
+| `student` | School Student | 📚 | Generic school curriculum |
+| `parent` | Parent | 👨‍👩‍👧 | Helping your child learn |
+| `teacher` | Teacher | 👩‍🏫 | Teaching methodology focused |
+| `professional` | Professional | 💼 | Workplace/career context |
+| `custom` | Custom | ✨ | User-defined purpose |
 
-**`index.html` changes:**
-- Add preload hints for critical fonts
-- Use `font-display: swap` via URL parameter
-- Load only required font weights
-
-**`src/index.css` changes:**
-- Remove @import (blocking)
-- Use JavaScript font loading API for non-critical fonts
-
-```html
-<!-- Critical fonts - preload -->
-<link rel="preload" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" as="style" onload="this.rel='stylesheet'">
-<noscript><link rel="stylesheet" href="..."></noscript>
-
-<!-- Non-critical fonts - lazy load -->
-<link rel="preload" href="...Poppins..." as="style" media="print" onload="this.media='all'">
-```
-
-### Problem 2: Framer-motion heavy animations
-
-**Solution: Reduce animation complexity**
-
-**`src/components/HeroEmptyState.tsx`:**
-- Reduce staggered animation delays
-- Use CSS transforms instead of motion.div where possible
-
-**`src/components/ModeCard.tsx`:**
-- Use CSS transitions for hover states
-- Reserve framer-motion for complex sequences only
-
-**New utility: `src/utils/prefersReducedMotion.ts`**
-```typescript
-export const prefersReducedMotion = () => 
-  window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-```
-
-### Expected Impact
-- FCP improvement: 300-500ms
-- Reduced main thread blocking
+Each preset lens will have:
+- Name, icon, and description
+- Pre-built prompt adaptation rules
+- Keywords for context
 
 ---
 
-## Phase 4: Lazy Load Heavy Libraries
+### 2. First-Time Purpose Lens Onboarding
 
-### Problem
-jsPDF (150KB+ gzipped) is loaded on initial page load, even though PDF generation is rarely used.
+**New File: `src/components/PurposeLensOnboarding.tsx`**
 
-### Solution: Dynamic Import
+A full-screen overlay shown ONLY on first launch:
+- Welcoming message: "What brings you to MiniMind?"
+- Grid of lens options with icons and descriptions
+- "Custom" option at the bottom
+- Once selected, never shows again (saved to localStorage + database)
 
-**`src/utils/pdfGenerator.ts` changes:**
-
-```typescript
-// Before
-import jsPDF from 'jspdf';
-
-// After - dynamic import
-export async function generatePDF(...) {
-  const { jsPDF } = await import('jspdf');
-  // ... rest of function
+**Logic:**
+```text
+if (!localStorage.get('purposeLensSelected') && !userSettings.purpose_lens) {
+  show PurposeLensOnboarding
+} else {
+  show normal home page
 }
 ```
 
-### Other Heavy Dependencies to Lazy Load
-
-| Library | Size | Lazy Load When |
-|---------|------|----------------|
-| jsPDF | ~150KB | User clicks Download/Share PDF |
-| recharts | ~200KB | User visits Progress page |
-| framer-motion | ~100KB | Already tree-shaken, but reduce usage |
-
-### Expected Impact
-- Initial bundle reduction: ~150KB
-- Faster TTI for majority of users
-
 ---
 
-## Phase 5: Image & Asset Optimization
+### 3. Dedicated Purpose Lens Page (Navigation)
 
-### Problem
-Logo loaded from external URL (`https://i.ibb.co/fGLH5Dxs/minimind-logo.png`)
+**New File: `src/components/pages/PurposeLensPage.tsx`**
 
-### Solution
+A full settings page for managing Purpose Lens:
 
-**Option A: Self-host optimized assets**
-- Download and optimize logo
-- Convert to WebP format
-- Add to `public/` folder
+**Sections:**
 
-**Option B: Add loading optimization**
-- Preload critical images in `index.html`
-- Add width/height to prevent CLS
+1. **Current Lens Display**
+   - Shows active lens with icon and description
+   - "Change" button
 
-```html
-<link rel="preload" as="image" href="https://i.ibb.co/fGLH5Dxs/minimind-logo.png">
-```
+2. **Preset Lenses Grid**
+   - All 7 preset options in a card grid
+   - Selected one highlighted
+   - Tap to switch instantly
 
-**`src/components/MobileHeader.tsx`:**
-```tsx
-<img 
-  src="..." 
-  alt="MiniMind" 
-  width={32} 
-  height={32}  // Explicit dimensions prevent CLS
-  loading="eager" // Critical image
-/>
-```
+3. **Custom Lens Section**
+   - Text area for custom prompt (max 500 chars)
+   - Preview of how it will affect responses
+   - Save button
+   - Examples: "I'm a UPSC aspirant focusing on Indian History and Polity"
 
----
+4. **How It Works**
+   - Brief explanation of how lens affects all 4 modes
 
-## Phase 6: Component Optimization
+**File: `src/config/minimind.ts` - Update Navigation**
 
-### Problem: Unnecessary Re-renders
-
-**Index.tsx has many state updates causing full re-renders**
-
-### Solution: Memoization Strategy
-
-**New file: `src/hooks/useMemoizedCallbacks.ts`**
-- Extract and memoize all handlers
-- Use useCallback with proper dependencies
-
-**Components to memoize with React.memo:**
-- ModeCard
-- HeroEmptyState
-- BottomInputBar
-
-**State splitting:**
-- Separate UI state from data state
-- Use useReducer for complex state
-
-### Implementation
-
+Add new navigation item:
 ```typescript
-// Memoize ModeCard to prevent re-renders
-const MemoizedModeCard = React.memo(ModeCard, (prev, next) => {
-  return prev.answer === next.answer && 
-         prev.isLoading === next.isLoading &&
-         prev.modeKey === next.modeKey;
-});
+{ 
+  id: 'purposelens', 
+  label: 'Learning Purpose 🎯', 
+  icon: 'Target', 
+  description: 'Set your learning context' 
+}
 ```
 
 ---
 
-## Phase 7: Service Worker & Caching
+### 4. Custom Lens Feature
 
-### New File: `public/sw.js`
+**User Flow:**
+1. User selects "Custom" option
+2. Text input appears: "Describe your learning purpose..."
+3. User types: "I'm preparing for GATE Computer Science exam"
+4. System saves this as their custom prompt
+5. All 4 modes now adapt to GATE CS context
 
-**Cache Strategy:**
-- Static assets: Cache First
-- API responses: Network First with cache fallback
-- Edge function responses: Cache with 5-minute TTL
+**Database Schema:**
+```sql
+ALTER TABLE user_settings 
+ADD COLUMN purpose_lens TEXT DEFAULT 'general',
+ADD COLUMN custom_lens_prompt TEXT DEFAULT NULL;
+```
 
-**Manifest for PWA: `public/manifest.json`**
-- Enable offline mode for static pages
-- Add to home screen capability
+**Edge Function Handling:**
+- If `purpose_lens = 'custom'`, use `custom_lens_prompt` value
+- Inject custom prompt into the system instructions
 
 ---
 
-## Performance Profiling Steps
+### 5. Enhanced Edge Function Prompts
 
-### How to Measure Current Performance
+**File: `supabase/functions/chat/index.ts`**
 
-1. **Chrome DevTools Lighthouse**
-   - Open DevTools → Lighthouse tab
-   - Select "Mobile" and "Performance"
-   - Run audit and note baseline scores
+**Preset Lens Prompt Adapters:**
+```text
+PURPOSE_LENS_PROMPTS = {
+  jee: {
+    context: "JEE Main/Advanced competitive exam",
+    examples: "IIT-level physics, chemistry, maths problems",
+    tone: "Precise, exam-oriented, no fluff",
+    relevance: "Connect to JEE syllabus and question patterns"
+  },
+  neet: {
+    context: "NEET medical entrance exam",
+    examples: "NCERT Biology, Physics, Chemistry concepts",
+    tone: "Clinical precision, NCERT-aligned",
+    relevance: "Focus on NEET-specific topics and weightage"
+  },
+  parent: {
+    context: "Parent helping their child learn",
+    examples: "Household activities, family situations",
+    tone: "Calm, reassuring, patience-focused",
+    relevance: "How to explain this to a child at home"
+  },
+  teacher: {
+    context: "Educator preparing lessons",
+    examples: "Classroom activities, teaching methods",
+    tone: "Structured, pedagogical, question-driven",
+    relevance: "How to teach this effectively"
+  },
+  custom: {
+    // Uses user's custom_lens_prompt directly
+    context: "${custom_lens_prompt}",
+    tone: "Adapt naturally to the user's stated purpose"
+  }
+}
+```
 
-2. **Performance Panel Recording**
-   - Record while submitting a question
-   - Look for long tasks (>50ms)
-   - Identify render-blocking resources
+**Mode-Specific Lens Behavior remains the same:**
+- Beginner: Simple BUT with lens-appropriate examples
+- Thinker: Logical BUT with lens-appropriate reasoning
+- Story: Narrative BUT set in lens-appropriate scenarios
+- Mastery: Deep BUT focused on what mastery means for this lens
 
-3. **Network Panel Analysis**
-   - Filter by "Doc" and "Font"
-   - Check waterfall for blocking resources
-   - Note total transfer size
+---
 
-4. **React DevTools Profiler**
-   - Record component renders
-   - Identify components re-rendering unnecessarily
+### 6. Frontend Integration
 
-### Key Metrics to Track
+**File: `src/pages/Index.tsx`**
 
-| Metric | Tool | Target |
-|--------|------|--------|
-| LCP | Lighthouse | <2.5s |
-| FID | Lighthouse | <100ms |
-| CLS | Lighthouse | <0.1 |
-| Bundle Size | `npm run build` | <300KB initial |
-| API Response Time | Network panel | <2s per mode |
+Changes:
+- Add `purposeLens` and `customLensPrompt` state
+- Check on mount: if no lens set, show onboarding overlay
+- Load from localStorage first, then sync with user_settings
+- Pass `purposeLens` and `customLensPrompt` to AIService
+
+**File: `src/services/aiService.ts`**
+
+Update all methods to accept:
+```typescript
+interface AIRequestOptions {
+  purposeLens: string;
+  customLensPrompt?: string;
+}
+```
+
+**File: `src/components/MobileHeader.tsx`**
+
+Add small lens indicator badge showing current lens icon (e.g., 🎯 for JEE)
+
+**File: `src/components/SideMenu.tsx`**
+
+Add "Learning Purpose" navigation item with Target icon
+
+---
+
+### 7. Settings Page Update
+
+**File: `src/components/pages/SettingsPage.tsx`**
+
+Remove any purpose lens UI from settings (it now has its own dedicated page)
+
+Or optionally add a quick link: "Learning Purpose → Go to settings"
 
 ---
 
@@ -361,112 +229,79 @@ const MemoizedModeCard = React.memo(ModeCard, (prev, next) => {
 
 | File | Purpose |
 |------|---------|
-| `src/components/PageLoadingFallback.tsx` | Lightweight loading skeleton |
-| `src/services/apiCache.ts` | API response caching layer |
-| `src/utils/prefersReducedMotion.ts` | Respect user motion preferences |
-| `src/hooks/useMemoizedCallbacks.ts` | Optimized callback hooks |
-| `public/sw.js` | Service worker for caching |
-| `public/manifest.json` | PWA manifest |
+| `src/components/PurposeLensOnboarding.tsx` | First-time lens selection overlay |
+| `src/components/pages/PurposeLensPage.tsx` | Dedicated page for managing purpose lens |
 
 ## Files to Modify
 
 | File | Changes |
 |------|---------|
-| `src/pages/Index.tsx` | Lazy loading, staggered API calls, memoization |
-| `src/services/aiService.ts` | AbortController, caching integration |
-| `src/utils/pdfGenerator.ts` | Dynamic jsPDF import |
-| `src/index.css` | Remove blocking font import |
-| `index.html` | Font preloading, image preload hints |
-| `src/components/HeroEmptyState.tsx` | Reduce animation complexity |
-| `src/components/ModeCard.tsx` | React.memo wrapper |
-| `src/components/BottomInputBar.tsx` | Memoization |
-| `vite.config.ts` | Code splitting configuration |
+| `src/config/minimind.ts` | Add `purposeLenses` config + navigation item |
+| `supabase/functions/chat/index.ts` | Add lens-aware prompt adapters with custom support |
+| `src/services/aiService.ts` | Add `purposeLens` and `customLensPrompt` parameters |
+| `src/pages/Index.tsx` | Add lens state, show onboarding on first launch |
+| `src/components/MobileHeader.tsx` | Add lens indicator badge |
+| `src/components/SideMenu.tsx` | Add Learning Purpose navigation item |
+
+## Database Migration
+
+```sql
+ALTER TABLE user_settings 
+ADD COLUMN IF NOT EXISTS purpose_lens TEXT DEFAULT 'general',
+ADD COLUMN IF NOT EXISTS custom_lens_prompt TEXT DEFAULT NULL;
+```
 
 ---
 
-## Technical Implementation Details
-
-### Vite Code Splitting Configuration
-
-**`vite.config.ts` additions:**
-```typescript
-build: {
-  rollupOptions: {
-    output: {
-      manualChunks: {
-        'vendor-react': ['react', 'react-dom'],
-        'vendor-motion': ['framer-motion'],
-        'vendor-pdf': ['jspdf'],
-        'vendor-charts': ['recharts'],
-      }
-    }
-  }
-}
-```
-
-### API Cache Key Strategy
+## User Flow Summary
 
 ```text
-Cache Key = hash(prompt + mode + language)
-
-Example:
-"explain_photosynthesis_beginner_en" → cached response
-
-TTL: 5 minutes (configurable)
-Max entries: 50 (LRU eviction)
+┌─────────────────────────────────────────────────────────────┐
+│                    FIRST TIME USER                          │
+├─────────────────────────────────────────────────────────────┤
+│  Opens app → Full-screen Purpose Lens selector appears      │
+│  Selects "JEE Prep" → Saved → Never asked again             │
+└─────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────┐
+│                   RETURNING USER                            │
+├─────────────────────────────────────────────────────────────┤
+│  Opens app → Goes directly to home with JEE lens active     │
+│  Sees 🎯 badge in header indicating current lens            │
+└─────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────┐
+│                   WANTS TO CHANGE                           │
+├─────────────────────────────────────────────────────────────┤
+│  Opens side menu → Taps "Learning Purpose 🎯"               │
+│  Full page with all options + Custom input                  │
+│  Selects new lens or creates custom → Saved immediately     │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-### Abort Controller Usage
+---
 
-```typescript
-// In Index.tsx
-const abortControllerRef = useRef<AbortController | null>(null);
+## Custom Lens Examples
 
-const handleSubmit = async () => {
-  // Cancel any pending requests
-  abortControllerRef.current?.abort();
-  abortControllerRef.current = new AbortController();
-  
-  try {
-    await AIService.getExplanation(
-      question, 
-      mode, 
-      language, 
-      abortControllerRef.current.signal
-    );
-  } catch (e) {
-    if (e.name === 'AbortError') return; // Ignore aborted
-    throw e;
-  }
-};
-```
+Users can enter prompts like:
+- "I'm a UPSC Civil Services aspirant focusing on Indian History, Polity, and Geography"
+- "I'm a Class 10 CBSE student preparing for board exams"
+- "I'm learning programming to switch careers into software development"
+- "I'm a medical professional wanting to explain concepts to patients"
+- "I'm preparing for CAT MBA entrance exam"
+
+The system will adapt all 4 modes to match their specific context.
 
 ---
 
 ## Implementation Order
 
-1. **Font optimization** (index.html, index.css) - Quick win, immediate LCP improvement
-2. **Lazy loading pages** - Major bundle size reduction
-3. **API call optimization** - Better perceived performance
-4. **jsPDF dynamic import** - Bundle size reduction
-5. **Component memoization** - Improved FID
-6. **Service worker** - Offline support & caching
-7. **Animation reduction** - Mobile CPU relief
+1. **Database** - Add purpose_lens and custom_lens_prompt columns
+2. **Configuration** - Add purposeLenses to minimind.ts with navigation
+3. **Edge Function** - Implement lens-aware prompt system with custom support
+4. **AIService** - Update to pass purposeLens and customLensPrompt
+5. **Onboarding Component** - Build first-time lens selector
+6. **Purpose Lens Page** - Build dedicated management page
+7. **Index.tsx** - Wire up state, persistence, and onboarding logic
+8. **Navigation** - Add to SideMenu and header indicator
 
----
-
-## Expected Results Summary
-
-| Optimization | Bundle Impact | Load Time Impact |
-|--------------|---------------|------------------|
-| Lazy load pages | -80KB | -500ms TTI |
-| Font optimization | - | -300ms FCP |
-| jsPDF dynamic | -150KB | -200ms initial |
-| API staggering | - | -40% perceived wait |
-| Memoization | - | -50ms FID |
-| Service worker | - | Instant repeat visits |
-
-**Total Expected Improvement:**
-- Initial bundle: ~230KB smaller
-- Time to Interactive: 1-1.5s faster
-- Lighthouse Performance Score: 75+ (from estimated 55-60)
