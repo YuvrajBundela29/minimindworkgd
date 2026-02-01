@@ -17,6 +17,9 @@ import { apiCache } from '@/services/apiCache';
 import speechService from '@/services/speechService';
 import { downloadPDF, sharePDF, SharePlatform } from '@/utils/pdfGenerator';
 import { supabase } from '@/integrations/supabase/client';
+
+// Session persistence key
+const SESSION_STORAGE_KEY = 'minimind-current-session';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { useEarlyAccess } from '@/contexts/EarlyAccessContext';
 
@@ -128,6 +131,10 @@ const Index = () => {
     totalQuestions: 0, todayQuestions: 0, favoriteMode: 'beginner' as ModeKey, streak: 0,
   });
   
+  // Back button handler ref
+  const backPressTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const canExitRef = useRef(false);
+  
   // Cleanup abort controller on unmount
   useEffect(() => {
     return () => {
@@ -184,6 +191,24 @@ const Index = () => {
     if (savedStats) {
       try { setStats(JSON.parse(savedStats)); } catch (e) { console.error('Error parsing stats:', e); }
     }
+    
+    // Restore session from localStorage (persistence on refresh)
+    const savedSession = localStorage.getItem(SESSION_STORAGE_KEY);
+    if (savedSession) {
+      try {
+        const session = JSON.parse(savedSession);
+        // Only restore if session is less than 24 hours old
+        if (session.timestamp && Date.now() - session.timestamp < 24 * 60 * 60 * 1000) {
+          if (session.currentQuestion) setCurrentQuestion(session.currentQuestion);
+          if (session.answers) setAnswers(session.answers);
+          if (session.hasAskedQuestion) setHasAskedQuestion(session.hasAskedQuestion);
+          if (session.chatHistories) setChatHistories(session.chatHistories);
+        } else {
+          // Session expired, clear it
+          localStorage.removeItem(SESSION_STORAGE_KEY);
+        }
+      } catch (e) { console.error('Error restoring session:', e); }
+    }
 
     // Auth listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
@@ -206,6 +231,81 @@ const Index = () => {
   useEffect(() => { if (history.length > 0) localStorage.setItem('minimind-history', JSON.stringify(history)); }, [history]);
   useEffect(() => { localStorage.setItem('minimind-stats', JSON.stringify(stats)); }, [stats]);
   useEffect(() => { localStorage.setItem('minimind-language', selectedLanguage); }, [selectedLanguage]);
+  
+  // Persist session state to localStorage
+  useEffect(() => {
+    if (hasAskedQuestion && currentQuestion) {
+      const sessionData = {
+        currentQuestion,
+        answers,
+        hasAskedQuestion,
+        chatHistories,
+        timestamp: Date.now(),
+      };
+      localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(sessionData));
+    }
+  }, [currentQuestion, answers, hasAskedQuestion, chatHistories]);
+  
+  // Hardware back button handler (double-back to exit)
+  useEffect(() => {
+    // Push initial history state
+    if (window.history.state === null) {
+      window.history.pushState({ page: 'home' }, '');
+    }
+    
+    const handlePopState = (event: PopStateEvent) => {
+      // If on a subpage, navigate back to home
+      if (currentPage !== 'home') {
+        event.preventDefault();
+        window.history.pushState({ page: 'home' }, '');
+        setCurrentPage('home');
+        return;
+      }
+      
+      // If has answers, clear them first
+      if (hasAskedQuestion) {
+        event.preventDefault();
+        window.history.pushState({ page: 'home' }, '');
+        setAnswers(defaultAnswers);
+        setCurrentQuestion('');
+        setHasAskedQuestion(false);
+        setChatHistories({
+          beginner: [], thinker: [], story: [], mastery: [],
+        });
+        localStorage.removeItem(SESSION_STORAGE_KEY);
+        return;
+      }
+      
+      // On home with no answers - implement double-back to exit
+      if (canExitRef.current) {
+        // Allow exit - don't prevent default
+        return;
+      }
+      
+      // First back press - show toast and wait for second
+      event.preventDefault();
+      window.history.pushState({ page: 'home' }, '');
+      toast.info('Press back again to exit', { duration: 2000 });
+      canExitRef.current = true;
+      
+      // Reset after 2 seconds
+      if (backPressTimeoutRef.current) {
+        clearTimeout(backPressTimeoutRef.current);
+      }
+      backPressTimeoutRef.current = setTimeout(() => {
+        canExitRef.current = false;
+      }, 2000);
+    };
+    
+    window.addEventListener('popstate', handlePopState);
+    
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+      if (backPressTimeoutRef.current) {
+        clearTimeout(backPressTimeoutRef.current);
+      }
+    };
+  }, [currentPage, hasAskedQuestion]);
   
   const toggleTheme = useCallback(() => {
     const newTheme = theme === 'light' ? 'dark' : 'light';
