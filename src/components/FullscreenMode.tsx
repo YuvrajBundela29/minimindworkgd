@@ -1,8 +1,9 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Volume2, Copy, Download, Share2, Send } from 'lucide-react';
+import { X, Volume2, Copy, Download, Send } from 'lucide-react';
 import { modes, ModeKey } from '@/config/minimind';
 import MarkdownRenderer from './MarkdownRenderer';
+import ShareMenu from './ShareMenu';
 
 interface FullscreenModeProps {
   isOpen: boolean;
@@ -12,7 +13,7 @@ interface FullscreenModeProps {
   onSpeak: (text: string, mode: string) => void;
   onCopy: (text: string) => void;
   onDownload: (text: string, mode: string, question: string) => void;
-  onShare: (text: string, mode: string, question: string) => void;
+  onShare: (text: string, mode: string, question: string, platform: 'whatsapp' | 'email' | 'copy' | 'native' | 'download') => void;
   onChatSubmit: (message: string, mode: string) => void;
   isSpeaking: boolean;
   chatInputValue: string;
@@ -109,14 +110,9 @@ const FullscreenMode: React.FC<FullscreenModeProps> = ({
                   <span className="text-sm">Download</span>
                 </motion.button>
 
-                <motion.button
-                  className="flex items-center gap-2 px-4 py-2 rounded-full bg-muted hover:bg-muted/80"
-                  onClick={() => onShare(answer, modeKey, currentQuestion)}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  <Share2 className="w-4 h-4" />
-                  <span className="text-sm">Share</span>
-                </motion.button>
+                <ShareMenu 
+                  onShare={(platform) => onShare(answer, modeKey, currentQuestion, platform)} 
+                />
               </div>
             </div>
           )}
