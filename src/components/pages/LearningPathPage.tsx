@@ -6,7 +6,7 @@ import {
   GraduationCap, Rocket, Star, TrendingUp, ChevronDown
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { useSubscription, CREDIT_COSTS } from '@/contexts/SubscriptionContext';
+import { useSubscription } from '@/contexts/SubscriptionContext';
 import { useEarlyAccess } from '@/contexts/EarlyAccessContext';
 import { ModeKey, modes } from '@/config/minimind';
 import AIService from '@/services/aiService';
@@ -55,7 +55,7 @@ const LEVELS = [
 ];
 
 const LearningPathPage: React.FC = () => {
-  const { tier, credits, useCredits, hasCredits, showUpgradePrompt } = useSubscription();
+  const { tier, canAskQuestion, useQuestion, showUpgradePrompt } = useSubscription();
   const { isEarlyAccess } = useEarlyAccess();
   const [step, setStep] = useState<'select' | 'path' | 'topic'>('select');
   const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
@@ -72,8 +72,8 @@ const LearningPathPage: React.FC = () => {
   const generatePath = useCallback(async () => {
     if (!selectedSubject || !selectedLevel) return;
     
-    const cost = CREDIT_COSTS.learningPath;
-    if (!isEarlyAccess && !hasCredits(cost)) {
+    // Check if user can ask (free tier limit or paid)
+    if (!isEarlyAccess && !canAskQuestion()) {
       showUpgradePrompt('Learning Path Generation');
       return;
     }
@@ -109,7 +109,7 @@ const LearningPathPage: React.FC = () => {
       };
 
       if (!isEarlyAccess) {
-        useCredits(cost, 'learningPath');
+        await useQuestion();
       }
       setCurrentPath(newPath);
       setSavedPaths(prev => {
@@ -125,13 +125,13 @@ const LearningPathPage: React.FC = () => {
     } finally {
       setIsGenerating(false);
     }
-  }, [selectedSubject, selectedLevel, hasCredits, useCredits, showUpgradePrompt, isEarlyAccess]);
+  }, [selectedSubject, selectedLevel, canAskQuestion, useQuestion, showUpgradePrompt, isEarlyAccess]);
 
   const loadTopicExplanation = useCallback(async (topic: Topic, mode: ModeKey) => {
     if (topic.explanations?.[mode]) return;
 
-    const cost = CREDIT_COSTS[mode];
-    if (!isEarlyAccess && !hasCredits(cost)) {
+    // Check if user can ask (free tier limit or paid)
+    if (!isEarlyAccess && !canAskQuestion()) {
       showUpgradePrompt('Topic Explanation');
       return;
     }
@@ -143,7 +143,7 @@ const LearningPathPage: React.FC = () => {
       const response = await AIService.getExplanation(prompt, mode, 'en');
       
       if (!isEarlyAccess) {
-        useCredits(cost, mode);
+        await useQuestion();
       }
       
       setSelectedTopic(prev => {
@@ -163,7 +163,7 @@ const LearningPathPage: React.FC = () => {
       toast.error('Failed to load explanation');
       setSelectedTopic(prev => prev ? { ...prev, loading: false } : null);
     }
-  }, [currentPath, hasCredits, useCredits, showUpgradePrompt, isEarlyAccess]);
+  }, [currentPath, canAskQuestion, useQuestion, showUpgradePrompt, isEarlyAccess]);
 
   const markTopicComplete = useCallback((topicId: string) => {
     setCurrentPath(prev => {
@@ -314,7 +314,7 @@ const LearningPathPage: React.FC = () => {
               <Button
                 className="w-full h-14 rounded-2xl bg-gradient-to-r from-primary via-primary to-accent text-primary-foreground font-semibold text-base shadow-lg shadow-primary/25"
                 onClick={generatePath}
-                disabled={isGenerating || (!isEarlyAccess && !hasCredits(CREDIT_COSTS.learningPath))}
+                disabled={isGenerating || (!isEarlyAccess && !canAskQuestion())}
               >
                 {isGenerating ? (
                   <div className="flex flex-col items-center gap-1">
@@ -332,9 +332,11 @@ const LearningPathPage: React.FC = () => {
                   <>
                     <Sparkles className="w-5 h-5 mr-2" />
                     Generate Learning Path
-                    <span className="ml-2 px-2.5 py-1 rounded-full bg-white/20 text-xs">
-                      {isEarlyAccess ? 'Free' : `${CREDIT_COSTS.learningPath}c`}
-                    </span>
+                    {tier === 'free' && !isEarlyAccess && (
+                      <span className="ml-2 px-2.5 py-1 rounded-full bg-white/20 text-xs">
+                        1 use
+                      </span>
+                    )}
                   </>
                 )}
               </Button>

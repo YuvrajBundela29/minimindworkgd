@@ -55,13 +55,13 @@ const TIER_FEATURES: Record<SubscriptionTier, TierFeatures> = {
 export const PRICING = {
   plus: {
     monthly: 149,
-    yearly: 1199, // ~33% off
-    yearlyMonthly: 100, // per month when billed yearly
+    yearly: 1188, // ₹99/mo × 12
+    yearlyMonthly: 99, // per month when billed yearly
   },
   pro: {
     monthly: 299,
-    yearly: 2399, // ~33% off
-    yearlyMonthly: 200, // per month when billed yearly
+    yearly: 2388, // ₹199/mo × 12
+    yearlyMonthly: 199, // per month when billed yearly
   },
 };
 
