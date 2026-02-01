@@ -1,24 +1,25 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Zap, Crown, AlertCircle } from 'lucide-react';
-import { useSubscription, FREE_DAILY_LIMIT } from '@/contexts/SubscriptionContext';
+import { Zap, Crown, AlertCircle, Coins } from 'lucide-react';
+import { useSubscription, CREDIT_LIMITS } from '@/contexts/SubscriptionContext';
 import { Progress } from '@/components/ui/progress';
 
 const QuestionLimitBanner: React.FC = () => {
-  const { tier, subscription, showUpgradePrompt, getRemainingQuestions, canAskQuestion } = useSubscription();
+  const { tier, showUpgradePrompt, getCredits } = useSubscription();
 
-  // Don't show for paid users
-  if (tier === 'plus' || tier === 'pro') return null;
-
-  const remaining = getRemainingQuestions();
-  if (remaining === 'unlimited') return null;
-
-  const percentage = (subscription.dailyQuestionsUsed / FREE_DAILY_LIMIT) * 100;
-  const isLow = remaining <= 2;
-  const isExhausted = remaining <= 0;
+  const credits = getCredits();
+  const limits = CREDIT_LIMITS[tier];
+  
+  // Show credit info for all tiers
+  const percentage = limits.daily > 0 
+    ? ((limits.daily - credits.daily) / limits.daily) * 100 
+    : 0;
+  
+  const isLow = credits.total <= 5;
+  const isExhausted = credits.total <= 0;
 
   // Only show when low or exhausted
-  if (remaining > 2) return null;
+  if (credits.total > 5) return null;
 
   return (
     <motion.div
@@ -37,21 +38,21 @@ const QuestionLimitBanner: React.FC = () => {
           {isExhausted ? (
             <AlertCircle className="w-4 h-4 text-destructive" />
           ) : (
-            <Zap className={`w-4 h-4 ${isLow ? 'text-amber-500' : 'text-primary'}`} />
+            <Coins className={`w-4 h-4 ${isLow ? 'text-amber-500' : 'text-primary'}`} />
           )}
           <span className="text-sm font-medium">
             {isExhausted 
-              ? 'Daily limit reached' 
-              : `${remaining} question${remaining !== 1 ? 's' : ''} left today`
+              ? 'Out of credits' 
+              : `${credits.total} credit${credits.total !== 1 ? 's' : ''} remaining`
             }
           </span>
         </div>
         <button
-          onClick={() => showUpgradePrompt('Unlimited Questions')}
+          onClick={() => showUpgradePrompt('More Credits')}
           className="flex items-center gap-1 px-2 py-1 text-xs font-semibold text-violet-700 dark:text-violet-300 bg-violet-100 dark:bg-violet-900/30 rounded-full hover:bg-violet-200 dark:hover:bg-violet-900/50 transition-colors"
         >
           <Crown className="w-3 h-3" />
-          Get Unlimited
+          {tier === 'free' ? 'Upgrade' : 'Top Up'}
         </button>
       </div>
       <Progress 

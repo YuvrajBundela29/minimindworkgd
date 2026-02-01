@@ -9,5 +9,11 @@ verify_jwt = false
 [functions.razorpay-webhook]
 verify_jwt = false
 
+[functions.create-topup-order]
+verify_jwt = false
+
+[functions.verify-topup-payment]
+verify_jwt = false
+
 [functions.chat]
 verify_jwt = true

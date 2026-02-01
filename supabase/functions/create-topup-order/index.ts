@@ -6,16 +6,12 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Pricing in paise (INR smallest unit)
-const PRICING = {
-  plus: {
-    monthly: 14900,  // ₹149
-    yearly: 118800,  // ₹1,188 (₹99/mo × 12)
-  },
-  pro: {
-    monthly: 29900,  // ₹299
-    yearly: 238800,  // ₹2,388 (₹199/mo × 12)
-  },
+// Top-up products in paise
+const TOP_UP_PRODUCTS = {
+  pack_25: { credits: 25, price: 4900 },    // ₹49
+  pack_60: { credits: 60, price: 9900 },    // ₹99
+  pack_150: { credits: 150, price: 19900 }, // ₹199
+  booster_weekly: { credits: 20, price: 2900, type: 'booster', duration: 7 }, // ₹29/week
 };
 
 serve(async (req) => {
@@ -39,28 +35,24 @@ serve(async (req) => {
     );
 
     const token = authHeader.replace("Bearer ", "");
-    const { data: claims, error: authError } = await supabase.auth.getClaims(token);
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     
-    if (authError || !claims?.claims) {
+    if (authError || !user) {
       return new Response(
         JSON.stringify({ error: "Invalid token" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const userId = claims.claims.sub;
-    const userEmail = claims.claims.email;
+    const { productId } = await req.json();
 
-    const { tier, planType } = await req.json();
-
-    if (!tier || !planType || !['plus', 'pro'].includes(tier) || !['monthly', 'yearly'].includes(planType)) {
+    const product = TOP_UP_PRODUCTS[productId as keyof typeof TOP_UP_PRODUCTS];
+    if (!product) {
       return new Response(
-        JSON.stringify({ error: "Invalid tier or plan type" }),
+        JSON.stringify({ error: "Invalid product" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-
-    const amount = PRICING[tier as 'plus' | 'pro'][planType as 'monthly' | 'yearly'];
 
     const RAZORPAY_KEY_ID = Deno.env.get("RAZORPAY_KEY_ID");
     const RAZORPAY_KEY_SECRET = Deno.env.get("RAZORPAY_KEY_SECRET");
@@ -81,14 +73,15 @@ serve(async (req) => {
         "Authorization": "Basic " + btoa(`${RAZORPAY_KEY_ID}:${RAZORPAY_KEY_SECRET}`),
       },
       body: JSON.stringify({
-        amount,
+        amount: product.price,
         currency: "INR",
-        receipt: `order_${userId}_${Date.now()}`,
+        receipt: `topup_${user.id}_${Date.now()}`,
         notes: {
-          user_id: userId,
-          tier,
-          plan_type: planType,
-          email: userEmail,
+          user_id: user.id,
+          product_id: productId,
+          credits: product.credits,
+          type: 'type' in product ? product.type : 'pack',
+          email: user.email,
         },
       }),
     });
@@ -103,14 +96,7 @@ serve(async (req) => {
     }
 
     const order = await orderResponse.json();
-
-    // Store order in database
-    await supabase
-      .from("user_subscriptions")
-      .update({ razorpay_order_id: order.id })
-      .eq("user_id", userId);
-
-    console.log(`Order created for user ${userId}: ${order.id}`);
+    console.log(`Top-up order created for user ${user.id}: ${order.id} - ${productId}`);
 
     return new Response(
       JSON.stringify({
@@ -121,7 +107,7 @@ serve(async (req) => {
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
-    console.error("Create order error:", error);
+    console.error("Create top-up order error:", error);
     return new Response(
       JSON.stringify({ error: "Internal server error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

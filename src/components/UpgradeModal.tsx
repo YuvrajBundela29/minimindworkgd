@@ -1,8 +1,9 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Crown, Sparkles, Zap, Brain, BookOpen, Rocket, Check } from 'lucide-react';
+import { X, Crown, Sparkles, Zap, Brain, BookOpen, Rocket, Check, Coins } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useSubscription, PRICING } from '@/contexts/SubscriptionContext';
+import { useSubscription, PRICING, CREDIT_LIMITS, TOP_UP_PRODUCTS } from '@/contexts/SubscriptionContext';
+import { Card } from '@/components/ui/card';
 
 const plusFeatures = [
   { icon: Zap, text: 'Unlimited questions per day' },
