@@ -213,24 +213,28 @@
     background-clip: text;
   }
   
-  /* Indian-themed Logo Text */
+  /* Indian-themed Logo Text - Tricolor */
   .logo-text-india {
     font-family: var(--font-logo);
     @apply text-xl font-bold tracking-tight leading-none;
-    background: linear-gradient(135deg, hsl(var(--india-navy)) 0%, hsl(var(--india-saffron)) 50%, hsl(var(--india-warm-orange)) 100%);
+    background: linear-gradient(90deg, hsl(var(--india-saffron)) 0%, hsl(var(--india-saffron)) 33%, hsl(0 0% 100%) 33%, hsl(0 0% 100%) 66%, hsl(var(--india-green)) 66%, hsl(var(--india-green)) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
   
-  /* Made in India Badge */
+  /* Made in India Badge - Tricolor */
   .made-in-india-badge {
-    @apply text-[10px] font-semibold tracking-wide leading-none mt-0.5;
-    color: hsl(var(--india-navy) / 0.7);
+    @apply text-[10px] font-bold tracking-wide leading-none mt-0.5 px-1.5 py-0.5 rounded-sm;
+    background: linear-gradient(90deg, hsl(var(--india-saffron) / 0.15) 0%, hsl(0 0% 100% / 0.1) 50%, hsl(var(--india-green) / 0.15) 100%);
+    color: hsl(var(--india-navy));
+    border: 1px solid hsl(var(--india-navy) / 0.1);
   }
   
   .dark .made-in-india-badge {
-    color: hsl(var(--india-saffron) / 0.8);
+    background: linear-gradient(90deg, hsl(var(--india-saffron) / 0.2) 0%, hsl(0 0% 100% / 0.1) 50%, hsl(var(--india-green) / 0.2) 100%);
+    color: hsl(0 0% 95%);
+    border: 1px solid hsl(0 0% 100% / 0.1);
   }
   
   /* Mode Card */
