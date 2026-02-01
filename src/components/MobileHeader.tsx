@@ -4,15 +4,18 @@ import { motion } from 'framer-motion';
 import EarlyAccessCreditDisplay from './EarlyAccessCreditDisplay';
 import { useEarlyAccess } from '@/contexts/EarlyAccessContext';
 import { supabase } from '@/integrations/supabase/client';
+import { purposeLenses, PurposeLensKey } from '@/config/minimind';
 
 interface MobileHeaderProps {
   onMenuClick: () => void;
   onProfileClick: () => void;
+  currentLens?: PurposeLensKey;
 }
 
-const MobileHeader: React.FC<MobileHeaderProps> = ({ onMenuClick, onProfileClick }) => {
+const MobileHeader: React.FC<MobileHeaderProps> = ({ onMenuClick, onProfileClick, currentLens = 'general' }) => {
   const { isEarlyAccess } = useEarlyAccess();
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const lensData = purposeLenses[currentLens];
 
   useEffect(() => {
     const fetchAvatar = async () => {
@@ -61,6 +64,18 @@ const MobileHeader: React.FC<MobileHeaderProps> = ({ onMenuClick, onProfileClick
       </div>
 
       <div className="flex items-center gap-2">
+        {/* Purpose Lens Badge */}
+        {currentLens !== 'general' && (
+          <motion.span
+            className="text-lg"
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            title={`${lensData.name} mode`}
+          >
+            {lensData.icon}
+          </motion.span>
+        )}
+        
         {/* Persistent Credit Pill */}
         {isEarlyAccess && <EarlyAccessCreditDisplay variant="minimal" />}
         

@@ -19,7 +19,73 @@ const VALID_LANGUAGES = [
   "kn-roman", "ml-roman", "mr-roman", "pa-roman", "ur-roman", "sa-roman"
 ];
 
-// Enhanced pre-prompts for each MiniMind mode
+// Purpose Lens prompt adapters - adapts all modes to user's learning context
+const purposeLensAdapters: Record<string, { context: string; examples: string; tone: string; relevance: string }> = {
+  general: {
+    context: 'General knowledge exploration',
+    examples: 'Real-world examples from various domains',
+    tone: 'Exploratory, curious, engaging',
+    relevance: 'Focus on understanding and curiosity'
+  },
+  jee: {
+    context: 'JEE Main/Advanced competitive exam preparation',
+    examples: 'IIT-level physics, chemistry, maths problems with JEE patterns',
+    tone: 'Precise, exam-oriented, no fluff, focus on problem-solving',
+    relevance: 'Connect to JEE syllabus, question patterns, and scoring strategies'
+  },
+  neet: {
+    context: 'NEET medical entrance exam preparation',
+    examples: 'NCERT Biology, Physics, Chemistry concepts with medical applications',
+    tone: 'Clinical precision, NCERT-aligned, systematic',
+    relevance: 'Focus on NEET-specific topics, weightage, and common questions'
+  },
+  student: {
+    context: 'School education and curriculum learning',
+    examples: 'Textbook concepts, classroom examples, age-appropriate scenarios',
+    tone: 'Educational, supportive, building foundations',
+    relevance: 'Connect to school syllabus and exam preparation'
+  },
+  parent: {
+    context: 'Parent helping their child understand concepts',
+    examples: 'Household activities, family situations, everyday scenarios',
+    tone: 'Calm, reassuring, patience-focused, no jargon',
+    relevance: 'How to explain this to a child at home simply'
+  },
+  teacher: {
+    context: 'Educator preparing lessons and teaching',
+    examples: 'Classroom activities, teaching demonstrations, student engagement',
+    tone: 'Structured, pedagogical, question-driven',
+    relevance: 'How to teach this concept effectively to students'
+  },
+  professional: {
+    context: 'Professional development and workplace application',
+    examples: 'Business scenarios, industry applications, career relevance',
+    tone: 'Professional, practical, results-oriented',
+    relevance: 'How this applies in professional settings'
+  }
+};
+
+// Function to build purpose lens instruction
+function buildPurposeLensPrompt(purposeLens: string, customLensPrompt?: string): string {
+  if (purposeLens === 'custom' && customLensPrompt) {
+    return `\n\nPURPOSE LENS ADAPTATION:
+The user has defined their learning purpose as: "${customLensPrompt}"
+Adapt your explanation to match this specific context. Use examples, tone, and relevance that align with their stated purpose.`;
+  }
+  
+  const adapter = purposeLensAdapters[purposeLens];
+  if (!adapter || purposeLens === 'general') {
+    return ''; // No adaptation needed for general
+  }
+  
+  return `\n\nPURPOSE LENS ADAPTATION:
+Context: ${adapter.context}
+Examples to use: ${adapter.examples}
+Tone: ${adapter.tone}
+Relevance focus: ${adapter.relevance}
+
+Apply these adaptations while maintaining your core mode style. Make the explanation feel tailored to this specific learning context.`;
+}
 const modePrompts: Record<string, string> = {
   beginner: `You are MiniMind in BEGINNER mode - a warm, friendly teacher explaining concepts to curious young minds.
 
@@ -246,6 +312,8 @@ serve(async (req) => {
     const language = validateEnum(body.language, VALID_LANGUAGES, "language", "en");
     const type = validateEnum(body.type, VALID_TYPES, "type", "explain");
     const messages = validateMessages(body.messages);
+    const purposeLens = validateString(body.purposeLens, 100, "purposeLens") || "general";
+    const customLensPrompt = validateString(body.customLensPrompt, 500, "customLensPrompt");
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     
@@ -469,7 +537,8 @@ FORMAT:
       }
       systemPrompt = modePrompts[mode] || modePrompts.beginner;
       const langPrompt = languagePrompts[language] || languagePrompts.en;
-      systemPrompt = `${systemPrompt}\n\n${langPrompt}`;
+      const purposePrompt = buildPurposeLensPrompt(purposeLens, customLensPrompt || undefined);
+      systemPrompt = `${systemPrompt}${purposePrompt}\n\n${langPrompt}`;
     } else {
       // Standard explanation request
       if (!prompt) {
@@ -480,7 +549,8 @@ FORMAT:
       }
       systemPrompt = modePrompts[mode] || modePrompts.beginner;
       const langPrompt = languagePrompts[language] || languagePrompts.en;
-      systemPrompt = `${systemPrompt}\n\n${langPrompt}`;
+      const purposePrompt = buildPurposeLensPrompt(purposeLens, customLensPrompt || undefined);
+      systemPrompt = `${systemPrompt}${purposePrompt}\n\n${langPrompt}`;
     }
 
     const apiMessages = type === "continue" && messages 

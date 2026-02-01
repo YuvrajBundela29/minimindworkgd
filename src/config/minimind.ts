@@ -89,12 +89,115 @@ export const suggestedPrompts = [
   "What would the world be like if the Internet was never invented?",
 ];
 
+// Purpose Lens configuration - adapts all 4 modes to user's learning context
+export const purposeLenses = {
+  general: {
+    id: 'general',
+    name: 'General',
+    icon: '🌐',
+    description: 'Exploratory, curiosity-led learning',
+    promptAdapter: {
+      context: 'General knowledge exploration',
+      examples: 'Real-world examples from various domains',
+      tone: 'Exploratory, curious, engaging',
+      relevance: 'Focus on understanding and curiosity'
+    }
+  },
+  jee: {
+    id: 'jee',
+    name: 'JEE Prep',
+    icon: '🎯',
+    description: 'JEE Main/Advanced focused',
+    promptAdapter: {
+      context: 'JEE Main/Advanced competitive exam preparation',
+      examples: 'IIT-level physics, chemistry, maths problems with JEE patterns',
+      tone: 'Precise, exam-oriented, no fluff, focus on problem-solving',
+      relevance: 'Connect to JEE syllabus, question patterns, and scoring strategies'
+    }
+  },
+  neet: {
+    id: 'neet',
+    name: 'NEET Prep',
+    icon: '🩺',
+    description: 'NEET medical entrance focused',
+    promptAdapter: {
+      context: 'NEET medical entrance exam preparation',
+      examples: 'NCERT Biology, Physics, Chemistry concepts with medical applications',
+      tone: 'Clinical precision, NCERT-aligned, systematic',
+      relevance: 'Focus on NEET-specific topics, weightage, and common questions'
+    }
+  },
+  student: {
+    id: 'student',
+    name: 'School Student',
+    icon: '📚',
+    description: 'Generic school curriculum',
+    promptAdapter: {
+      context: 'School education and curriculum learning',
+      examples: 'Textbook concepts, classroom examples, age-appropriate scenarios',
+      tone: 'Educational, supportive, building foundations',
+      relevance: 'Connect to school syllabus and exam preparation'
+    }
+  },
+  parent: {
+    id: 'parent',
+    name: 'Parent',
+    icon: '👨‍👩‍👧',
+    description: 'Helping your child learn',
+    promptAdapter: {
+      context: 'Parent helping their child understand concepts',
+      examples: 'Household activities, family situations, everyday scenarios',
+      tone: 'Calm, reassuring, patience-focused, no jargon',
+      relevance: 'How to explain this to a child at home simply'
+    }
+  },
+  teacher: {
+    id: 'teacher',
+    name: 'Teacher',
+    icon: '👩‍🏫',
+    description: 'Teaching methodology focused',
+    promptAdapter: {
+      context: 'Educator preparing lessons and teaching',
+      examples: 'Classroom activities, teaching demonstrations, student engagement',
+      tone: 'Structured, pedagogical, question-driven',
+      relevance: 'How to teach this concept effectively to students'
+    }
+  },
+  professional: {
+    id: 'professional',
+    name: 'Professional',
+    icon: '💼',
+    description: 'Workplace/career context',
+    promptAdapter: {
+      context: 'Professional development and workplace application',
+      examples: 'Business scenarios, industry applications, career relevance',
+      tone: 'Professional, practical, results-oriented',
+      relevance: 'How this applies in professional settings'
+    }
+  },
+  custom: {
+    id: 'custom',
+    name: 'Custom',
+    icon: '✨',
+    description: 'Your own learning purpose',
+    promptAdapter: {
+      context: '', // Will use custom_lens_prompt
+      examples: '',
+      tone: 'Adapt naturally to the user\'s stated purpose',
+      relevance: ''
+    }
+  }
+} as const;
+
+export type PurposeLensKey = keyof typeof purposeLenses;
+
 // Navigation with clearer labels for Indian students
 export const navigationItems = [
   { id: 'home', label: 'Ask AI 🎓', icon: 'Home', description: 'Get explanations in 4 styles' },
   { id: 'learningpath', label: 'Study Plans 📚', icon: 'BookOpen', description: 'Structured learning paths' },
   { id: 'ekakshar', label: 'Quick Recall ⚡', icon: 'Zap', description: 'Flashcard-style summaries' },
   { id: 'explainback', label: 'Test Yourself 🧠', icon: 'MessageCircle', description: 'Explain concepts to check understanding' },
+  { id: 'purposelens', label: 'Learning Purpose 🎯', icon: 'Target', description: 'Set your learning context' },
   { id: 'profile', label: 'Profile', icon: 'User', description: 'Your account & stats' },
   { id: 'history', label: 'History', icon: 'History', description: 'Past questions & answers' },
   { id: 'subscription', label: 'Subscription', icon: 'Crown', description: 'Manage your plan' },

@@ -103,27 +103,33 @@ export type Database = {
       user_settings: {
         Row: {
           created_at: string
+          custom_lens_prompt: string | null
           id: string
           language: string
           notifications_enabled: boolean
+          purpose_lens: string | null
           theme: string
           updated_at: string
           user_id: string
         }
         Insert: {
           created_at?: string
+          custom_lens_prompt?: string | null
           id?: string
           language?: string
           notifications_enabled?: boolean
+          purpose_lens?: string | null
           theme?: string
           updated_at?: string
           user_id: string
         }
         Update: {
           created_at?: string
+          custom_lens_prompt?: string | null
           id?: string
           language?: string
           notifications_enabled?: boolean
+          purpose_lens?: string | null
           theme?: string
           updated_at?: string
           user_id?: string

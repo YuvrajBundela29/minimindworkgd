@@ -10,7 +10,8 @@ import QuestionLimitBanner from '@/components/QuestionLimitBanner';
 import EarlyAccessGate from '@/components/EarlyAccessGate';
 import HeroEmptyState from '@/components/HeroEmptyState';
 import PageLoadingFallback from '@/components/PageLoadingFallback';
-import { modes, ModeKey, LanguageKey, NavigationId } from '@/config/minimind';
+import PurposeLensOnboarding from '@/components/PurposeLensOnboarding';
+import { modes, ModeKey, LanguageKey, NavigationId, PurposeLensKey } from '@/config/minimind';
 import AIService from '@/services/aiService';
 import { apiCache } from '@/services/apiCache';
 import speechService from '@/services/speechService';
@@ -30,6 +31,7 @@ const LearningPathPage = React.lazy(() => import('@/components/pages/LearningPat
 const ExplainBackPage = React.lazy(() => import('@/components/pages/ExplainBackPage'));
 const FullscreenMode = React.lazy(() => import('@/components/FullscreenMode'));
 const OnboardingGuide = React.lazy(() => import('@/components/OnboardingGuide'));
+const PurposeLensPage = React.lazy(() => import('@/components/pages/PurposeLensPage'));
 
 // Types for history
 export interface HistoryItem {
@@ -98,6 +100,11 @@ const Index = () => {
   
   // Onboarding state
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showPurposeLensOnboarding, setShowPurposeLensOnboarding] = useState(false);
+  
+  // Purpose Lens state
+  const [purposeLens, setPurposeLens] = useState<PurposeLensKey>('general');
+  const [customLensPrompt, setCustomLensPrompt] = useState('');
   
   // Chat inputs per mode
   const [chatInputs, setChatInputs] = useState<Record<ModeKey, string>>({
@@ -144,12 +151,25 @@ const Index = () => {
     const savedHistory = localStorage.getItem('minimind-history');
     const savedStats = localStorage.getItem('minimind-stats');
     const hasSeenOnboarding = localStorage.getItem('minimind-onboarding-seen');
+    const savedPurposeLens = localStorage.getItem('minimind-purpose-lens') as PurposeLensKey;
+    const savedCustomLensPrompt = localStorage.getItem('minimind-custom-lens-prompt');
     
     setTheme(savedTheme);
     setSelectedLanguage(savedLanguage);
     document.documentElement.classList.toggle('dark', savedTheme === 'dark');
     
-    // Show onboarding for first-time users
+    // Load purpose lens
+    if (savedPurposeLens) {
+      setPurposeLens(savedPurposeLens);
+      if (savedCustomLensPrompt) {
+        setCustomLensPrompt(savedCustomLensPrompt);
+      }
+    } else {
+      // Show purpose lens onboarding for first-time users
+      setShowPurposeLensOnboarding(true);
+    }
+    
+    // Show app onboarding for first-time users
     if (!hasSeenOnboarding) {
       setShowOnboarding(true);
     }
@@ -230,27 +250,30 @@ const Index = () => {
     }
   };
   
-  // Staggered API loading with caching
+  // Staggered API loading with caching and purpose lens
   const fetchModeExplanation = useCallback(async (
     questionText: string,
     modeKey: ModeKey,
     language: LanguageKey
   ): Promise<string> => {
-    // Check cache first
-    const cacheKey = apiCache.generateKey(questionText, modeKey, language);
+    // Check cache first (include purpose lens in cache key)
+    const cacheKey = apiCache.generateKey(questionText, modeKey, `${language}-${purposeLens}`);
     const cached = apiCache.get(cacheKey);
     if (cached) {
       return cached;
     }
     
-    // Fetch from API
-    const response = await AIService.getExplanation(questionText, modeKey, language);
+    // Fetch from API with purpose lens
+    const response = await AIService.getExplanation(questionText, modeKey, language, {
+      purposeLens,
+      customLensPrompt: purposeLens === 'custom' ? customLensPrompt : undefined
+    });
     
     // Cache the response
     apiCache.set(cacheKey, response);
     
     return response;
-  }, []);
+  }, [purposeLens, customLensPrompt]);
   
   // Handle question submission with staggered loading
   const handleSubmit = useCallback(async () => {
@@ -410,19 +433,53 @@ const Index = () => {
     setChatHistories(prev => ({ ...prev, [modeKey]: [...prev[modeKey], { role: 'user', content: message }] }));
     setLoadingModes(prev => ({ ...prev, [modeKey]: true }));
     try {
-      const response = await AIService.continueConversation([...chatHistories[modeKey], { role: 'user', content: message }], modeKey, selectedLanguage);
+      const response = await AIService.continueConversation(
+        [...chatHistories[modeKey], { role: 'user', content: message }], 
+        modeKey, 
+        selectedLanguage,
+        { purposeLens, customLensPrompt: purposeLens === 'custom' ? customLensPrompt : undefined }
+      );
       setAnswers(prev => ({ ...prev, [modeKey]: response }));
       setChatHistories(prev => ({ ...prev, [modeKey]: [...prev[modeKey], { role: 'assistant', content: response }] }));
     } catch (error) { toast.error('Failed to get response'); }
     finally { setLoadingModes(prev => ({ ...prev, [modeKey]: false })); }
     setChatInputs(prev => ({ ...prev, [modeKey]: '' }));
-  }, [chatHistories, selectedLanguage]);
+  }, [chatHistories, selectedLanguage, purposeLens, customLensPrompt]);
   
   const handleChatInputChange = useCallback((mode: string, value: string) => { setChatInputs(prev => ({ ...prev, [mode as ModeKey]: value })); }, []);
   const handleLoadHistory = useCallback((item: HistoryItem) => { setAnswers(item.answers); setCurrentQuestion(item.question); setHasAskedQuestion(true); setCurrentPage('home'); toast.success('Loaded from history!'); }, []);
   const handleClearHistory = useCallback(() => { setHistory([]); localStorage.removeItem('minimind-history'); toast.success('History cleared!'); }, []);
   const handleFullscreen = useCallback((mode: string) => { setFullscreenMode(mode as ModeKey); }, []);
   const handleSignOut = async () => { await supabase.auth.signOut(); setUser(null); toast.success('Signed out!'); };
+  
+  // Purpose Lens handlers
+  const handlePurposeLensSelect = useCallback(async (lens: PurposeLensKey, customPrompt?: string) => {
+    setPurposeLens(lens);
+    localStorage.setItem('minimind-purpose-lens', lens);
+    
+    if (customPrompt) {
+      setCustomLensPrompt(customPrompt);
+      localStorage.setItem('minimind-custom-lens-prompt', customPrompt);
+    } else {
+      setCustomLensPrompt('');
+      localStorage.removeItem('minimind-custom-lens-prompt');
+    }
+    
+    // Save to database if user is logged in
+    const { data: { user: currentUser } } = await supabase.auth.getUser();
+    if (currentUser) {
+      await supabase
+        .from('user_settings')
+        .update({ 
+          purpose_lens: lens, 
+          custom_lens_prompt: customPrompt || null 
+        })
+        .eq('user_id', currentUser.id);
+    }
+    
+    setShowPurposeLensOnboarding(false);
+    toast.success(`Switched to ${lens === 'custom' ? 'Custom' : lens.charAt(0).toUpperCase() + lens.slice(1)} mode!`);
+  }, []);
 
   const isAnyLoading = Object.values(loadingModes).some(l => l);
 
@@ -519,7 +576,7 @@ const Index = () => {
 
   return (
     <div className="app-container">
-      <MobileHeader onMenuClick={() => setIsMenuOpen(true)} onProfileClick={() => user ? setCurrentPage('profile') : setCurrentPage('auth')} />
+      <MobileHeader onMenuClick={() => setIsMenuOpen(true)} onProfileClick={() => user ? setCurrentPage('profile') : setCurrentPage('auth')} currentLens={purposeLens} />
       <SideMenu isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} currentPage={currentPage as NavigationId} onNavigate={setCurrentPage} theme={theme} onToggleTheme={toggleTheme} onShowGuide={() => setShowOnboarding(true)} />
       
       <main className="page-content px-4 custom-scrollbar">
@@ -595,6 +652,18 @@ const Index = () => {
               </motion.div>
             </Suspense>
           )}
+          
+          {currentPage === 'purposelens' && (
+            <Suspense fallback={<PageLoadingFallback />}>
+              <motion.div key="purposelens" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                <PurposeLensPage 
+                  currentLens={purposeLens} 
+                  customPrompt={customLensPrompt}
+                  onLensChange={handlePurposeLensSelect}
+                />
+              </motion.div>
+            </Suspense>
+          )}
         </AnimatePresence>
       </main>
       
@@ -630,6 +699,14 @@ const Index = () => {
         <Suspense fallback={null}>
           <OnboardingGuide isOpen={showOnboarding} onClose={handleCloseOnboarding} />
         </Suspense>
+      )}
+      
+      {/* Purpose Lens Onboarding - shown on first launch */}
+      {showPurposeLensOnboarding && !showOnboarding && (
+        <PurposeLensOnboarding 
+          isOpen={showPurposeLensOnboarding} 
+          onSelect={handlePurposeLensSelect}
+        />
       )}
     </div>
   );
