@@ -57,7 +57,7 @@ const COMPRESSION_MODES: CompressionMode[] = [
 ];
 
 const EkaksharPlusPage: React.FC = () => {
-  const { credits, hasCredits, useCredits, showUpgradePrompt } = useSubscription();
+  const { getCredits, hasCredits, useCredits, showUpgradePrompt } = useSubscription();
   const [input, setInput] = useState('');
   const [selectedMode, setSelectedMode] = useState<string | null>(null);
   const [result, setResult] = useState<string | null>(null);

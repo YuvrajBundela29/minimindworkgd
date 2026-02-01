@@ -208,8 +208,9 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({ chil
         return;
       }
 
+      // Query the view instead of base table to avoid exposing payment IDs
       const { data, error } = await supabase
-        .from('user_subscriptions')
+        .from('user_subscription_view')
         .select('*')
         .eq('user_id', user.id)
         .single();
@@ -221,10 +222,9 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({ chil
 
       const now = new Date();
       const periodEnd = data.current_period_end ? new Date(data.current_period_end) : null;
-      const gracePeriodEnd = data.grace_period_end ? new Date(data.grace_period_end) : null;
       
-      // Check if in grace period
-      const isInGracePeriod = gracePeriodEnd && now < gracePeriodEnd;
+      // Note: grace_period_end and daily_questions_used are not exposed via the view for security
+      // They are only needed for backend operations
       
       // Check for daily reset
       const lastDailyReset = data.credits_last_daily_reset ? new Date(data.credits_last_daily_reset) : null;
@@ -240,8 +240,8 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({ chil
         planType: data.plan_type as PlanType | null,
         status: data.status as 'active' | 'cancelled' | 'expired' | 'pending',
         currentPeriodEnd: periodEnd,
-        dailyQuestionsUsed: isNewDay ? 0 : (data.daily_questions_used || 0),
-        isInGracePeriod: !!isInGracePeriod,
+        dailyQuestionsUsed: 0, // Tracked via credits, not exposed via view
+        isInGracePeriod: false, // Determined server-side, not exposed via view
         credits: {
           dailyUsed: isNewDay ? 0 : (data.credits_daily_used || 0),
           monthlyUsed: isNewMonth ? 0 : (data.credits_monthly_used || 0),

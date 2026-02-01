@@ -7,7 +7,6 @@ import ProBadge from './ProBadge';
 
 interface LockedFeatureProps {
   featureName: string;
-  featureKey?: keyof ReturnType<typeof useSubscription>['limits']['features'];
   children: React.ReactNode;
   className?: string;
   variant?: 'overlay' | 'blur' | 'disabled';
@@ -16,16 +15,15 @@ interface LockedFeatureProps {
 
 const LockedFeature: React.FC<LockedFeatureProps> = ({
   featureName,
-  featureKey,
   children,
   className,
   variant = 'overlay',
   showPreview = true,
 }) => {
-  const { tier, showUpgradePrompt, isProFeature } = useSubscription();
+  const { tier, showUpgradePrompt } = useSubscription();
 
-  // Check if feature is locked
-  const isLocked = featureKey ? (tier === 'free' && isProFeature(featureKey)) : tier === 'free';
+  // Check if feature is locked (free tier users only)
+  const isLocked = tier === 'free';
 
   if (!isLocked) {
     return <>{children}</>;
