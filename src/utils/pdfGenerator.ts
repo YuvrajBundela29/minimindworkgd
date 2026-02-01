@@ -1,4 +1,3 @@
-import jsPDF from 'jspdf';
 import { modes, ModeKey } from '@/config/minimind';
 
 // Thoroughly clean all markdown and special characters
@@ -87,11 +86,18 @@ function parseContentToBlocks(text: string): ContentBlock[] {
   return blocks;
 }
 
-export function generatePDF(
+// Dynamic import of jsPDF for code splitting
+async function loadJsPDF() {
+  const { default: jsPDF } = await import('jspdf');
+  return jsPDF;
+}
+
+export async function generatePDF(
   content: string,
   modeKey: ModeKey,
   question: string
-): jsPDF {
+) {
+  const jsPDF = await loadJsPDF();
   const mode = modes[modeKey];
   const doc = new jsPDF();
   
@@ -214,8 +220,8 @@ export function generatePDF(
   return doc;
 }
 
-export function downloadPDF(content: string, modeKey: ModeKey, question: string): void {
-  const doc = generatePDF(content, modeKey, question);
+export async function downloadPDF(content: string, modeKey: ModeKey, question: string): Promise<void> {
+  const doc = await generatePDF(content, modeKey, question);
   const filename = generateFilename(modeKey, question);
   doc.save(filename);
 }
@@ -256,13 +262,13 @@ export async function sharePDF(
     }
 
     case 'download': {
-      downloadPDF(content, modeKey, question);
+      await downloadPDF(content, modeKey, question);
       return true;
     }
 
     case 'native':
     default: {
-      const doc = generatePDF(content, modeKey, question);
+      const doc = await generatePDF(content, modeKey, question);
       const filename = generateFilename(modeKey, question);
       const pdfBlob = doc.output('blob');
       const file = new File([pdfBlob], filename, { type: 'application/pdf' });
@@ -292,7 +298,7 @@ export async function sharePDF(
             title: shareTitle,
             text: `Check out this ${mode.name} explanation from MiniMind: "${question.substring(0, 50)}..."`,
           });
-          downloadPDF(content, modeKey, question);
+          await downloadPDF(content, modeKey, question);
           return true;
         } catch (error: any) {
           if (error.name === 'AbortError') return false;
@@ -300,7 +306,7 @@ export async function sharePDF(
       }
 
       // Final fallback: just download
-      downloadPDF(content, modeKey, question);
+      await downloadPDF(content, modeKey, question);
       return false;
     }
   }

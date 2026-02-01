@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
 import { Volume2, Copy, Download, Send, Wand2, Maximize2, Zap } from 'lucide-react';
 import { modes, ModeKey } from '@/config/minimind';
 import MarkdownRenderer from './MarkdownRenderer';
@@ -101,11 +100,8 @@ const ModeCard: React.FC<ModeCardProps> = ({
   const randomMessage = thinkingMessages[Math.floor(Math.random() * thinkingMessages.length)];
 
   return (
-    <motion.div
-      className="mode-card relative"
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
+    <div
+      className="mode-card relative transition-all duration-300 hover:-translate-y-0.5"
     >
       {/* Header - Fixed layout with proper spacing */}
       <div className="flex items-center justify-between gap-2 mb-3">
@@ -124,24 +120,22 @@ const ModeCard: React.FC<ModeCardProps> = ({
         </div>
         
         <div className="flex items-center gap-1.5 shrink-0">
-          <motion.button
-            className="action-btn bg-muted hover:bg-primary hover:text-primary-foreground w-10 h-10"
+          <button
+            className="action-btn bg-muted hover:bg-primary hover:text-primary-foreground w-10 h-10 transition-colors active:scale-95"
             onClick={() => onFullscreen(modeKey)}
-            whileTap={{ scale: 0.95 }}
             aria-label={`Open ${mode.name} in fullscreen`}
           >
             <Maximize2 className="w-4 h-4" />
-          </motion.button>
+          </button>
           
           {answer && (
-            <motion.button
-              className="action-btn bg-muted hover:bg-primary hover:text-primary-foreground w-10 h-10"
+            <button
+              className="action-btn bg-muted hover:bg-primary hover:text-primary-foreground w-10 h-10 transition-colors active:scale-95"
               onClick={() => onSpeak(answer, modeKey)}
-              whileTap={{ scale: 0.95 }}
               aria-label={isSpeaking ? 'Stop reading' : `Read ${mode.name} explanation aloud`}
             >
               <Volume2 className={`w-4 h-4 ${isSpeaking ? 'text-primary animate-pulse-glow' : ''}`} />
-            </motion.button>
+            </button>
           )}
         </div>
       </div>
@@ -185,32 +179,29 @@ const ModeCard: React.FC<ModeCardProps> = ({
       {/* Action Buttons */}
       {answer && (
         <div className="flex items-center gap-2 mb-3 flex-wrap">
-          <motion.button
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-gradient-to-r from-primary to-accent text-primary-foreground"
+          <button
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-gradient-to-r from-primary to-accent text-primary-foreground active:scale-95 transition-transform"
             onClick={() => onGetOneWord(modeKey)}
-            whileTap={{ scale: 0.95 }}
           >
             <Wand2 className="w-3.5 h-3.5" />
             Get One-Word Summary
-          </motion.button>
+          </button>
           
-          <motion.button
-            className="action-btn bg-muted hover:bg-muted/80 w-10 h-10"
+          <button
+            className="action-btn bg-muted hover:bg-muted/80 w-10 h-10 active:scale-95 transition-transform"
             onClick={() => onCopy(answer)}
-            whileTap={{ scale: 0.95 }}
             aria-label="Copy explanation to clipboard"
           >
             <Copy className="w-4 h-4" />
-          </motion.button>
+          </button>
           
-          <motion.button
-            className="action-btn bg-muted hover:bg-muted/80 w-10 h-10"
+          <button
+            className="action-btn bg-muted hover:bg-muted/80 w-10 h-10 active:scale-95 transition-transform"
             onClick={() => onDownload(answer, modeKey, currentQuestion)}
-            whileTap={{ scale: 0.95 }}
             aria-label="Download as PDF"
           >
             <Download className="w-4 h-4" />
-          </motion.button>
+          </button>
           
           <ShareMenu 
             onShare={(platform) => onShare(answer, modeKey, currentQuestion, platform)} 
@@ -237,7 +228,7 @@ const ModeCard: React.FC<ModeCardProps> = ({
           <Send className="w-4 h-4" />
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 };
 

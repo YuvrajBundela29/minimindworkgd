@@ -15,4 +15,17 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom'],
+          'vendor-motion': ['framer-motion'],
+          'vendor-pdf': ['jspdf'],
+          'vendor-charts': ['recharts'],
+          'vendor-router': ['react-router-dom'],
+        },
+      },
+    },
+  },
 }));

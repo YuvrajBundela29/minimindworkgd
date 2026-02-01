@@ -1,0 +1,26 @@
+{
+  "name": "MiniMind - AI Learning",
+  "short_name": "MiniMind",
+  "description": "AI-powered learning that explains any topic in 4 unique ways",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f0f9f4",
+  "theme_color": "#3b82f6",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "https://i.ibb.co/fGLH5Dxs/minimind-logo.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://i.ibb.co/fGLH5Dxs/minimind-logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["education", "productivity"],
+  "lang": "en"
+}

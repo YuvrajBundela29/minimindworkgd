@@ -1,31 +1,35 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, Suspense, useRef, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import MobileHeader from '@/components/MobileHeader';
 import BottomInputBar from '@/components/BottomInputBar';
 import ModeCard from '@/components/ModeCard';
 import SideMenu from '@/components/SideMenu';
-import EkaksharPage from '@/components/pages/EkaksharPage';
-import HistoryPage from '@/components/pages/HistoryPage';
-import SettingsPage from '@/components/pages/SettingsPage';
-import AuthPage from '@/components/pages/AuthPage';
-import ProfilePage from '@/components/pages/ProfilePage';
-import SubscriptionPage from '@/components/pages/SubscriptionPage';
-import LearningPathPage from '@/components/pages/LearningPathPage';
-import ExplainBackPage from '@/components/pages/ExplainBackPage';
-import FullscreenMode from '@/components/FullscreenMode';
 import RefinePromptDialog from '@/components/RefinePromptDialog';
-import OnboardingGuide from '@/components/OnboardingGuide';
 import QuestionLimitBanner from '@/components/QuestionLimitBanner';
 import EarlyAccessGate from '@/components/EarlyAccessGate';
 import HeroEmptyState from '@/components/HeroEmptyState';
+import PageLoadingFallback from '@/components/PageLoadingFallback';
 import { modes, ModeKey, LanguageKey, NavigationId } from '@/config/minimind';
 import AIService from '@/services/aiService';
+import { apiCache } from '@/services/apiCache';
 import speechService from '@/services/speechService';
 import { downloadPDF, sharePDF, SharePlatform } from '@/utils/pdfGenerator';
 import { supabase } from '@/integrations/supabase/client';
 import { useSubscription, CREDIT_COSTS } from '@/contexts/SubscriptionContext';
 import { useEarlyAccess } from '@/contexts/EarlyAccessContext';
+
+// Lazy load heavy page components
+const EkaksharPage = React.lazy(() => import('@/components/pages/EkaksharPage'));
+const HistoryPage = React.lazy(() => import('@/components/pages/HistoryPage'));
+const SettingsPage = React.lazy(() => import('@/components/pages/SettingsPage'));
+const AuthPage = React.lazy(() => import('@/components/pages/AuthPage'));
+const ProfilePage = React.lazy(() => import('@/components/pages/ProfilePage'));
+const SubscriptionPage = React.lazy(() => import('@/components/pages/SubscriptionPage'));
+const LearningPathPage = React.lazy(() => import('@/components/pages/LearningPathPage'));
+const ExplainBackPage = React.lazy(() => import('@/components/pages/ExplainBackPage'));
+const FullscreenMode = React.lazy(() => import('@/components/FullscreenMode'));
+const OnboardingGuide = React.lazy(() => import('@/components/OnboardingGuide'));
 
 // Types for history
 export interface HistoryItem {
@@ -44,8 +48,27 @@ const defaultAnswers: Record<ModeKey, string | null> = {
   mastery: null,
 };
 
+// Memoized ModeCard to prevent unnecessary re-renders
+const MemoizedModeCard = memo(ModeCard, (prev, next) => {
+  return (
+    prev.answer === next.answer &&
+    prev.isLoading === next.isLoading &&
+    prev.modeKey === next.modeKey &&
+    prev.isSpeaking === next.isSpeaking &&
+    prev.chatInputValue === next.chatInputValue &&
+    prev.currentQuestion === next.currentQuestion
+  );
+});
+
+// Priority order for staggered API loading
+const MODE_PRIORITY: ModeKey[] = ['beginner', 'thinker', 'story', 'mastery'];
+const STAGGER_DELAY = 300; // ms between API calls
+
 const Index = () => {
   const { isEarlyAccess } = useEarlyAccess();
+  
+  // AbortController for cancelling pending requests
+  const abortControllerRef = useRef<AbortController | null>(null);
   
   // State Management
   const [currentPage, setCurrentPage] = useState<NavigationId | 'auth'>('home');
@@ -97,6 +120,22 @@ const Index = () => {
   const [stats, setStats] = useState({
     totalQuestions: 0, todayQuestions: 0, favoriteMode: 'beginner' as ModeKey, streak: 0,
   });
+  
+  // Cleanup abort controller on unmount
+  useEffect(() => {
+    return () => {
+      abortControllerRef.current?.abort();
+    };
+  }, []);
+  
+  // Register service worker
+  useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(() => {
+        // SW registration failed silently
+      });
+    }
+  }, []);
   
   // Load saved data and auth
   useEffect(() => {
@@ -191,9 +230,35 @@ const Index = () => {
     }
   };
   
-  // Handle question submission
+  // Staggered API loading with caching
+  const fetchModeExplanation = useCallback(async (
+    questionText: string,
+    modeKey: ModeKey,
+    language: LanguageKey
+  ): Promise<string> => {
+    // Check cache first
+    const cacheKey = apiCache.generateKey(questionText, modeKey, language);
+    const cached = apiCache.get(cacheKey);
+    if (cached) {
+      return cached;
+    }
+    
+    // Fetch from API
+    const response = await AIService.getExplanation(questionText, modeKey, language);
+    
+    // Cache the response
+    apiCache.set(cacheKey, response);
+    
+    return response;
+  }, []);
+  
+  // Handle question submission with staggered loading
   const handleSubmit = useCallback(async () => {
     if (!question.trim()) return;
+    
+    // Cancel any pending requests
+    abortControllerRef.current?.abort();
+    abortControllerRef.current = new AbortController();
     
     const questionText = question;
     setCurrentQuestion(questionText);
@@ -208,31 +273,56 @@ const Index = () => {
       mastery: [{ role: 'user', content: questionText }],
     });
     
-    const modeKeys = Object.keys(modes) as ModeKey[];
     const newAnswers: Record<ModeKey, string> = {} as Record<ModeKey, string>;
     
-    await Promise.all(
-      modeKeys.map(async (modeKey) => {
-        try {
-          const response = await AIService.getExplanation(questionText, modeKey, selectedLanguage);
-          setAnswers(prev => ({ ...prev, [modeKey]: response }));
-          newAnswers[modeKey] = response;
-          setChatHistories(prev => ({ ...prev, [modeKey]: [...prev[modeKey], { role: 'assistant', content: response }] }));
-        } catch (error) {
-          const errorMsg = 'Sorry, something went wrong. Please try again.';
-          setAnswers(prev => ({ ...prev, [modeKey]: errorMsg }));
-          newAnswers[modeKey] = errorMsg;
-        } finally {
-          setLoadingModes(prev => ({ ...prev, [modeKey]: false }));
-        }
-      })
-    );
+    // Staggered loading - load modes in priority order
+    for (let i = 0; i < MODE_PRIORITY.length; i++) {
+      const modeKey = MODE_PRIORITY[i];
+      
+      // Start this mode
+      try {
+        const response = await fetchModeExplanation(questionText, modeKey, selectedLanguage);
+        
+        // Check if aborted
+        if (abortControllerRef.current?.signal.aborted) return;
+        
+        setAnswers(prev => ({ ...prev, [modeKey]: response }));
+        newAnswers[modeKey] = response;
+        setChatHistories(prev => ({
+          ...prev,
+          [modeKey]: [...prev[modeKey], { role: 'assistant', content: response }]
+        }));
+      } catch (error: any) {
+        if (error.name === 'AbortError') return;
+        const errorMsg = 'Sorry, something went wrong. Please try again.';
+        setAnswers(prev => ({ ...prev, [modeKey]: errorMsg }));
+        newAnswers[modeKey] = errorMsg;
+      } finally {
+        setLoadingModes(prev => ({ ...prev, [modeKey]: false }));
+      }
+      
+      // Small delay before next mode (except for last one)
+      if (i < MODE_PRIORITY.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, STAGGER_DELAY));
+      }
+    }
     
-    const historyItem: HistoryItem = { id: Date.now().toString(), question: questionText, answers: newAnswers, timestamp: new Date(), language: selectedLanguage };
+    // Save to history
+    const historyItem: HistoryItem = {
+      id: Date.now().toString(),
+      question: questionText,
+      answers: newAnswers,
+      timestamp: new Date(),
+      language: selectedLanguage
+    };
     setHistory(prev => [historyItem, ...prev.slice(0, 49)]);
-    setStats(prev => ({ ...prev, totalQuestions: prev.totalQuestions + 1, todayQuestions: prev.todayQuestions + 1 }));
+    setStats(prev => ({
+      ...prev,
+      totalQuestions: prev.totalQuestions + 1,
+      todayQuestions: prev.todayQuestions + 1
+    }));
     setQuestion('');
-  }, [question, selectedLanguage]);
+  }, [question, selectedLanguage, fetchModeExplanation]);
   
   const handleVoiceInput = useCallback(() => {
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
@@ -310,9 +400,7 @@ const Index = () => {
   const handleGetOneWord = useCallback(async (mode: string) => {
     const answer = answers[mode as ModeKey];
     if (!answer) return;
-    // Navigate to Ekakshar page with the current question auto-submitted
     setCurrentPage('ekakshar');
-    // Store question in session to auto-submit
     sessionStorage.setItem('ekakshar-auto-question', currentQuestion);
   }, [answers, currentQuestion]);
   
@@ -338,12 +426,77 @@ const Index = () => {
 
   const isAnyLoading = Object.values(loadingModes).some(l => l);
 
+  // Staggered prompt click handler
+  const handlePromptClick = useCallback(async (prompt: string) => {
+    // Cancel any pending requests
+    abortControllerRef.current?.abort();
+    abortControllerRef.current = new AbortController();
+    
+    setQuestion('');
+    setCurrentQuestion(prompt);
+    setHasAskedQuestion(true);
+    setAnswers({ beginner: null, thinker: null, story: null, mastery: null });
+    setLoadingModes({ beginner: true, thinker: true, story: true, mastery: true });
+    
+    setChatHistories({
+      beginner: [{ role: 'user', content: prompt }],
+      thinker: [{ role: 'user', content: prompt }],
+      story: [{ role: 'user', content: prompt }],
+      mastery: [{ role: 'user', content: prompt }],
+    });
+    
+    const newAnswers: Record<ModeKey, string> = {} as Record<ModeKey, string>;
+    
+    // Staggered loading
+    for (let i = 0; i < MODE_PRIORITY.length; i++) {
+      const modeKey = MODE_PRIORITY[i];
+      
+      try {
+        const response = await fetchModeExplanation(prompt, modeKey, selectedLanguage);
+        
+        if (abortControllerRef.current?.signal.aborted) return;
+        
+        setAnswers(prev => ({ ...prev, [modeKey]: response }));
+        newAnswers[modeKey] = response;
+        setChatHistories(prev => ({
+          ...prev,
+          [modeKey]: [...prev[modeKey], { role: 'assistant', content: response }]
+        }));
+      } catch (error: any) {
+        if (error.name === 'AbortError') return;
+        const errorMsg = 'Sorry, something went wrong. Please try again.';
+        setAnswers(prev => ({ ...prev, [modeKey]: errorMsg }));
+        newAnswers[modeKey] = errorMsg;
+      } finally {
+        setLoadingModes(prev => ({ ...prev, [modeKey]: false }));
+      }
+      
+      if (i < MODE_PRIORITY.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, STAGGER_DELAY));
+      }
+    }
+    
+    const historyItem: HistoryItem = {
+      id: Date.now().toString(),
+      question: prompt,
+      answers: newAnswers,
+      timestamp: new Date(),
+      language: selectedLanguage
+    };
+    setHistory(prev => [historyItem, ...prev.slice(0, 49)]);
+    setStats(prev => ({
+      ...prev,
+      totalQuestions: prev.totalQuestions + 1,
+      todayQuestions: prev.todayQuestions + 1
+    }));
+  }, [selectedLanguage, fetchModeExplanation]);
+
   // Mandatory sign-in gate for early access
   if (isCheckingAuth) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="animate-pulse flex items-center gap-2">
-          <img src="https://i.ibb.co/fGLH5Dxs/minimind-logo.png" alt="MiniMind" className="w-10 h-10" />
+          <img src="https://i.ibb.co/fGLH5Dxs/minimind-logo.png" alt="MiniMind" className="w-10 h-10" width={40} height={40} />
           <span className="text-muted-foreground">Loading...</span>
         </div>
       </div>
@@ -352,7 +505,11 @@ const Index = () => {
 
   // Auth page takes priority when navigating to it
   if (currentPage === 'auth') {
-    return <AuthPage onBack={() => setCurrentPage('home')} onAuthSuccess={() => setCurrentPage('home')} />;
+    return (
+      <Suspense fallback={<PageLoadingFallback />}>
+        <AuthPage onBack={() => setCurrentPage('home')} onAuthSuccess={() => setCurrentPage('home')} />
+      </Suspense>
+    );
   }
 
   // Show early access gate only if not logged in and not navigating to auth
@@ -368,69 +525,76 @@ const Index = () => {
       <main className="page-content px-4 custom-scrollbar">
         <AnimatePresence mode="wait">
           {currentPage === 'home' && (
-            <motion.div key="home" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-4">
+            <motion.div key="home" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-4">
               {/* Hero Empty State when no question asked */}
               {!hasAskedQuestion && !isAnyLoading && (
-                <HeroEmptyState onPromptClick={(prompt) => {
-                  setQuestion(prompt);
-                  // Auto-submit after small delay for UX
-                  setTimeout(() => {
-                    setCurrentQuestion(prompt);
-                    setHasAskedQuestion(true);
-                    setAnswers({ beginner: null, thinker: null, story: null, mastery: null });
-                    setLoadingModes({ beginner: true, thinker: true, story: true, mastery: true });
-                    
-                    setChatHistories({
-                      beginner: [{ role: 'user', content: prompt }],
-                      thinker: [{ role: 'user', content: prompt }],
-                      story: [{ role: 'user', content: prompt }],
-                      mastery: [{ role: 'user', content: prompt }],
-                    });
-                    
-                    const modeKeys = Object.keys(modes) as ModeKey[];
-                    const newAnswers: Record<ModeKey, string> = {} as Record<ModeKey, string>;
-                    
-                    Promise.all(
-                      modeKeys.map(async (modeKey) => {
-                        try {
-                          const response = await AIService.getExplanation(prompt, modeKey, selectedLanguage);
-                          setAnswers(prev => ({ ...prev, [modeKey]: response }));
-                          newAnswers[modeKey] = response;
-                          setChatHistories(prev => ({ ...prev, [modeKey]: [...prev[modeKey], { role: 'assistant', content: response }] }));
-                        } catch (error) {
-                          const errorMsg = 'Sorry, something went wrong. Please try again.';
-                          setAnswers(prev => ({ ...prev, [modeKey]: errorMsg }));
-                          newAnswers[modeKey] = errorMsg;
-                        } finally {
-                          setLoadingModes(prev => ({ ...prev, [modeKey]: false }));
-                        }
-                      })
-                    ).then(() => {
-                      const historyItem: HistoryItem = { id: Date.now().toString(), question: prompt, answers: newAnswers, timestamp: new Date(), language: selectedLanguage };
-                      setHistory(prev => [historyItem, ...prev.slice(0, 49)]);
-                      setStats(prev => ({ ...prev, totalQuestions: prev.totalQuestions + 1, todayQuestions: prev.todayQuestions + 1 }));
-                    });
-                    
-                    setQuestion('');
-                  }, 100);
-                }} />
+                <HeroEmptyState onPromptClick={handlePromptClick} />
               )}
               
               {/* Mode Cards - shown when loading or has answers */}
               {(hasAskedQuestion || isAnyLoading) && (Object.keys(modes) as ModeKey[]).map((modeKey, index) => (
-                <motion.div key={modeKey} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.1 }}>
-                  <ModeCard modeKey={modeKey} answer={answers[modeKey]} isLoading={loadingModes[modeKey]} onSpeak={handleSpeak} onCopy={handleCopy} onDownload={handleDownload} onShare={handleShare} onGetOneWord={handleGetOneWord} onChatSubmit={handleChatSubmit} onFullscreen={handleFullscreen} isSpeaking={isSpeaking} chatInputValue={chatInputs[modeKey]} onChatInputChange={handleChatInputChange} currentQuestion={currentQuestion} />
+                <motion.div key={modeKey} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.05, duration: 0.2 }}>
+                  <MemoizedModeCard modeKey={modeKey} answer={answers[modeKey]} isLoading={loadingModes[modeKey]} onSpeak={handleSpeak} onCopy={handleCopy} onDownload={handleDownload} onShare={handleShare} onGetOneWord={handleGetOneWord} onChatSubmit={handleChatSubmit} onFullscreen={handleFullscreen} isSpeaking={isSpeaking} chatInputValue={chatInputs[modeKey]} onChatInputChange={handleChatInputChange} currentQuestion={currentQuestion} />
                 </motion.div>
               ))}
             </motion.div>
           )}
-          {currentPage === 'profile' && <motion.div key="profile" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}><ProfilePage onSignOut={handleSignOut} /></motion.div>}
-          {currentPage === 'ekakshar' && <motion.div key="ekakshar" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}><EkaksharPage language={selectedLanguage} /></motion.div>}
-          {currentPage === 'history' && <motion.div key="history" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}><HistoryPage history={history} onLoadItem={handleLoadHistory} onClearHistory={handleClearHistory} /></motion.div>}
-          {currentPage === 'settings' && <motion.div key="settings" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}><SettingsPage theme={theme} onToggleTheme={toggleTheme} selectedLanguage={selectedLanguage} onLanguageSelect={setSelectedLanguage} onClearHistory={handleClearHistory} stats={stats} /></motion.div>}
-          {currentPage === 'subscription' && <motion.div key="subscription" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}><SubscriptionPage /></motion.div>}
-          {currentPage === 'learningpath' && <motion.div key="learningpath" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}><LearningPathPage /></motion.div>}
-          {currentPage === 'explainback' && <motion.div key="explainback" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}><ExplainBackPage /></motion.div>}
+          
+          {currentPage === 'profile' && (
+            <Suspense fallback={<PageLoadingFallback />}>
+              <motion.div key="profile" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                <ProfilePage onSignOut={handleSignOut} />
+              </motion.div>
+            </Suspense>
+          )}
+          
+          {currentPage === 'ekakshar' && (
+            <Suspense fallback={<PageLoadingFallback />}>
+              <motion.div key="ekakshar" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                <EkaksharPage language={selectedLanguage} />
+              </motion.div>
+            </Suspense>
+          )}
+          
+          {currentPage === 'history' && (
+            <Suspense fallback={<PageLoadingFallback />}>
+              <motion.div key="history" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                <HistoryPage history={history} onLoadItem={handleLoadHistory} onClearHistory={handleClearHistory} />
+              </motion.div>
+            </Suspense>
+          )}
+          
+          {currentPage === 'settings' && (
+            <Suspense fallback={<PageLoadingFallback />}>
+              <motion.div key="settings" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                <SettingsPage theme={theme} onToggleTheme={toggleTheme} selectedLanguage={selectedLanguage} onLanguageSelect={setSelectedLanguage} onClearHistory={handleClearHistory} stats={stats} />
+              </motion.div>
+            </Suspense>
+          )}
+          
+          {currentPage === 'subscription' && (
+            <Suspense fallback={<PageLoadingFallback />}>
+              <motion.div key="subscription" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                <SubscriptionPage />
+              </motion.div>
+            </Suspense>
+          )}
+          
+          {currentPage === 'learningpath' && (
+            <Suspense fallback={<PageLoadingFallback />}>
+              <motion.div key="learningpath" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                <LearningPathPage />
+              </motion.div>
+            </Suspense>
+          )}
+          
+          {currentPage === 'explainback' && (
+            <Suspense fallback={<PageLoadingFallback />}>
+              <motion.div key="explainback" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                <ExplainBackPage />
+              </motion.div>
+            </Suspense>
+          )}
         </AnimatePresence>
       </main>
       
@@ -439,28 +603,34 @@ const Index = () => {
       {currentPage === 'home' && <BottomInputBar value={question} onChange={setQuestion} onSubmit={handleSubmit} onVoiceInput={handleVoiceInput} onRefinePrompt={handleRefinePrompt} placeholder="Ask anything... MiniMind explains it 4 ways!" isLoading={isAnyLoading} isRefining={isRefining} />}
       
       {fullscreenMode && (
-        <FullscreenMode 
-          isOpen={!!fullscreenMode} 
-          modeKey={fullscreenMode} 
-          answer={answers[fullscreenMode]} 
-          chatHistory={chatHistories[fullscreenMode]}
-          isLoading={loadingModes[fullscreenMode]}
-          onClose={() => setFullscreenMode(null)} 
-          onSpeak={handleSpeak} 
-          onCopy={handleCopy} 
-          onDownload={handleDownload} 
-          onShare={handleShare} 
-          onChatSubmit={handleChatSubmit} 
-          isSpeaking={isSpeaking} 
-          chatInputValue={chatInputs[fullscreenMode]} 
-          onChatInputChange={handleChatInputChange} 
-          currentQuestion={currentQuestion} 
-        />
+        <Suspense fallback={<PageLoadingFallback />}>
+          <FullscreenMode 
+            isOpen={!!fullscreenMode} 
+            modeKey={fullscreenMode} 
+            answer={answers[fullscreenMode]} 
+            chatHistory={chatHistories[fullscreenMode]}
+            isLoading={loadingModes[fullscreenMode]}
+            onClose={() => setFullscreenMode(null)} 
+            onSpeak={handleSpeak} 
+            onCopy={handleCopy} 
+            onDownload={handleDownload} 
+            onShare={handleShare} 
+            onChatSubmit={handleChatSubmit} 
+            isSpeaking={isSpeaking} 
+            chatInputValue={chatInputs[fullscreenMode]} 
+            onChatInputChange={handleChatInputChange} 
+            currentQuestion={currentQuestion} 
+          />
+        </Suspense>
       )}
       
       <RefinePromptDialog isOpen={showRefineDialog} originalPrompt={originalPrompt} refinedPrompt={refinedPrompt} onAccept={handleAcceptRefinedPrompt} onReject={() => setShowRefineDialog(false)} onReRefine={handleReRefine} isRefining={isRefining} />
       
-      <OnboardingGuide isOpen={showOnboarding} onClose={handleCloseOnboarding} />
+      {showOnboarding && (
+        <Suspense fallback={null}>
+          <OnboardingGuide isOpen={showOnboarding} onClose={handleCloseOnboarding} />
+        </Suspense>
+      )}
     </div>
   );
 };

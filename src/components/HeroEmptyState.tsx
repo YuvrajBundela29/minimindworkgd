@@ -1,5 +1,4 @@
 import React from 'react';
-import { motion } from 'framer-motion';
 import { Sparkles, ChevronRight } from 'lucide-react';
 
 interface HeroEmptyStateProps {
@@ -49,27 +48,13 @@ const HeroEmptyState: React.FC<HeroEmptyStateProps> = ({
   onPromptClick
 }) => {
   return (
-    <motion.div 
-      initial={{ opacity: 0 }} 
-      animate={{ opacity: 1 }} 
-      className="flex flex-col items-center justify-center py-8"
-    >
+    <div className="flex flex-col items-center justify-center py-8 animate-in fade-in duration-300">
       {/* Hero Text */}
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }} 
-        animate={{ opacity: 1, y: 0 }} 
-        transition={{ delay: 0.1 }} 
-        className="text-center mb-8"
-      >
-        <motion.div 
-          initial={{ scale: 0.8 }} 
-          animate={{ scale: 1 }} 
-          transition={{ type: 'spring', damping: 15 }} 
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-primary/10 border border-primary/20 mb-4"
-        >
+      <div className="text-center mb-8 animate-in slide-in-from-bottom-4 duration-500">
+        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-primary/10 border border-primary/20 mb-4">
           <Sparkles className="w-4 h-4 text-primary" />
           <span className="text-sm font-medium text-primary">MiniMind AI</span>
-        </motion.div>
+        </div>
         
         <h1 className="text-2xl md:text-3xl font-heading font-bold text-foreground mb-3">
           Stuck on a concept?
@@ -80,31 +65,22 @@ const HeroEmptyState: React.FC<HeroEmptyStateProps> = ({
         <p className="text-muted-foreground text-sm max-w-xs mx-auto">
           From ELI5 to expert. Stories to logic. Perfect for JEE, NEET & Board exams.
         </p>
-      </motion.div>
+      </div>
 
-      {/* Prompt Carousel */}
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }} 
-        animate={{ opacity: 1, y: 0 }} 
-        transition={{ delay: 0.2 }} 
-        className="w-full"
-      >
+      {/* Prompt Carousel - CSS animations only */}
+      <div className="w-full animate-in slide-in-from-bottom-6 duration-700 delay-150">
         <p className="text-xs font-medium text-muted-foreground mb-3 text-center">
           🎯 Popular study topics...
         </p>
         
         <div className="gap-3 overflow-x-auto pb-4 px-1 -mx-1 custom-scrollbar snap-x snap-mandatory items-center justify-center flex flex-col">
           {SUGGESTED_PROMPTS.map((prompt, index) => (
-            <motion.button 
-              key={prompt.text} 
-              initial={{ opacity: 0, scale: 0.9 }} 
-              animate={{ opacity: 1, scale: 1 }} 
-              transition={{ delay: 0.3 + index * 0.05 }} 
-              whileHover={{ scale: 1.02, y: -2 }} 
-              whileTap={{ scale: 0.98 }} 
+            <button 
+              key={prompt.text}
               onClick={() => onPromptClick(prompt.text)} 
-              className="flex-shrink-0 snap-start group flex items-center gap-3 px-4 py-3.5 rounded-xl bg-card border border-border/50 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5 transition-all min-w-[280px] w-full max-w-sm text-left"
+              className="flex-shrink-0 snap-start group flex items-center gap-3 px-4 py-3.5 rounded-xl bg-card border border-border/50 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5 transition-all duration-200 min-w-[280px] w-full max-w-sm text-left hover:-translate-y-0.5 active:scale-[0.98]"
               aria-label={`Ask: ${prompt.text}`}
+              style={{ animationDelay: `${index * 50}ms` }}
             >
               <span className="text-2xl" role="img" aria-hidden="true">{prompt.emoji}</span>
               <div className="flex-1 min-w-0">
@@ -116,21 +92,16 @@ const HeroEmptyState: React.FC<HeroEmptyStateProps> = ({
                 </span>
               </div>
               <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-all flex-shrink-0" />
-            </motion.button>
+            </button>
           ))}
         </div>
-      </motion.div>
+      </div>
 
       {/* Trust signal */}
-      <motion.p 
-        initial={{ opacity: 0 }} 
-        animate={{ opacity: 1 }} 
-        transition={{ delay: 0.5 }} 
-        className="text-[10px] text-muted-foreground/60 mt-4 text-center"
-      >
+      <p className="text-[10px] text-muted-foreground/60 mt-4 text-center animate-in fade-in duration-1000 delay-500">
         ✨ Trusted by 10,000+ students • 4 explanation styles • Exam-focused learning
-      </motion.p>
-    </motion.div>
+      </p>
+    </div>
   );
 };
 
