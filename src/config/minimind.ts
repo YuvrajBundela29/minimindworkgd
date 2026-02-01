@@ -6,6 +6,7 @@ export const modes = {
     color: 'emerald',
     badge: 'ACTIVE',
     badgeClass: 'mode-badge-active',
+    tagline: 'Simple explanations with fun examples',
   },
   thinker: {
     name: 'Thinker',
@@ -13,6 +14,7 @@ export const modes = {
     color: 'purple',
     badge: 'LOGIC',
     badgeClass: 'mode-badge-logic',
+    tagline: 'Logical step-by-step reasoning',
   },
   story: {
     name: 'Story',
@@ -20,6 +22,7 @@ export const modes = {
     color: 'amber',
     badge: 'NARRATIVE',
     badgeClass: 'mode-badge-narrative',
+    tagline: 'Learn through engaging stories',
   },
   mastery: {
     name: 'Mastery',
@@ -27,6 +30,7 @@ export const modes = {
     color: 'blue',
     badge: 'ACADEMIC',
     badgeClass: 'mode-badge-academic',
+    tagline: 'Deep dive with exam-ready insights',
   },
 } as const;
 
