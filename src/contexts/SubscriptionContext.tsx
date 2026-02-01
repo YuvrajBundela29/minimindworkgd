@@ -65,8 +65,44 @@ export const PRICING = {
   },
 };
 
-// Free tier daily limit
-export const FREE_DAILY_LIMIT = 5;
+// Credit limits per tier (daily)
+export const CREDIT_LIMITS: Record<SubscriptionTier, { daily: number; monthly: number }> = {
+  free: { daily: 15, monthly: 0 }, // 15 daily credits, no monthly pool
+  plus: { daily: 50, monthly: 500 }, // 50 daily + 500 monthly bonus
+  pro: { daily: 100, monthly: 1000 }, // 100 daily + 1000 monthly bonus
+};
+
+// Credit costs per mode
+export const CREDIT_COSTS: Record<string, number> = {
+  beginner: 1,
+  thinker: 2,
+  story: 3,
+  ekakshar: 5,
+  learningPath: 5,
+};
+
+// Top-up products
+export const TOP_UP_PRODUCTS = {
+  packs: [
+    { id: 'pack_25', name: '25 Credits', credits: 25, price: 49, popular: false },
+    { id: 'pack_60', name: '60 Credits', credits: 60, price: 99, popular: true, badge: 'BEST VALUE' },
+    { id: 'pack_150', name: '150 Credits', credits: 150, price: 199, popular: false },
+  ],
+  boosters: [
+    { id: 'booster_weekly', name: 'Weekly Booster', credits: 20, price: 29, duration: 'week', description: '+20 daily credits for 7 days' },
+  ],
+};
+
+// Free tier daily limit (backward compat)
+export const FREE_DAILY_LIMIT = CREDIT_LIMITS.free.daily;
+
+interface CreditState {
+  dailyUsed: number;
+  monthlyUsed: number;
+  bonusCredits: number; // From top-ups
+  lastDailyReset: Date | null;
+  lastMonthlyReset: Date | null;
+}
 
 interface SubscriptionState {
   tier: SubscriptionTier;
@@ -75,6 +111,7 @@ interface SubscriptionState {
   currentPeriodEnd: Date | null;
   dailyQuestionsUsed: number;
   isInGracePeriod: boolean;
+  credits: CreditState;
 }
 
 interface SubscriptionContextType {
@@ -84,13 +121,16 @@ interface SubscriptionContextType {
   subscription: SubscriptionState;
   isLoading: boolean;
   
-  // Checks
+  // Credit checks
   hasFeature: (feature: keyof TierFeatures) => boolean;
   canAskQuestion: () => boolean;
   getRemainingQuestions: () => number | 'unlimited';
+  getCredits: () => { daily: number; monthly: number; bonus: number; total: number };
+  hasCredits: (cost: number) => boolean;
   
   // Actions
   useQuestion: () => Promise<boolean>;
+  useCredits: (cost: number, mode: string) => Promise<boolean>;
   refreshSubscription: () => Promise<void>;
   
   // Upgrade flow
@@ -101,6 +141,7 @@ interface SubscriptionContextType {
   
   // Checkout
   initiateCheckout: (tier: 'plus' | 'pro', planType: PlanType) => Promise<void>;
+  initiateTopUp: (productId: string) => Promise<void>;
   isCheckoutLoading: boolean;
 }
 
@@ -131,6 +172,13 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({ chil
     currentPeriodEnd: null,
     dailyQuestionsUsed: 0,
     isInGracePeriod: false,
+    credits: {
+      dailyUsed: 0,
+      monthlyUsed: 0,
+      bonusCredits: 0,
+      lastDailyReset: null,
+      lastMonthlyReset: null,
+    },
   });
 
   const tier = subscription.tier;
@@ -148,6 +196,13 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({ chil
           currentPeriodEnd: null,
           dailyQuestionsUsed: 0,
           isInGracePeriod: false,
+          credits: {
+            dailyUsed: 0,
+            monthlyUsed: 0,
+            bonusCredits: 0,
+            lastDailyReset: null,
+            lastMonthlyReset: null,
+          },
         });
         setIsLoading(false);
         return;
@@ -171,18 +226,29 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({ chil
       // Check if in grace period
       const isInGracePeriod = gracePeriodEnd && now < gracePeriodEnd;
       
-      // Reset daily count if new day
-      const lastReset = data.last_question_reset ? new Date(data.last_question_reset) : null;
-      const isNewDay = !lastReset || lastReset.toDateString() !== now.toDateString();
-      const dailyUsed = isNewDay ? 0 : (data.daily_questions_used || 0);
+      // Check for daily reset
+      const lastDailyReset = data.credits_last_daily_reset ? new Date(data.credits_last_daily_reset) : null;
+      const isNewDay = !lastDailyReset || lastDailyReset.toDateString() !== now.toDateString();
+      
+      // Check for monthly reset
+      const lastMonthlyReset = data.credits_last_monthly_reset ? new Date(data.credits_last_monthly_reset) : null;
+      const isNewMonth = !lastMonthlyReset || 
+        (lastMonthlyReset.getMonth() !== now.getMonth() || lastMonthlyReset.getFullYear() !== now.getFullYear());
 
       setSubscription({
         tier: (data.tier as SubscriptionTier) || 'free',
         planType: data.plan_type as PlanType | null,
         status: data.status as 'active' | 'cancelled' | 'expired' | 'pending',
         currentPeriodEnd: periodEnd,
-        dailyQuestionsUsed: dailyUsed,
+        dailyQuestionsUsed: isNewDay ? 0 : (data.daily_questions_used || 0),
         isInGracePeriod: !!isInGracePeriod,
+        credits: {
+          dailyUsed: isNewDay ? 0 : (data.credits_daily_used || 0),
+          monthlyUsed: isNewMonth ? 0 : (data.credits_monthly_used || 0),
+          bonusCredits: 0, // TODO: Load from separate table when implemented
+          lastDailyReset,
+          lastMonthlyReset,
+        },
       });
     } catch (error) {
       console.error('Error loading subscription:', error);
@@ -206,67 +272,106 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({ chil
     return features[feature];
   }, [features]);
 
+  // Get available credits
+  const getCredits = useCallback(() => {
+    const limits = CREDIT_LIMITS[tier];
+    const dailyRemaining = Math.max(0, limits.daily - subscription.credits.dailyUsed);
+    const monthlyRemaining = Math.max(0, limits.monthly - subscription.credits.monthlyUsed);
+    const bonus = subscription.credits.bonusCredits;
+    
+    return {
+      daily: dailyRemaining,
+      monthly: monthlyRemaining,
+      bonus,
+      total: dailyRemaining + monthlyRemaining + bonus,
+    };
+  }, [tier, subscription.credits]);
+
+  // Check if user has enough credits
+  const hasCredits = useCallback((cost: number) => {
+    const available = getCredits();
+    return available.total >= cost;
+  }, [getCredits]);
+
   const canAskQuestion = useCallback(() => {
-    if (tier === 'plus' || tier === 'pro') return true;
-    return subscription.dailyQuestionsUsed < FREE_DAILY_LIMIT;
-  }, [tier, subscription.dailyQuestionsUsed]);
+    // For simple question check, use 1 credit cost
+    return hasCredits(1);
+  }, [hasCredits]);
 
   const getRemainingQuestions = useCallback(() => {
-    if (tier === 'plus' || tier === 'pro') return 'unlimited';
-    return Math.max(0, FREE_DAILY_LIMIT - subscription.dailyQuestionsUsed);
-  }, [tier, subscription.dailyQuestionsUsed]);
-
-  const useQuestion = useCallback(async () => {
-    // Plus and Pro have unlimited
     if (tier === 'plus' || tier === 'pro') {
-      // Still track usage for analytics
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          await supabase
-            .from('user_subscriptions')
-            .update({ 
-              daily_questions_used: subscription.dailyQuestionsUsed + 1,
-              last_question_reset: new Date().toISOString().split('T')[0]
-            })
-            .eq('user_id', user.id);
-        }
-      } catch (e) {
-        // Silent fail for tracking
-      }
-      return true;
+      const credits = getCredits();
+      return credits.total; // Show total available
     }
+    return getCredits().daily; // Free tier shows daily only
+  }, [tier, getCredits]);
+
+  // Use credits for an action
+  const useCredits = useCallback(async (cost: number, mode: string) => {
+    const available = getCredits();
     
-    // Free tier - check limit
-    if (subscription.dailyQuestionsUsed >= FREE_DAILY_LIMIT) {
-      showUpgradePrompt('Unlimited Questions');
+    if (available.total < cost) {
+      showUpgradePrompt(`More Credits for ${mode}`);
       return false;
     }
-    
-    // Increment usage
+
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        await supabase
-          .from('user_subscriptions')
-          .update({ 
-            daily_questions_used: subscription.dailyQuestionsUsed + 1,
-            last_question_reset: new Date().toISOString().split('T')[0]
-          })
-          .eq('user_id', user.id);
+      if (!user) return false;
+
+      // Deduct from daily first, then monthly, then bonus
+      let remainingCost = cost;
+      let newDailyUsed = subscription.credits.dailyUsed;
+      let newMonthlyUsed = subscription.credits.monthlyUsed;
+      
+      // Use daily credits first
+      const dailyAvailable = CREDIT_LIMITS[tier].daily - subscription.credits.dailyUsed;
+      const fromDaily = Math.min(remainingCost, dailyAvailable);
+      newDailyUsed += fromDaily;
+      remainingCost -= fromDaily;
+      
+      // Then use monthly credits
+      if (remainingCost > 0) {
+        const monthlyAvailable = CREDIT_LIMITS[tier].monthly - subscription.credits.monthlyUsed;
+        const fromMonthly = Math.min(remainingCost, monthlyAvailable);
+        newMonthlyUsed += fromMonthly;
+        remainingCost -= fromMonthly;
       }
       
+      // Update database
+      const today = new Date().toISOString().split('T')[0];
+      await supabase
+        .from('user_subscriptions')
+        .update({ 
+          credits_daily_used: newDailyUsed,
+          credits_monthly_used: newMonthlyUsed,
+          credits_last_daily_reset: today,
+          daily_questions_used: subscription.dailyQuestionsUsed + 1,
+          last_question_reset: today,
+        })
+        .eq('user_id', user.id);
+
       setSubscription(prev => ({
         ...prev,
-        dailyQuestionsUsed: prev.dailyQuestionsUsed + 1
+        dailyQuestionsUsed: prev.dailyQuestionsUsed + 1,
+        credits: {
+          ...prev.credits,
+          dailyUsed: newDailyUsed,
+          monthlyUsed: newMonthlyUsed,
+        },
       }));
       
       return true;
     } catch (error) {
-      console.error('Error updating usage:', error);
-      return true; // Allow question on error
+      console.error('Error using credits:', error);
+      return true; // Allow on error
     }
-  }, [tier, subscription.dailyQuestionsUsed]);
+  }, [tier, subscription, getCredits]);
+
+  const useQuestion = useCallback(async () => {
+    // Default to 1 credit cost
+    return useCredits(1, 'question');
+  }, [useCredits]);
 
   const showUpgradePrompt = useCallback((feature: string) => {
     setUpgradeFeature(feature);
@@ -306,7 +411,6 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({ chil
         name: 'MiniMind',
         description: `MiniMind ${checkoutTier.charAt(0).toUpperCase() + checkoutTier.slice(1)} - ${planType}`,
         handler: async function(response: any) {
-          // Verify payment
           const { error: verifyError } = await supabase.functions.invoke('verify-razorpay-payment', {
             body: {
               orderId: response.razorpay_order_id,
@@ -349,6 +453,81 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({ chil
     }
   }, [refreshSubscription]);
 
+  // Top-up purchase
+  const initiateTopUp = useCallback(async (productId: string) => {
+    setIsCheckoutLoading(true);
+    
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        toast.error('Please sign in to purchase credits');
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke('create-topup-order', {
+        body: { productId }
+      });
+
+      if (error) throw error;
+
+      if (!window.Razorpay) {
+        const script = document.createElement('script');
+        script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+        script.async = true;
+        document.body.appendChild(script);
+        await new Promise(resolve => script.onload = resolve);
+      }
+
+      const product = [...TOP_UP_PRODUCTS.packs, ...TOP_UP_PRODUCTS.boosters].find(p => p.id === productId);
+
+      const options = {
+        key: data.keyId,
+        order_id: data.orderId,
+        amount: data.amount,
+        currency: 'INR',
+        name: 'MiniMind',
+        description: product ? `${product.name} - ${product.credits} credits` : 'Credit Top-up',
+        handler: async function(response: any) {
+          const { error: verifyError } = await supabase.functions.invoke('verify-topup-payment', {
+            body: {
+              orderId: response.razorpay_order_id,
+              paymentId: response.razorpay_payment_id,
+              signature: response.razorpay_signature,
+              productId
+            }
+          });
+
+          if (verifyError) {
+            toast.error('Payment verification failed. Please contact support.');
+            return;
+          }
+
+          toast.success(`🎉 ${product?.credits || ''} credits added!`);
+          refreshSubscription();
+        },
+        prefill: {
+          email: user.email,
+        },
+        theme: {
+          color: '#8B5CF6'
+        },
+        modal: {
+          ondismiss: function() {
+            setIsCheckoutLoading(false);
+          }
+        }
+      };
+
+      const razorpay = new window.Razorpay(options);
+      razorpay.open();
+    } catch (error) {
+      console.error('Top-up error:', error);
+      toast.error('Failed to initiate purchase. Please try again.');
+    } finally {
+      setIsCheckoutLoading(false);
+    }
+  }, [refreshSubscription]);
+
   return (
     <SubscriptionContext.Provider
       value={{
@@ -359,13 +538,17 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({ chil
         hasFeature,
         canAskQuestion,
         getRemainingQuestions,
+        getCredits,
+        hasCredits,
         useQuestion,
+        useCredits,
         refreshSubscription,
         isUpgradeModalOpen,
         setUpgradeModalOpen,
         upgradeFeature,
         showUpgradePrompt,
         initiateCheckout,
+        initiateTopUp,
         isCheckoutLoading,
       }}
     >

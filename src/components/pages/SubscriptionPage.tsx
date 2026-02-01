@@ -1,12 +1,16 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Check, Crown, Sparkles, Zap, Brain, BookOpen, Rocket, Shield, Clock, X } from 'lucide-react';
-import { useSubscription, PRICING, FREE_DAILY_LIMIT } from '@/contexts/SubscriptionContext';
+import { Check, Crown, Sparkles, Zap, Brain, BookOpen, Rocket, Shield, Clock, X, Coins, Gift } from 'lucide-react';
+import { useSubscription, PRICING, FREE_DAILY_LIMIT, CREDIT_LIMITS, TOP_UP_PRODUCTS } from '@/contexts/SubscriptionContext';
 import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
 
 const SubscriptionPage: React.FC = () => {
-  const { tier, subscription, initiateCheckout, isCheckoutLoading } = useSubscription();
+  const { tier, subscription, initiateCheckout, initiateTopUp, isCheckoutLoading, getCredits } = useSubscription();
   const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'yearly'>('yearly');
+  const [showTopUp, setShowTopUp] = useState(false);
+
+  const credits = getCredits();
 
   const tiers = [
     {
@@ -15,13 +19,14 @@ const SubscriptionPage: React.FC = () => {
       description: 'Explore with limits',
       monthlyPrice: 0,
       yearlyPrice: 0,
+      creditInfo: `${CREDIT_LIMITS.free.daily} credits/day`,
       features: [
-        `${FREE_DAILY_LIMIT} questions per day`,
+        `${CREDIT_LIMITS.free.daily} daily credits`,
         'All 4 learning modes',
         'Basic explanations',
       ],
       limitations: [
-        'No personalization memory',
+        'No monthly bonus credits',
         'No learning history',
         'Standard response time',
       ],
@@ -31,16 +36,17 @@ const SubscriptionPage: React.FC = () => {
     {
       id: 'plus' as const,
       name: 'MiniMind Plus',
-      description: 'Unlimited learning',
+      description: 'Enhanced learning',
       monthlyPrice: PRICING.plus.monthly,
       yearlyPrice: PRICING.plus.yearly,
       yearlyMonthly: PRICING.plus.yearlyMonthly,
+      creditInfo: `${CREDIT_LIMITS.plus.daily}/day + ${CREDIT_LIMITS.plus.monthly}/mo`,
       features: [
-        'Unlimited questions',
+        `${CREDIT_LIMITS.plus.daily} daily credits`,
+        `${CREDIT_LIMITS.plus.monthly} monthly bonus credits`,
         'Purpose Lens personalization',
         'Explain-it-back feedback',
         'Full learning history',
-        'All 4 learning modes',
       ],
       limitations: [],
       cta: tier === 'plus' ? 'Current Plan' : 'Get Plus',
@@ -55,7 +61,10 @@ const SubscriptionPage: React.FC = () => {
       monthlyPrice: PRICING.pro.monthly,
       yearlyPrice: PRICING.pro.yearly,
       yearlyMonthly: PRICING.pro.yearlyMonthly,
+      creditInfo: `${CREDIT_LIMITS.pro.daily}/day + ${CREDIT_LIMITS.pro.monthly}/mo`,
       features: [
+        `${CREDIT_LIMITS.pro.daily} daily credits`,
+        `${CREDIT_LIMITS.pro.monthly} monthly bonus credits`,
         'Everything in Plus',
         'Priority AI responses',
         'Deeper mastery explanations',
@@ -70,6 +79,10 @@ const SubscriptionPage: React.FC = () => {
 
   const handleSubscribe = (tierId: 'plus' | 'pro') => {
     initiateCheckout(tierId, selectedPlan);
+  };
+
+  const handleTopUp = (productId: string) => {
+    initiateTopUp(productId);
   };
 
   return (
@@ -89,9 +102,34 @@ const SubscriptionPage: React.FC = () => {
           Choose Your Journey
         </h1>
         <p className="text-muted-foreground max-w-md mx-auto">
-          MiniMind helps you truly understand concepts. Pick the plan that matches your learning pace.
+          MiniMind uses a credit system. Different modes cost different credits. Top up anytime!
         </p>
       </div>
+
+      {/* Current Credits Display */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="p-5 rounded-2xl bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-cyan-500/10 border border-emerald-500/20"
+      >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500">
+              <Coins className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-foreground">Your Credits</h3>
+              <p className="text-sm text-muted-foreground">
+                {credits.daily} daily • {credits.monthly > 0 ? `${credits.monthly} monthly • ` : ''}{credits.bonus > 0 ? `${credits.bonus} bonus` : ''}
+              </p>
+            </div>
+          </div>
+          <div className="text-right">
+            <p className="text-2xl font-bold text-foreground">{credits.total}</p>
+            <p className="text-xs text-muted-foreground">total available</p>
+          </div>
+        </div>
+      </motion.div>
 
       {/* Plan Toggle */}
       <div className="flex justify-center">
@@ -121,26 +159,6 @@ const SubscriptionPage: React.FC = () => {
           </button>
         </div>
       </div>
-
-      {/* Early Learner Advantage */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="p-5 rounded-2xl bg-gradient-to-r from-violet-500/10 via-purple-500/10 to-pink-500/10 border border-violet-500/20"
-      >
-        <div className="flex items-start gap-3">
-          <div className="p-2 rounded-xl bg-gradient-to-br from-violet-500 to-purple-500">
-            <Clock className="w-5 h-5 text-white" />
-          </div>
-          <div>
-            <h3 className="font-semibold text-foreground mb-1">Early Learner Advantage</h3>
-            <p className="text-sm text-muted-foreground">
-              Join now and lock in this pricing forever. We believe in rewarding early believers with honest, stable pricing — no surprise hikes.
-            </p>
-          </div>
-        </div>
-      </motion.div>
 
       {/* Pricing Cards */}
       <div className="grid md:grid-cols-3 gap-4">
@@ -184,7 +202,7 @@ const SubscriptionPage: React.FC = () => {
               )}
             </div>
 
-            <div className="mb-6">
+            <div className="mb-4">
               {tierInfo.id === 'free' ? (
                 <div className="text-3xl font-bold text-foreground">Free</div>
               ) : (
@@ -202,6 +220,12 @@ const SubscriptionPage: React.FC = () => {
                   )}
                 </>
               )}
+            </div>
+
+            {/* Credit Info Badge */}
+            <div className="mb-4 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-xs font-medium">
+              <Coins className="w-3 h-3" />
+              {tierInfo.creditInfo}
             </div>
 
             <ul className="space-y-2 mb-6">
@@ -248,11 +272,120 @@ const SubscriptionPage: React.FC = () => {
         ))}
       </div>
 
-      {/* Trust Signals */}
+      {/* Top-Up Section */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.3 }}
+      >
+        <button
+          onClick={() => setShowTopUp(!showTopUp)}
+          className="w-full p-4 rounded-2xl bg-gradient-to-r from-amber-500/10 via-orange-500/10 to-red-500/10 border border-amber-500/20 hover:border-amber-500/40 transition-all"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500">
+                <Gift className="w-5 h-5 text-white" />
+              </div>
+              <div className="text-left">
+                <h3 className="font-semibold text-foreground">Need More Credits?</h3>
+                <p className="text-sm text-muted-foreground">Top up anytime with credit packs or weekly boosters</p>
+              </div>
+            </div>
+            <Zap className={`w-5 h-5 text-amber-500 transition-transform ${showTopUp ? 'rotate-180' : ''}`} />
+          </div>
+        </button>
+
+        {showTopUp && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            className="mt-4 space-y-4"
+          >
+            {/* Credit Packs */}
+            <div>
+              <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                <Coins className="w-4 h-4 text-amber-500" />
+                Credit Packs (One-time)
+              </h4>
+              <div className="grid grid-cols-3 gap-3">
+                {TOP_UP_PRODUCTS.packs.map((pack) => (
+                  <Card
+                    key={pack.id}
+                    className={`p-4 cursor-pointer hover:border-amber-500/50 transition-all relative ${
+                      pack.popular ? 'border-amber-500 shadow-md shadow-amber-500/10' : ''
+                    }`}
+                    onClick={() => handleTopUp(pack.id)}
+                  >
+                    {pack.badge && (
+                      <span className="absolute -top-2 left-1/2 -translate-x-1/2 px-2 py-0.5 bg-amber-500 text-white text-[10px] font-bold rounded-full whitespace-nowrap">
+                        {pack.badge}
+                      </span>
+                    )}
+                    <div className="text-center">
+                      <p className="text-2xl font-bold text-foreground">{pack.credits}</p>
+                      <p className="text-xs text-muted-foreground mb-2">credits</p>
+                      <p className="text-lg font-semibold text-primary">₹{pack.price}</p>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </div>
+
+            {/* Weekly Booster */}
+            <div>
+              <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                <Rocket className="w-4 h-4 text-violet-500" />
+                Weekly Booster
+              </h4>
+              {TOP_UP_PRODUCTS.boosters.map((booster) => (
+                <Card
+                  key={booster.id}
+                  className="p-4 cursor-pointer hover:border-violet-500/50 transition-all"
+                  onClick={() => handleTopUp(booster.id)}
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-semibold text-foreground">{booster.name}</p>
+                      <p className="text-sm text-muted-foreground">{booster.description}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xl font-bold text-primary">₹{booster.price}</p>
+                      <p className="text-xs text-muted-foreground">per week</p>
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </motion.div>
+
+      {/* Early Learner Advantage */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.4 }}
+        className="p-5 rounded-2xl bg-gradient-to-r from-violet-500/10 via-purple-500/10 to-pink-500/10 border border-violet-500/20"
+      >
+        <div className="flex items-start gap-3">
+          <div className="p-2 rounded-xl bg-gradient-to-br from-violet-500 to-purple-500">
+            <Clock className="w-5 h-5 text-white" />
+          </div>
+          <div>
+            <h3 className="font-semibold text-foreground mb-1">Early Learner Advantage</h3>
+            <p className="text-sm text-muted-foreground">
+              Join now and lock in this pricing forever. We believe in rewarding early believers with honest, stable pricing — no surprise hikes.
+            </p>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Trust Signals */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.5 }}
         className="grid grid-cols-3 gap-4 text-center"
       >
         <div className="p-4 rounded-xl bg-muted/30">
