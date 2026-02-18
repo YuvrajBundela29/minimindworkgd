@@ -6,7 +6,7 @@ import {
   GraduationCap, Rocket, Star, TrendingUp, ChevronDown
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { useSubscription } from '@/contexts/SubscriptionContext';
+import { useSubscription, CREDIT_COSTS } from '@/contexts/SubscriptionContext';
 import { useEarlyAccess } from '@/contexts/EarlyAccessContext';
 import { ModeKey, modes } from '@/config/minimind';
 import AIService from '@/services/aiService';
@@ -55,7 +55,7 @@ const LEVELS = [
 ];
 
 const LearningPathPage: React.FC = () => {
-  const { tier, canAskQuestion, useQuestion, showUpgradePrompt } = useSubscription();
+  const { tier, hasCredits, useCredits, getCredits, showUpgradePrompt } = useSubscription();
   const { isEarlyAccess } = useEarlyAccess();
   const [step, setStep] = useState<'select' | 'path' | 'topic'>('select');
   const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
@@ -72,8 +72,8 @@ const LearningPathPage: React.FC = () => {
   const generatePath = useCallback(async () => {
     if (!selectedSubject || !selectedLevel) return;
     
-    // Check if user can ask (free tier limit or paid)
-    if (!isEarlyAccess && !canAskQuestion()) {
+    const cost = CREDIT_COSTS.learningPath || 5;
+    if (!isEarlyAccess && !hasCredits(cost)) {
       showUpgradePrompt('Learning Path Generation');
       return;
     }
@@ -109,7 +109,7 @@ const LearningPathPage: React.FC = () => {
       };
 
       if (!isEarlyAccess) {
-        await useQuestion();
+        await useCredits(cost, 'learningPath');
       }
       setCurrentPath(newPath);
       setSavedPaths(prev => {
@@ -125,13 +125,13 @@ const LearningPathPage: React.FC = () => {
     } finally {
       setIsGenerating(false);
     }
-  }, [selectedSubject, selectedLevel, canAskQuestion, useQuestion, showUpgradePrompt, isEarlyAccess]);
+  }, [selectedSubject, selectedLevel, hasCredits, useCredits, showUpgradePrompt, isEarlyAccess]);
 
   const loadTopicExplanation = useCallback(async (topic: Topic, mode: ModeKey) => {
     if (topic.explanations?.[mode]) return;
 
-    // Check if user can ask (free tier limit or paid)
-    if (!isEarlyAccess && !canAskQuestion()) {
+    const cost = CREDIT_COSTS.learningPathTopic || 2;
+    if (!isEarlyAccess && !hasCredits(cost)) {
       showUpgradePrompt('Topic Explanation');
       return;
     }
@@ -143,7 +143,7 @@ const LearningPathPage: React.FC = () => {
       const response = await AIService.getExplanation(prompt, mode, 'en');
       
       if (!isEarlyAccess) {
-        await useQuestion();
+        await useCredits(cost, 'learningPathTopic');
       }
       
       setSelectedTopic(prev => {
@@ -163,7 +163,7 @@ const LearningPathPage: React.FC = () => {
       toast.error('Failed to load explanation');
       setSelectedTopic(prev => prev ? { ...prev, loading: false } : null);
     }
-  }, [currentPath, canAskQuestion, useQuestion, showUpgradePrompt, isEarlyAccess]);
+  }, [currentPath, hasCredits, useCredits, showUpgradePrompt, isEarlyAccess]);
 
   const markTopicComplete = useCallback((topicId: string) => {
     setCurrentPath(prev => {
@@ -314,7 +314,7 @@ const LearningPathPage: React.FC = () => {
               <Button
                 className="w-full h-14 rounded-2xl bg-gradient-to-r from-primary via-primary to-accent text-primary-foreground font-semibold text-base shadow-lg shadow-primary/25"
                 onClick={generatePath}
-                disabled={isGenerating || (!isEarlyAccess && !canAskQuestion())}
+                disabled={isGenerating || (!isEarlyAccess && !hasCredits(CREDIT_COSTS.learningPath || 5))}
               >
                 {isGenerating ? (
                   <div className="flex flex-col items-center gap-1">
