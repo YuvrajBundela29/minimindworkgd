@@ -1,42 +1,37 @@
 
-
-# Fix "Free" Labels and Enable Credit Deduction
+# Fix Credit Display and Deduction
 
 ## Problem
-Two issues:
-1. Every mode card and feature shows "Free" instead of credit costs
-2. Credits are never deducted because early access mode bypasses all credit checks
+Credits show as "13 credits" (or 15) in the side menu and never decrease because:
+1. The `useCredits()` function checks for a logged-in user and returns early (`if (!user) return false`) without deducting anything for non-authenticated users
+2. Even for logged-in users, the local state update happens but the SideMenu reads `getRemainingQuestions()` which already works -- however the DB update may fail silently if the `user_subscriptions` row doesn't exist
 
-## Root Cause
-In `src/contexts/EarlyAccessContext.tsx`, `isEarlyAccess` is set to `true` and `unlimitedCredits` is `true`. Every component checks these flags and either shows "Free" or skips credit deduction entirely.
+## Solution
+Make the credit system work for ALL users (logged in or not) by always updating local state first, and persisting to localStorage for non-authenticated users.
 
 ## Changes
 
-### 1. `src/contexts/EarlyAccessContext.tsx` -- Disable early access mode
-- Set `isEarlyAccess: false` and `unlimitedCredits: false` so the credit system is active
+### 1. `src/contexts/SubscriptionContext.tsx` -- Fix `useCredits` for non-auth users
 
-### 2. `src/components/ModeCard.tsx` -- Show credit cost instead of "Free"
-- Line 118: Change `{isEarlyAccess ? 'Free' : creditCost}` to always show the credit cost with a label like `1 credit`
+**Current behavior (broken):**
+- Line 323-324: `if (!user) return false` -- skips deduction entirely for guests
 
-### 3. `src/components/TrustFooter.tsx` -- Show credit cost instead of "Free (Early Access)"
-- Lines 45-47: Remove the early access conditional and always show the actual credit cost
+**New behavior:**
+- Always update the local state (dailyUsed, monthlyUsed) regardless of auth status
+- For logged-in users: also persist to the database (existing behavior)
+- For non-logged-in users: persist to `localStorage` so credits survive page refreshes
+- On mount, load credit usage from `localStorage` if no auth user exists
 
-### 4. `src/components/pages/EkaksharPage.tsx` -- Remove early access bypass
-- Remove `if (!isEarlyAccess && ...)` guards so credits are always checked and deducted
-- Remove the "Free" badge that shows during early access
+### 2. `src/contexts/SubscriptionContext.tsx` -- Load saved credits from localStorage
 
-### 5. `src/components/pages/ExplainBackPage.tsx` -- Remove "Free" badge
-- Remove the early access "Free" badge
+- In the `refreshSubscription` function, when no user is found (line 196-212), check `localStorage` for saved credit state (daily used count and last reset date)
+- If the saved date is today, restore the dailyUsed count; otherwise start fresh (daily reset)
 
-### 6. `src/components/pages/LearningPathPage.tsx` -- Remove early access bypass
-- Remove `if (!isEarlyAccess && ...)` guards from `generatePath` and `loadTopicExplanation`
-- Remove the early access conditional from the disabled button check
+### 3. `src/components/SideMenu.tsx` -- Use `getCredits()` for live total
 
-### Files to modify
-1. `src/contexts/EarlyAccessContext.tsx`
-2. `src/components/ModeCard.tsx`
-3. `src/components/TrustFooter.tsx`
-4. `src/components/pages/EkaksharPage.tsx`
-5. `src/components/pages/ExplainBackPage.tsx`
-6. `src/components/pages/LearningPathPage.tsx`
+- Replace `getRemainingQuestions()` with `getCredits().total` to show the real-time remaining credit count
+- This ensures the displayed number updates immediately after any credit deduction
 
+## Files to Modify
+1. `src/contexts/SubscriptionContext.tsx` -- local credit tracking for guests + always update state
+2. `src/components/SideMenu.tsx` -- show live credit total
