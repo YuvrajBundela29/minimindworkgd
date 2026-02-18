@@ -115,7 +115,7 @@ const ModeCard: React.FC<ModeCardProps> = ({
           </span>
           <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-medium shrink-0">
             <Zap className="w-2.5 h-2.5" />
-            {isEarlyAccess ? 'Free' : creditCost}
+            {creditCost} credit{creditCost !== 1 ? 's' : ''}
           </span>
         </div>
         

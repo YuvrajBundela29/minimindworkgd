@@ -73,7 +73,7 @@ const LearningPathPage: React.FC = () => {
     if (!selectedSubject || !selectedLevel) return;
     
     const cost = CREDIT_COSTS.learningPath || 5;
-    if (!isEarlyAccess && !hasCredits(cost)) {
+    if (!hasCredits(cost)) {
       showUpgradePrompt('Learning Path Generation');
       return;
     }
@@ -108,9 +108,7 @@ const LearningPathPage: React.FC = () => {
         icon: subject?.icon,
       };
 
-      if (!isEarlyAccess) {
-        await useCredits(cost, 'learningPath');
-      }
+      await useCredits(cost, 'learningPath');
       setCurrentPath(newPath);
       setSavedPaths(prev => {
         const updated = [newPath, ...prev.slice(0, 9)];
@@ -131,7 +129,7 @@ const LearningPathPage: React.FC = () => {
     if (topic.explanations?.[mode]) return;
 
     const cost = CREDIT_COSTS.learningPathTopic || 2;
-    if (!isEarlyAccess && !hasCredits(cost)) {
+    if (!hasCredits(cost)) {
       showUpgradePrompt('Topic Explanation');
       return;
     }
@@ -142,9 +140,7 @@ const LearningPathPage: React.FC = () => {
       const prompt = `Explain "${topic.title}" in the context of ${currentPath?.subject}. ${topic.description}`;
       const response = await AIService.getExplanation(prompt, mode, 'en');
       
-      if (!isEarlyAccess) {
-        await useCredits(cost, 'learningPathTopic');
-      }
+      await useCredits(cost, 'learningPathTopic');
       
       setSelectedTopic(prev => {
         if (!prev) return null;
@@ -314,7 +310,7 @@ const LearningPathPage: React.FC = () => {
               <Button
                 className="w-full h-14 rounded-2xl bg-gradient-to-r from-primary via-primary to-accent text-primary-foreground font-semibold text-base shadow-lg shadow-primary/25"
                 onClick={generatePath}
-                disabled={isGenerating || (!isEarlyAccess && !hasCredits(CREDIT_COSTS.learningPath || 5))}
+                disabled={isGenerating || !hasCredits(CREDIT_COSTS.learningPath || 5)}
               >
                 {isGenerating ? (
                   <div className="flex flex-col items-center gap-1">
@@ -332,7 +328,7 @@ const LearningPathPage: React.FC = () => {
                   <>
                     <Sparkles className="w-5 h-5 mr-2" />
                     Generate Learning Path
-                    {tier === 'free' && !isEarlyAccess && (
+                    {tier === 'free' && (
                       <span className="ml-2 px-2.5 py-1 rounded-full bg-white/20 text-xs">
                         1 use
                       </span>

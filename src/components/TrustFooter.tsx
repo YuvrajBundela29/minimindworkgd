@@ -42,11 +42,7 @@ const TrustFooter: React.FC<TrustFooterProps> = ({
       {/* Credit Usage */}
       <div className="flex items-center gap-1 px-2 py-1 rounded-full bg-primary/5 text-primary text-[10px] font-medium">
         <Zap className="w-3 h-3" />
-        {unlimitedCredits && isEarlyAccess ? (
-          <span>Free (Early Access)</span>
-        ) : (
-          <span>{creditCost} credit{creditCost !== 1 ? 's' : ''}</span>
-        )}
+        <span>{creditCost} credit{creditCost !== 1 ? 's' : ''}</span>
       </div>
 
       {/* Confidence Level */}

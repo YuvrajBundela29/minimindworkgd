@@ -45,7 +45,7 @@ const ExplainBackPage: React.FC = () => {
       return;
     }
 
-    if (!isEarlyAccess && !hasCredits(2)) {
+    if (!hasCredits(2)) {
       showUpgradePrompt('Explain-It-Back');
       return;
     }
@@ -58,9 +58,7 @@ const ExplainBackPage: React.FC = () => {
         'en'
       );
       
-      if (!isEarlyAccess) {
-        useCredits(2, 'explain_back_learn');
-      }
+      useCredits(2, 'explain_back_learn');
       setAiExplanation(response);
       setStep('learn');
     } catch (error) {
@@ -77,7 +75,7 @@ const ExplainBackPage: React.FC = () => {
       return;
     }
 
-    if (!isEarlyAccess && !hasCredits(3)) {
+    if (!hasCredits(3)) {
       showUpgradePrompt('Explain-It-Back Evaluation');
       return;
     }
@@ -95,9 +93,7 @@ const ExplainBackPage: React.FC = () => {
 
       if (error) throw error;
 
-      if (!isEarlyAccess) {
-        useCredits(3, 'explain_back_evaluate');
-      }
+      useCredits(3, 'explain_back_evaluate');
       
       const responseText = data.response;
       const scoreMatch = responseText.match(/(\d+)\s*\/\s*10/);
@@ -161,11 +157,9 @@ const ExplainBackPage: React.FC = () => {
           <span className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">
             Explain-It-Back
           </span>
-          {isEarlyAccess && (
-            <span className="px-2 py-0.5 text-[10px] font-medium rounded-full bg-primary/10 text-primary">
-              Free
-            </span>
-          )}
+          <span className="px-2 py-0.5 text-[10px] font-medium rounded-full bg-primary/10 text-primary">
+            2 credits
+          </span>
         </div>
         <h1 className="text-2xl font-heading font-bold text-foreground">
           Test Your Understanding
