@@ -1,79 +1,68 @@
 
-# Update MiniMind AI System Prompts to "Clarity Engine" Positioning
 
-## Overview
-Rewrite the 4 mode system prompts in the chat edge function to align with the new MiniMind Clarity Engine identity. The prompts will shift from generic tutor instructions to structured, exam-oriented, Indian-context-aware instructions with retention mechanics built in.
+# Add Credit Consumption to All Features
 
-## What Changes
+## Problem
+Currently, credits are only consumed in **Explain-It-Back** and **File Analysis** pages. The main question flow (4 modes), **Quick Recall (Ekakshar)**, **Study Plans (Learning Paths)**, and **follow-up chats** do NOT deduct credits. The Purpose Lens page is a settings page (no AI call), so it does not need credits.
 
-### File: `supabase/functions/chat/index.ts`
+## Credit Costs
 
-**1. Update all 4 `modePrompts` (lines 89-148)**
+Add missing costs to the `CREDIT_COSTS` map:
 
-Replace the current mode prompts with Clarity Engine versions:
+| Feature | Cost | Key |
+|---------|------|-----|
+| Beginner Mode | 1 | `beginner` |
+| Thinker Mode | 2 | `thinker` |
+| Story Mode | 3 | `story` |
+| Mastery Mode | 4 | `mastery` (NEW) |
+| Quick Recall (3 compressions) | 3 | `ekakshar_quick` (NEW) |
+| Ekakshar++ (existing) | 5 | `ekakshar` |
+| Study Plan generation | 5 | `learningPath` |
+| Study Plan topic explanation | 2 | `learningPathTopic` (NEW) |
+| Explain-It-Back | 2 | `explainBack` (NEW, already charged inline) |
+| Follow-up chat | same as mode | uses mode key |
 
-**Beginner Mode** (Layer 1 - Cognitive Clarity):
-- Identity: "You are MiniMind Clarity Engine in BEGINNER mode"
-- Simple language, no jargon, clear definitions, short sentences
-- Indian-context analogies (cricket, chai, household, festivals)
-- End with a Memory Hook (one-liner to remember the concept)
-- Anti-generic rule: never give one-dimensional explanations
+**Full question (all 4 modes) = 1 + 2 + 3 + 4 = 10 credits total**
 
-**Thinker Mode** (Layer 2 - Structured Comprehension):
-- Identity: "You are MiniMind Clarity Engine in THINKER mode"
-- Logical breakdown with cause-effect chains
-- "Why it works" focus, step-by-step reasoning
-- Challenge assumptions, explore edge cases
-- Include a "Common Trap" section highlighting mistakes students make
+---
 
-**Story Mode** (Layer 3 - Retention through Narrative):
-- Identity: "You are MiniMind Clarity Engine in STORY mode"
-- Indian-context stories (local characters, relatable scenarios)
-- Visualizable explanations that make concepts stick
-- End with a Memory Hook analogy
-- Make abstract concepts tangible
+## Changes
 
-**Mastery Mode** (Layer 4 - Exam-Ready Depth):
-- Identity: "You are MiniMind Clarity Engine in MASTERY mode"
-- Edge cases, common exam traps, how examiners twist concepts
-- Reference NCERT, HC Verma, standard textbooks where relevant
-- Include "Examiner's Perspective" section
-- Add 2-3 practice question formats when exam-focused lens is active
-- Acknowledge uncertainty clearly - accuracy over speed
+### 1. `src/contexts/SubscriptionContext.tsx`
+- Add `mastery: 4`, `ekakshar_quick: 3`, `learningPathTopic: 2`, `explainBack: 2` to `CREDIT_COSTS`
 
-**2. Add global Clarity Engine preamble**
+### 2. `src/pages/Index.tsx` -- Main Question Flow
+- Import `useCredits`, `hasCredits`, `showUpgradePrompt`, `getCredits` from `useSubscription()`
+- **In `handleSubmit`**: Before the staggered loop starts, check if user has at least 1 credit. If not, show upgrade prompt and return. Inside the loop, before each mode's API call, check `hasCredits(cost)` for that mode. If insufficient, set a "Not enough credits" message for that mode and skip. After successful response, call `useCredits(cost, modeKey)`
+- **In `handleChatSubmit`**: Before the API call, check `hasCredits(cost)` for the active mode. If not enough, show upgrade prompt and return. After successful response, call `useCredits(cost, modeKey)`
 
-A shared preamble prepended to all mode prompts:
-```
-You are MiniMind -- a high-precision AI Clarity Engine. Your mission is to make concepts permanently click. You are NOT a chatbot. You are a structured learning system built for Indian students.
+### 3. `src/components/pages/EkaksharPage.tsx` -- Quick Recall
+- Import `useSubscription` and `CREDIT_COSTS`
+- In `handleQuickCompress`: Before API calls, check `hasCredits(3)`. If not enough, show upgrade prompt and return. After successful response, call `useCredits(3, 'ekakshar_quick')`
 
-Rules:
-- Use structured formatting: clear headings, bullet logic, step breakdowns, visual separators
-- No long dense paragraphs
-- Never give generic motivational lines
-- Never say "It depends" without a structured breakdown
-- If uncertain, state it clearly and provide reasoning path
-- Accuracy over speed, always
-```
+### 4. `src/components/pages/LearningPathPage.tsx` -- Study Plans
+- Replace the old `canAskQuestion()` / `useQuestion()` calls with proper credit-based calls
+- **In `generatePath`**: Check `hasCredits(5)`, deduct `useCredits(5, 'learningPath')` after success
+- **In `loadTopicExplanation`**: Check `hasCredits(2)`, deduct `useCredits(2, 'learningPathTopic')` after success
 
-**3. Enhance Purpose Lens adapters (lines 23-66)**
+### 5. `src/components/pages/ExplainBackPage.tsx` -- Test Yourself
+- Already uses `hasCredits(2)` and `useCredits(2, 'explain_back')` -- just needs the cost added to the central `CREDIT_COSTS` map for consistency
 
-Update the JEE/NEET adapters to include:
-- "Add probable question formats and common mistakes" instruction
-- "Show how examiners twist this concept" directive
-- "Provide 2-3 practice questions at the end" for exam lenses
+### 6. Low Credit Toast
+- After each credit deduction in Index.tsx and EkaksharPage.tsx, check remaining credits. If total falls below 5, show a warning toast: "Running low on credits!"
 
-**4. Update `continue` type prompt (line 536-539)**
-
-Add continuity instruction: "If the user has prior context in the conversation, connect the current concept to the previous one. Show knowledge progression and build cumulative understanding."
-
-## Files to Modify
-1. `supabase/functions/chat/index.ts` - Update mode prompts, add Clarity Engine preamble, enhance purpose lens adapters, update continue prompt
+---
 
 ## What Does NOT Change
-- Input validation logic
-- API call structure and error handling
-- Language prompts
-- Ekakshar, oneword, oneline, bullets, diagram, file_analysis, learning_path, explain_back_evaluate prompts (these are separate features)
-- Frontend code (no UI changes)
-- "Made in India" badge or header styling
+- Purpose Lens page (settings only, no AI calls, no credits needed)
+- File Analysis page (already has credit checks)
+- Ekakshar++ page (already has credit checks)
+- Backend edge functions
+- Database schema
+
+## Files to Modify
+1. `src/contexts/SubscriptionContext.tsx`
+2. `src/pages/Index.tsx`
+3. `src/components/pages/EkaksharPage.tsx`
+4. `src/components/pages/LearningPathPage.tsx`
+
