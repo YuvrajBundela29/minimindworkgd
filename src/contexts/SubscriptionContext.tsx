@@ -193,6 +193,18 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({ chil
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
+        // Load guest credit usage from localStorage
+        const now = new Date();
+        const saved = localStorage.getItem('minimind_guest_credits');
+        let dailyUsed = 0;
+        if (saved) {
+          try {
+            const parsed = JSON.parse(saved);
+            if (parsed.date === now.toISOString().split('T')[0]) {
+              dailyUsed = parsed.dailyUsed || 0;
+            }
+          } catch {}
+        }
         setSubscription({
           tier: 'free',
           planType: null,
@@ -201,7 +213,7 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({ chil
           dailyQuestionsUsed: 0,
           isInGracePeriod: false,
           credits: {
-            dailyUsed: 0,
+            dailyUsed,
             monthlyUsed: 0,
             bonusCredits: 0,
             lastDailyReset: null,
@@ -319,56 +331,65 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({ chil
       return false;
     }
 
+    // Deduct from daily first, then monthly, then bonus
+    let remainingCost = cost;
+    let newDailyUsed = subscription.credits.dailyUsed;
+    let newMonthlyUsed = subscription.credits.monthlyUsed;
+    
+    // Use daily credits first
+    const dailyAvailable = CREDIT_LIMITS[tier].daily - subscription.credits.dailyUsed;
+    const fromDaily = Math.min(remainingCost, dailyAvailable);
+    newDailyUsed += fromDaily;
+    remainingCost -= fromDaily;
+    
+    // Then use monthly credits
+    if (remainingCost > 0) {
+      const monthlyAvailable = CREDIT_LIMITS[tier].monthly - subscription.credits.monthlyUsed;
+      const fromMonthly = Math.min(remainingCost, monthlyAvailable);
+      newMonthlyUsed += fromMonthly;
+      remainingCost -= fromMonthly;
+    }
+
+    // Always update local state immediately
+    setSubscription(prev => ({
+      ...prev,
+      dailyQuestionsUsed: prev.dailyQuestionsUsed + 1,
+      credits: {
+        ...prev.credits,
+        dailyUsed: newDailyUsed,
+        monthlyUsed: newMonthlyUsed,
+      },
+    }));
+
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return false;
-
-      // Deduct from daily first, then monthly, then bonus
-      let remainingCost = cost;
-      let newDailyUsed = subscription.credits.dailyUsed;
-      let newMonthlyUsed = subscription.credits.monthlyUsed;
       
-      // Use daily credits first
-      const dailyAvailable = CREDIT_LIMITS[tier].daily - subscription.credits.dailyUsed;
-      const fromDaily = Math.min(remainingCost, dailyAvailable);
-      newDailyUsed += fromDaily;
-      remainingCost -= fromDaily;
-      
-      // Then use monthly credits
-      if (remainingCost > 0) {
-        const monthlyAvailable = CREDIT_LIMITS[tier].monthly - subscription.credits.monthlyUsed;
-        const fromMonthly = Math.min(remainingCost, monthlyAvailable);
-        newMonthlyUsed += fromMonthly;
-        remainingCost -= fromMonthly;
-      }
-      
-      // Update database
-      const today = new Date().toISOString().split('T')[0];
-      await supabase
-        .from('user_subscriptions')
-        .update({ 
-          credits_daily_used: newDailyUsed,
-          credits_monthly_used: newMonthlyUsed,
-          credits_last_daily_reset: today,
-          daily_questions_used: subscription.dailyQuestionsUsed + 1,
-          last_question_reset: today,
-        })
-        .eq('user_id', user.id);
-
-      setSubscription(prev => ({
-        ...prev,
-        dailyQuestionsUsed: prev.dailyQuestionsUsed + 1,
-        credits: {
-          ...prev.credits,
+      if (user) {
+        // Persist to database for logged-in users
+        const today = new Date().toISOString().split('T')[0];
+        await supabase
+          .from('user_subscriptions')
+          .update({ 
+            credits_daily_used: newDailyUsed,
+            credits_monthly_used: newMonthlyUsed,
+            credits_last_daily_reset: today,
+            daily_questions_used: subscription.dailyQuestionsUsed + 1,
+            last_question_reset: today,
+          })
+          .eq('user_id', user.id);
+      } else {
+        // Persist to localStorage for guests
+        const today = new Date().toISOString().split('T')[0];
+        localStorage.setItem('minimind_guest_credits', JSON.stringify({
+          date: today,
           dailyUsed: newDailyUsed,
-          monthlyUsed: newMonthlyUsed,
-        },
-      }));
+        }));
+      }
       
       return true;
     } catch (error) {
-      console.error('Error using credits:', error);
-      return true; // Allow on error
+      console.error('Error persisting credits:', error);
+      return true; // Already updated local state, allow usage
     }
   }, [tier, subscription, getCredits]);
 
