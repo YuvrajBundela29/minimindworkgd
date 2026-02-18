@@ -78,7 +78,6 @@ class SpeechService {
   private voices: SpeechSynthesisVoice[] = [];
   private voicesLoaded: boolean = false;
   private loadPromise: Promise<void> | null = null;
-  private isCancelling: boolean = false;
 
   constructor() {
     this.loadVoices();
@@ -213,37 +212,36 @@ class SpeechService {
       onError?: (error: Error) => void;
     }
   ): Promise<SpeechSynthesisUtterance | null> {
+    // Check if speech synthesis is available
     if (!this.isSupported()) {
       console.warn('Speech synthesis not supported in this browser');
       options?.onError?.(new Error('Speech synthesis not supported'));
       return null;
     }
 
-    // Cancel any ongoing speech without triggering callbacks
-    this.isCancelling = true;
+    // Cancel any ongoing speech
     try {
       speechSynthesis.cancel();
     } catch (e) {
       console.warn('Error cancelling speech:', e);
     }
 
-    // Wait for cancel to settle
-    await new Promise(resolve => setTimeout(resolve, 200));
-    this.isCancelling = false;
+    // Wait a brief moment after cancel before starting new speech
+    await new Promise(resolve => setTimeout(resolve, 100));
 
     const { voice, lang } = await this.getVoiceForLanguage(language);
     
     // Clean up text - remove markdown, special characters, and math symbols for natural speech
     const cleanText = text
-      .replace(/```[\s\S]*?```/g, '')
-      .replace(/\$\$[\s\S]*?\$\$/g, '')
-      .replace(/\$[^$]*?\$/g, '')
+      .replace(/```[\s\S]*?```/g, '') // Remove code blocks
+      .replace(/\$\$[\s\S]*?\$\$/g, '') // Remove block math
+      .replace(/\$[^$]*?\$/g, '') // Remove inline math
       .replace(/[#*_`~^]/g, '')
-      .replace(/\\\w+/g, '')
-      .replace(/[⁰¹²³⁴⁵⁶⁷⁸⁹⁺⁻⁼⁽⁾ⁿⁱᵃᵇᶜᵈᵉᶠᵍʰᵏˡᵐᵒᵖʳˢᵗᵘᵛʷˣʸᶻ]/g, '')
-      .replace(/[₀₁₂₃₄₅₆₇₈₉₊₋₌₍₎ₐₑₕᵢⱼₖₗₘₙₒₚᵣₛₜᵤᵥₓ]/g, '')
+      .replace(/\\\w+/g, '') // Remove LaTeX commands
+      .replace(/[⁰¹²³⁴⁵⁶⁷⁸⁹⁺⁻⁼⁽⁾ⁿⁱᵃᵇᶜᵈᵉᶠᵍʰᵏˡᵐᵒᵖʳˢᵗᵘᵛʷˣʸᶻ]/g, '') // Remove superscripts
+      .replace(/[₀₁₂₃₄₅₆₇₈₉₊₋₌₍₎ₐₑₕᵢⱼₖₗₘₙₒₚᵣₛₜᵤᵥₓ]/g, '') // Remove subscripts
       .replace(/\n+/g, '. ')
-      .replace(/\.\s*\./g, '.')
+      .replace(/\.\s*\./g, '.') // Clean double periods
       .replace(/\s+/g, ' ')
       .trim();
 
@@ -259,11 +257,13 @@ class SpeechService {
       console.log(`Using voice: ${voice.name} (${voice.lang})`);
     }
     utterance.lang = lang;
+    // Slightly slower rate for natural cadence, especially for Indian languages
     const isIndicLanguage = ['hi', 'bn', 'te', 'ta', 'mr', 'gu', 'kn', 'ml', 'or', 'pa', 'ur', 'ne', 'sa'].includes(language.split('-')[0]);
     utterance.rate = options?.rate ?? (isIndicLanguage ? 0.85 : 0.92);
     utterance.pitch = options?.pitch ?? 1.0;
     utterance.volume = options?.volume ?? 1;
 
+    // Set up event handlers
     utterance.onstart = () => {
       console.log('Speech started');
       options?.onStart?.();
@@ -271,15 +271,14 @@ class SpeechService {
     
     utterance.onend = () => {
       console.log('Speech ended');
-      if (!this.isCancelling) {
-        options?.onEnd?.();
-      }
+      options?.onEnd?.();
     };
     
     utterance.onerror = (event) => {
+      // Ignore 'interrupted' and 'canceled' errors as they're expected
       if (event.error === 'interrupted' || event.error === 'canceled') {
         console.log(`Speech ${event.error}`);
-        // Don't call onEnd for interruptions caused by our own cancel
+        options?.onEnd?.();
         return;
       }
       console.error('Speech error:', event.error);
@@ -289,6 +288,7 @@ class SpeechService {
     try {
       speechSynthesis.speak(utterance);
       
+      // Chrome bug workaround: resume if paused
       if (speechSynthesis.paused) {
         speechSynthesis.resume();
       }
