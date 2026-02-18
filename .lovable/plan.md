@@ -1,77 +1,79 @@
 
-# Enhanced MiniMind Title - Professional Trust-Building Colors
+# Update MiniMind AI System Prompts to "Clarity Engine" Positioning
 
 ## Overview
-Replace the tricolor (Indian flag) gradient on the "MiniMind" title with a professional, trust-building color scheme using the existing brand palette. The "Made in India" badge with the Ashoka Chakra will remain unchanged.
+Rewrite the 4 mode system prompts in the chat edge function to align with the new MiniMind Clarity Engine identity. The prompts will shift from generic tutor instructions to structured, exam-oriented, Indian-context-aware instructions with retention mechanics built in.
 
-## Color Psychology for Trust
-The new title will use your existing brand colors which are perfect for building trust:
-- **Blue (Primary)**: Reliability, professionalism, intelligence
-- **Purple (Secondary)**: Premium, wisdom, creativity  
-- **Teal/Cyan (Accent)**: Modern, innovative, calming
+## What Changes
 
-These colors together create a sense of innovation, intelligence, and premium quality - perfect for an AI learning app.
+### File: `supabase/functions/chat/index.ts`
 
----
+**1. Update all 4 `modePrompts` (lines 89-148)**
 
-## Changes
+Replace the current mode prompts with Clarity Engine versions:
 
-### File: `src/index.css`
+**Beginner Mode** (Layer 1 - Cognitive Clarity):
+- Identity: "You are MiniMind Clarity Engine in BEGINNER mode"
+- Simple language, no jargon, clear definitions, short sentences
+- Indian-context analogies (cricket, chai, household, festivals)
+- End with a Memory Hook (one-liner to remember the concept)
+- Anti-generic rule: never give one-dimensional explanations
 
-**Update `.logo-text-india` class** (will rename to `.logo-text-premium` for clarity):
+**Thinker Mode** (Layer 2 - Structured Comprehension):
+- Identity: "You are MiniMind Clarity Engine in THINKER mode"
+- Logical breakdown with cause-effect chains
+- "Why it works" focus, step-by-step reasoning
+- Challenge assumptions, explore edge cases
+- Include a "Common Trap" section highlighting mistakes students make
 
-Current tricolor gradient:
-```css
-background: linear-gradient(90deg, saffron → white → green);
+**Story Mode** (Layer 3 - Retention through Narrative):
+- Identity: "You are MiniMind Clarity Engine in STORY mode"
+- Indian-context stories (local characters, relatable scenarios)
+- Visualizable explanations that make concepts stick
+- End with a Memory Hook analogy
+- Make abstract concepts tangible
+
+**Mastery Mode** (Layer 4 - Exam-Ready Depth):
+- Identity: "You are MiniMind Clarity Engine in MASTERY mode"
+- Edge cases, common exam traps, how examiners twist concepts
+- Reference NCERT, HC Verma, standard textbooks where relevant
+- Include "Examiner's Perspective" section
+- Add 2-3 practice question formats when exam-focused lens is active
+- Acknowledge uncertainty clearly - accuracy over speed
+
+**2. Add global Clarity Engine preamble**
+
+A shared preamble prepended to all mode prompts:
+```
+You are MiniMind -- a high-precision AI Clarity Engine. Your mission is to make concepts permanently click. You are NOT a chatbot. You are a structured learning system built for Indian students.
+
+Rules:
+- Use structured formatting: clear headings, bullet logic, step breakdowns, visual separators
+- No long dense paragraphs
+- Never give generic motivational lines
+- Never say "It depends" without a structured breakdown
+- If uncertain, state it clearly and provide reasoning path
+- Accuracy over speed, always
 ```
 
-New professional gradient:
-```css
-background: linear-gradient(135deg, 
-  hsl(221 83% 53%) 0%,      /* Brand Blue - Trust */
-  hsl(263 70% 50%) 50%,      /* Brand Purple - Premium */
-  hsl(189 94% 37%) 100%      /* Brand Teal - Innovation */
-);
-```
+**3. Enhance Purpose Lens adapters (lines 23-66)**
 
-This is essentially your existing `--gradient-text` but applied with the black outline for better visibility.
+Update the JEE/NEET adapters to include:
+- "Add probable question formats and common mistakes" instruction
+- "Show how examiners twist this concept" directive
+- "Provide 2-3 practice questions at the end" for exam lenses
 
-**Update `.logo-glow-container`** to use blue/purple glow instead of saffron:
-```css
-background: linear-gradient(135deg, 
-  hsl(var(--brand-primary) / 0.1) 0%, 
-  hsl(var(--brand-secondary) / 0.05) 100%
-);
-```
+**4. Update `continue` type prompt (line 536-539)**
 
-### File: `src/components/MobileHeader.tsx`
-
-**Update the glow animation** to pulse with blue/purple instead of saffron:
-```tsx
-boxShadow: [
-  '0 0 8px hsl(var(--brand-primary) / 0.3)',
-  '0 0 16px hsl(var(--brand-primary) / 0.5)',
-  '0 0 8px hsl(var(--brand-primary) / 0.3)'
-]
-```
-
-**Update profile button ring** from `ring-india-navy/20` to `ring-primary/20` for consistency.
-
----
-
-## Visual Result
-
-| Element | Before | After |
-|---------|--------|-------|
-| Title "MiniMind" | Saffron → White → Green | Blue → Purple → Teal |
-| Logo Glow | Saffron pulse | Blue pulse |
-| Made in India Badge | Unchanged (keeps tricolor) | Unchanged |
-| Profile Ring | Navy tint | Blue tint |
-
----
+Add continuity instruction: "If the user has prior context in the conversation, connect the current concept to the previous one. Show knowledge progression and build cumulative understanding."
 
 ## Files to Modify
-1. `src/index.css` - Update `.logo-text-india` gradient and `.logo-glow-container`
-2. `src/components/MobileHeader.tsx` - Update glow animation colors and profile ring
+1. `supabase/functions/chat/index.ts` - Update mode prompts, add Clarity Engine preamble, enhance purpose lens adapters, update continue prompt
 
-The "Made in India" badge with the Ashoka Chakra will remain exactly as it is - only the title gradient changes.
+## What Does NOT Change
+- Input validation logic
+- API call structure and error handling
+- Language prompts
+- Ekakshar, oneword, oneline, bullets, diagram, file_analysis, learning_path, explain_back_evaluate prompts (these are separate features)
+- Frontend code (no UI changes)
+- "Made in India" badge or header styling
