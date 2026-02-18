@@ -2,8 +2,8 @@ import React, { createContext, useContext, ReactNode } from 'react';
 
 // Early Access Configuration - Central place to manage launch phase settings
 export const EARLY_ACCESS_CONFIG = {
-  isEarlyAccess: true,
-  unlimitedCredits: true,
+  isEarlyAccess: false,
+  unlimitedCredits: false,
   freeTrialDays: 30,
   dailyCreditsAfterLaunch: 50,
   showLifetimeReward: true,

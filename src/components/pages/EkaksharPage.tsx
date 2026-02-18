@@ -45,7 +45,7 @@ const EkaksharPage: React.FC<EkaksharPageProps> = ({ language }) => {
 
     // Check credits (3 for quick recall)
     const cost = CREDIT_COSTS.ekakshar_quick || 3;
-    if (!isEarlyAccess && !hasCredits(cost)) {
+    if (!hasCredits(cost)) {
       showUpgradePrompt('Quick Recall');
       return;
     }
@@ -69,12 +69,10 @@ const EkaksharPage: React.FC<EkaksharPageProps> = ({ language }) => {
       });
       
       // Deduct credits after success
-      if (!isEarlyAccess) {
-        await useCredits(cost, 'ekakshar_quick');
-        const remaining = getCredits();
-        if (remaining.total > 0 && remaining.total <= 5) {
-          toast.warning(`⚡ Running low on credits! ${remaining.total} remaining`);
-        }
+      await useCredits(cost, 'ekakshar_quick');
+      const remaining = getCredits();
+      if (remaining.total > 0 && remaining.total <= 5) {
+        toast.warning(`⚡ Running low on credits! ${remaining.total} remaining`);
       }
       
       setResults(newResults);
@@ -166,11 +164,9 @@ const EkaksharPage: React.FC<EkaksharPageProps> = ({ language }) => {
           <span className="text-sm font-semibold bg-gradient-to-r from-amber-600 to-orange-600 bg-clip-text text-transparent">
             Ekakshar
           </span>
-          {isEarlyAccess && (
-            <span className="px-2 py-0.5 text-[10px] font-medium rounded-full bg-primary/10 text-primary">
-              Free
-            </span>
-          )}
+          <span className="px-2 py-0.5 text-[10px] font-medium rounded-full bg-primary/10 text-primary">
+            3 credits
+          </span>
         </div>
         <h1 className="text-2xl font-heading font-bold text-foreground">
           Compress Any Idea
