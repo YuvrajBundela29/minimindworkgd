@@ -2,7 +2,7 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Home, BarChart3, Zap, History, Settings, Sun, Moon, HelpCircle, User, BookOpen, Crown, FileSearch, Sparkles, MessageCircle, LayoutDashboard, MessageSquareHeart, Target, SquarePen } from 'lucide-react';
 import { navigationItems, NavigationId } from '@/config/minimind';
-import { useSubscription, FREE_DAILY_LIMIT } from '@/contexts/SubscriptionContext';
+import { useSubscription } from '@/contexts/SubscriptionContext';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 const iconMap: Record<string, React.FC<{ className?: string }>> = {
@@ -92,17 +92,17 @@ const SideMenu: React.FC<SideMenuProps> = ({
               </motion.button>
             </div>
 
-            {/* Usage Display */}
+            {/* Credits Display */}
             <div className="p-4 border-b border-border">
               <div className="flex items-center justify-between p-3 rounded-xl bg-muted/50">
                 <div className="flex items-center gap-2">
                   <Zap className="w-4 h-4 text-primary" />
                   <span className="text-sm font-medium text-foreground">
-                    {tier === 'free' ? 'Free Plan' : `${tier.charAt(0).toUpperCase() + tier.slice(1)} Plan`}
+                    {tier === 'free' ? 'Free' : tier.charAt(0).toUpperCase() + tier.slice(1)} Plan
                   </span>
                 </div>
                 <span className="text-sm text-muted-foreground">
-                  {remaining === 'unlimited' ? '∞ questions' : `${remaining}/${FREE_DAILY_LIMIT} today`}
+                  {remaining === 'unlimited' ? '∞ credits' : `${remaining} credits`}
                 </span>
               </div>
             </div>
