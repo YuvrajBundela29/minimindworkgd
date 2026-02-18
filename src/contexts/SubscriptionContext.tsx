@@ -77,8 +77,12 @@ export const CREDIT_COSTS: Record<string, number> = {
   beginner: 1,
   thinker: 2,
   story: 3,
+  mastery: 4,
   ekakshar: 5,
+  ekakshar_quick: 3,
   learningPath: 5,
+  learningPathTopic: 2,
+  explainBack: 2,
 };
 
 // Top-up products

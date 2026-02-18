@@ -20,7 +20,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 // Session persistence key
 const SESSION_STORAGE_KEY = 'minimind-current-session';
-import { useSubscription } from '@/contexts/SubscriptionContext';
+import { useSubscription, CREDIT_COSTS } from '@/contexts/SubscriptionContext';
 import { useEarlyAccess } from '@/contexts/EarlyAccessContext';
 
 // Lazy load heavy page components
@@ -376,8 +376,16 @@ const Index = () => {
   }, [purposeLens, customLensPrompt]);
   
   // Handle question submission with staggered loading
+  const { useCredits, hasCredits, getCredits, showUpgradePrompt } = useSubscription();
+
   const handleSubmit = useCallback(async () => {
     if (!question.trim()) return;
+    
+    // Check if user has at least 1 credit (beginner mode cost)
+    if (!hasCredits(1)) {
+      showUpgradePrompt('Ask a Question');
+      return;
+    }
     
     // Cancel any pending requests
     abortControllerRef.current?.abort();
@@ -401,6 +409,16 @@ const Index = () => {
     // Staggered loading - load modes in priority order
     for (let i = 0; i < MODE_PRIORITY.length; i++) {
       const modeKey = MODE_PRIORITY[i];
+      const cost = CREDIT_COSTS[modeKey] || 1;
+      
+      // Check credits before each mode
+      if (!hasCredits(cost)) {
+        const skipMsg = `⚠️ Not enough credits for ${modeKey} mode (needs ${cost} credits). Top up to unlock!`;
+        setAnswers(prev => ({ ...prev, [modeKey]: skipMsg }));
+        newAnswers[modeKey] = skipMsg;
+        setLoadingModes(prev => ({ ...prev, [modeKey]: false }));
+        continue;
+      }
       
       // Start this mode
       try {
@@ -408,6 +426,15 @@ const Index = () => {
         
         // Check if aborted
         if (abortControllerRef.current?.signal.aborted) return;
+        
+        // Deduct credits after successful response
+        await useCredits(cost, modeKey);
+        
+        // Check low credits warning
+        const remaining = getCredits();
+        if (remaining.total > 0 && remaining.total <= 5) {
+          toast.warning(`⚡ Running low on credits! ${remaining.total} remaining`);
+        }
         
         setAnswers(prev => ({ ...prev, [modeKey]: response }));
         newAnswers[modeKey] = response;
@@ -445,7 +472,7 @@ const Index = () => {
       todayQuestions: prev.todayQuestions + 1
     }));
     setQuestion('');
-  }, [question, selectedLanguage, fetchModeExplanation]);
+  }, [question, selectedLanguage, fetchModeExplanation, hasCredits, useCredits, getCredits, showUpgradePrompt]);
   
   const handleVoiceInput = useCallback(() => {
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
@@ -530,6 +557,13 @@ const Index = () => {
   const handleChatSubmit = useCallback(async (message: string, mode: string) => {
     const modeKey = mode as ModeKey;
     if (!message.trim()) return;
+    
+    const cost = CREDIT_COSTS[modeKey] || 1;
+    if (!hasCredits(cost)) {
+      showUpgradePrompt(`Follow-up in ${modeKey} mode`);
+      return;
+    }
+    
     setChatHistories(prev => ({ ...prev, [modeKey]: [...prev[modeKey], { role: 'user', content: message }] }));
     setLoadingModes(prev => ({ ...prev, [modeKey]: true }));
     try {
@@ -539,12 +573,21 @@ const Index = () => {
         selectedLanguage,
         { purposeLens, customLensPrompt: purposeLens === 'custom' ? customLensPrompt : undefined }
       );
+      
+      // Deduct credits after successful response
+      await useCredits(cost, modeKey);
+      
+      const remaining = getCredits();
+      if (remaining.total > 0 && remaining.total <= 5) {
+        toast.warning(`⚡ Running low on credits! ${remaining.total} remaining`);
+      }
+      
       setAnswers(prev => ({ ...prev, [modeKey]: response }));
       setChatHistories(prev => ({ ...prev, [modeKey]: [...prev[modeKey], { role: 'assistant', content: response }] }));
     } catch (error) { toast.error('Failed to get response'); }
     finally { setLoadingModes(prev => ({ ...prev, [modeKey]: false })); }
     setChatInputs(prev => ({ ...prev, [modeKey]: '' }));
-  }, [chatHistories, selectedLanguage, purposeLens, customLensPrompt]);
+  }, [chatHistories, selectedLanguage, purposeLens, customLensPrompt, hasCredits, useCredits, getCredits, showUpgradePrompt]);
   
   const handleChatInputChange = useCallback((mode: string, value: string) => { setChatInputs(prev => ({ ...prev, [mode as ModeKey]: value })); }, []);
   const handleLoadHistory = useCallback((item: HistoryItem) => { setAnswers(item.answers); setCurrentQuestion(item.question); setHasAskedQuestion(true); setCurrentPage('home'); toast.success('Loaded from history!'); }, []);

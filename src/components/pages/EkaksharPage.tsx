@@ -14,6 +14,7 @@ import FeedbackPrompt from '../FeedbackPrompt';
 import SkeletonLoader from '../SkeletonLoader';
 import { downloadPDF, sharePDF } from '@/utils/pdfGenerator';
 import { useEarlyAccess } from '@/contexts/EarlyAccessContext';
+import { useSubscription, CREDIT_COSTS } from '@/contexts/SubscriptionContext';
 import { supabase } from '@/integrations/supabase/client';
 
 interface EkaksharPageProps {
@@ -22,6 +23,7 @@ interface EkaksharPageProps {
 
 const EkaksharPage: React.FC<EkaksharPageProps> = ({ language }) => {
   const { isEarlyAccess } = useEarlyAccess();
+  const { hasCredits, useCredits, getCredits, showUpgradePrompt } = useSubscription();
   const [input, setInput] = useState('');
   const [results, setResults] = useState<Record<string, string>>({});
   const [isProcessing, setIsProcessing] = useState(false);
@@ -41,6 +43,13 @@ const EkaksharPage: React.FC<EkaksharPageProps> = ({ language }) => {
     const q = question || input;
     if (!q.trim() || isProcessing) return;
 
+    // Check credits (3 for quick recall)
+    const cost = CREDIT_COSTS.ekakshar_quick || 3;
+    if (!isEarlyAccess && !hasCredits(cost)) {
+      showUpgradePrompt('Quick Recall');
+      return;
+    }
+
     setIsProcessing(true);
     
     try {
@@ -58,6 +67,15 @@ const EkaksharPage: React.FC<EkaksharPageProps> = ({ language }) => {
       responses.forEach(({ modeId, response }) => {
         newResults[modeId] = response;
       });
+      
+      // Deduct credits after success
+      if (!isEarlyAccess) {
+        await useCredits(cost, 'ekakshar_quick');
+        const remaining = getCredits();
+        if (remaining.total > 0 && remaining.total <= 5) {
+          toast.warning(`⚡ Running low on credits! ${remaining.total} remaining`);
+        }
+      }
       
       setResults(newResults);
       if (!question) setInput('');
