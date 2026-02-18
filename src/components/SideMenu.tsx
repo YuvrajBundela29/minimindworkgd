@@ -42,8 +42,8 @@ const SideMenu: React.FC<SideMenuProps> = ({
   onShowGuide,
   onNewChat,
 }) => {
-  const { tier, subscription, getRemainingQuestions } = useSubscription();
-  const remaining = getRemainingQuestions();
+  const { tier, subscription, getCredits } = useSubscription();
+  const credits = getCredits();
 
   return (
     <AnimatePresence>
@@ -102,7 +102,7 @@ const SideMenu: React.FC<SideMenuProps> = ({
                   </span>
                 </div>
                 <span className="text-sm text-muted-foreground">
-                  {remaining === 'unlimited' ? '∞ credits' : `${remaining} credits`}
+                  {`${credits.total} credits`}
                 </span>
               </div>
             </div>
