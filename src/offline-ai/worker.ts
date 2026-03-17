@@ -6,7 +6,7 @@ import { pipeline, env } from '@huggingface/transformers';
 env.allowLocalModels = false;
 env.useBrowserCache = true;
 
-let generator: TextGenerationPipeline | null = null;
+let generator: any = null;
 const MODEL_ID = 'Xenova/Qwen2.5-0.5B-Instruct';
 
 interface WorkerMessage {
