@@ -316,6 +316,142 @@ const ProgressDashboard: React.FC = () => {
           </Card>
         </motion.div>
       )}
+
+      {/* ── Analytics from usage_logs ── */}
+      {totalLogs < 3 ? (
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}>
+          <Card className="p-6 text-center">
+            <Sparkles className="w-8 h-8 mx-auto text-muted-foreground mb-2" />
+            <p className="text-sm text-muted-foreground">Not enough data yet. Keep asking questions to unlock analytics!</p>
+          </Card>
+        </motion.div>
+      ) : (
+        <>
+          {/* Streak from usage_logs */}
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}>
+            <Card className="p-5 bg-gradient-to-br from-amber-500/10 to-orange-500/10 border-amber-500/30">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center">
+                  <Flame className="w-7 h-7 text-white" />
+                </div>
+                <div>
+                  {streakLoading ? (
+                    <Skeleton className="h-8 w-16" />
+                  ) : streakCount > 0 ? (
+                    <>
+                      <p className="text-3xl font-bold text-foreground">{streakCount}</p>
+                      <p className="text-sm text-muted-foreground">day streak</p>
+                    </>
+                  ) : (
+                    <p className="text-sm text-muted-foreground font-medium">Start your streak today!</p>
+                  )}
+                </div>
+              </div>
+            </Card>
+          </motion.div>
+
+          {/* Weekly Activity Bar Chart */}
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}>
+            <h3 className="text-sm font-medium text-foreground mb-3">Weekly Activity</h3>
+            <Card className="p-4 bg-card/50 backdrop-blur-sm border-border/50">
+              {weeklyLoading ? (
+                <Skeleton className="h-40 w-full" />
+              ) : (
+                <ResponsiveContainer width="100%" height={160}>
+                  <BarChart data={weeklyData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis dataKey="date" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} />
+                    <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} />
+                    <Tooltip
+                      contentStyle={{
+                        background: 'hsl(var(--card))',
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '8px',
+                        color: 'hsl(var(--foreground))',
+                      }}
+                    />
+                    <Bar dataKey="count" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+            </Card>
+          </motion.div>
+
+          {/* Language Breakdown Donut */}
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7 }}>
+            <h3 className="text-sm font-medium text-foreground mb-3">Languages Used</h3>
+            <Card className="p-4 bg-card/50 backdrop-blur-sm border-border/50">
+              {langLoading ? (
+                <Skeleton className="h-44 w-full" />
+              ) : langData && langData.length > 0 ? (
+                <div className="flex flex-col md:flex-row items-center gap-4">
+                  <ResponsiveContainer width={160} height={160}>
+                    <PieChart>
+                      <Pie
+                        data={langData}
+                        dataKey="count"
+                        nameKey="language"
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={40}
+                        outerRadius={70}
+                        paddingAngle={2}
+                      >
+                        {langData.map((_, i) => (
+                          <Cell key={i} fill={CHART_COLORS[i % CHART_COLORS.length]} />
+                        ))}
+                      </Pie>
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div className="flex flex-wrap gap-2">
+                    {langData.map((item, i) => {
+                      const total = langData.reduce((s, l) => s + l.count, 0);
+                      const pct = total > 0 ? Math.round((item.count / total) * 100) : 0;
+                      return (
+                        <span key={item.language} className="flex items-center gap-1.5 text-xs text-foreground">
+                          <span className="w-2.5 h-2.5 rounded-full" style={{ background: CHART_COLORS[i % CHART_COLORS.length] }} />
+                          {item.language} ({pct}%)
+                        </span>
+                      );
+                    })}
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground text-center py-4">No data yet</p>
+              )}
+            </Card>
+          </motion.div>
+
+          {/* Mode Distribution Horizontal Bar */}
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.8 }}>
+            <h3 className="text-sm font-medium text-foreground mb-3">Learning Mode Usage</h3>
+            <Card className="p-4 bg-card/50 backdrop-blur-sm border-border/50">
+              {modeLoading ? (
+                <Skeleton className="h-36 w-full" />
+              ) : modeData && modeData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={modeData.length * 36 + 10}>
+                  <BarChart data={modeData} layout="vertical">
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis type="number" allowDecimals={false} tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} />
+                    <YAxis dataKey="mode" type="category" tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }} width={70} />
+                    <Tooltip
+                      contentStyle={{
+                        background: 'hsl(var(--card))',
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '8px',
+                        color: 'hsl(var(--foreground))',
+                      }}
+                    />
+                    <Bar dataKey="count" fill="hsl(var(--accent))" radius={[0, 4, 4, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <p className="text-sm text-muted-foreground text-center py-4">No data yet</p>
+              )}
+            </Card>
+          </motion.div>
+        </>
+      )}
     </div>
   );
 };
