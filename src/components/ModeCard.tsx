@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Volume2, Copy, Download, Send, Wand2, Maximize2, Zap } from 'lucide-react';
+import SaveNoteButton from './SaveNoteButton';
 import { modes, ModeKey } from '@/config/minimind';
 import MarkdownRenderer from './MarkdownRenderer';
 import FeedbackPrompt from './FeedbackPrompt';
@@ -205,6 +206,13 @@ const ModeCard: React.FC<ModeCardProps> = ({
           
           <ShareMenu 
             onShare={(platform) => onShare(answer, modeKey, currentQuestion, platform)} 
+          />
+          
+          <SaveNoteButton
+            queryText={currentQuestion}
+            responseText={answer}
+            mode={modeKey}
+            language="en"
           />
         </div>
       )}

@@ -65,7 +65,10 @@ const NotesPage: React.FC = () => {
   const handleDownloadPdf = async (note: SavedNote) => {
     const { downloadPDF } = await import('@/utils/pdfGenerator');
     const text = `Question:\n${note.query_text}\n\nAnswer (${note.mode} mode):\n${note.response_text}`;
-    downloadPDF(text, note.mode ?? 'note', note.query_text ?? 'Saved Note');
+    const modeKey = (['beginner', 'thinker', 'story', 'mastery'].includes(note.mode ?? '')
+      ? note.mode
+      : 'beginner') as 'beginner' | 'thinker' | 'story' | 'mastery';
+    downloadPDF(text, modeKey, note.query_text ?? 'Saved Note');
   };
 
   if (isLoading) {
