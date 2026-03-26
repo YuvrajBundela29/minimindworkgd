@@ -17,6 +17,7 @@ import { apiCache } from '@/services/apiCache';
 import speechService from '@/services/speechService';
 import { downloadPDF, sharePDF, SharePlatform } from '@/utils/pdfGenerator';
 import { supabase } from '@/integrations/supabase/client';
+import { logUsage } from '@/services/usageLogger';
 
 // Session persistence key
 const SESSION_STORAGE_KEY = 'minimind-current-session';
@@ -35,6 +36,7 @@ const ExplainBackPage = React.lazy(() => import('@/components/pages/ExplainBackP
 const FullscreenMode = React.lazy(() => import('@/components/FullscreenMode'));
 const OnboardingGuide = React.lazy(() => import('@/components/OnboardingGuide'));
 const PurposeLensPage = React.lazy(() => import('@/components/pages/PurposeLensPage'));
+const NotesPage = React.lazy(() => import('@/components/pages/NotesPage'));
 
 // Types for history
 export interface HistoryItem {
@@ -132,7 +134,7 @@ const Index = () => {
   });
   
   // Back button handler ref
-  const backPressTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const backPressTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const canExitRef = useRef(false);
   
   // Cleanup abort controller on unmount
@@ -442,6 +444,14 @@ const Index = () => {
           ...prev,
           [modeKey]: [...prev[modeKey], { role: 'assistant', content: response }]
         }));
+        
+        // Fire-and-forget usage log
+        logUsage({
+          queryText: questionText,
+          mode: modeKey,
+          language: selectedLanguage,
+          responseLength: response.length,
+        });
       } catch (error: any) {
         if (error.name === 'AbortError') return;
         const errorMsg = 'Sorry, something went wrong. Please try again.';
@@ -691,6 +701,13 @@ const Index = () => {
           ...prev,
           [modeKey]: [...prev[modeKey], { role: 'assistant', content: response }]
         }));
+        
+        logUsage({
+          queryText: prompt,
+          mode: modeKey,
+          language: selectedLanguage,
+          responseLength: response.length,
+        });
       } catch (error: any) {
         if (error.name === 'AbortError') return;
         const errorMsg = 'Sorry, something went wrong. Please try again.';
@@ -833,6 +850,14 @@ const Index = () => {
                   customPrompt={customLensPrompt}
                   onLensChange={handlePurposeLensSelect}
                 />
+              </motion.div>
+            </Suspense>
+          )}
+          
+          {currentPage === 'notes' && (
+            <Suspense fallback={<PageLoadingFallback />}>
+              <motion.div key="notes" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                <NotesPage />
               </motion.div>
             </Suspense>
           )}
