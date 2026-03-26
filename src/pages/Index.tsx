@@ -853,6 +853,14 @@ const Index = () => {
               </motion.div>
             </Suspense>
           )}
+          
+          {currentPage === 'notes' && (
+            <Suspense fallback={<PageLoadingFallback />}>
+              <motion.div key="notes" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                <NotesPage />
+              </motion.div>
+            </Suspense>
+          )}
         </AnimatePresence>
       </main>
       

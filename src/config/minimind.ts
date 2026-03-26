@@ -200,6 +200,7 @@ export const navigationItems = [
   { id: 'purposelens', label: 'Learning Purpose 🎯', icon: 'Target', description: 'Set your learning context' },
   { id: 'profile', label: 'Profile', icon: 'User', description: 'Your account & stats' },
   { id: 'history', label: 'History', icon: 'History', description: 'Past questions & answers' },
+  { id: 'notes', label: 'Saved Notes', icon: 'BookOpen', description: 'Your saved AI responses' },
   { id: 'subscription', label: 'Subscription', icon: 'Crown', description: 'Manage your plan' },
   { id: 'settings', label: 'Settings', icon: 'Cog', description: 'Language & preferences' },
 ] as const;
