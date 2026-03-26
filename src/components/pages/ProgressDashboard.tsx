@@ -6,7 +6,19 @@ import {
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useSubscription } from '@/contexts/SubscriptionContext';
+import {
+  useWeeklyActivity,
+  useLanguageBreakdown,
+  useModeDistribution,
+  useLearningStreak,
+  useTotalLogCount,
+} from '@/hooks/useUsageStats';
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
+  PieChart, Pie, Cell, ResponsiveContainer,
+} from 'recharts';
 
 interface LearningTopic {
   id: string;
