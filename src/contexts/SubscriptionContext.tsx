@@ -297,9 +297,10 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({ chil
   // Get available credits
   const getCredits = useCallback(() => {
     const limits = CREDIT_LIMITS[tier];
-    const dailyRemaining = Math.max(0, limits.daily - subscription.credits.dailyUsed);
-    const monthlyRemaining = Math.max(0, limits.monthly - subscription.credits.monthlyUsed);
-    const bonus = subscription.credits.bonusCredits;
+    const creds = creditsRef.current;
+    const dailyRemaining = Math.max(0, limits.daily - creds.dailyUsed);
+    const monthlyRemaining = Math.max(0, limits.monthly - creds.monthlyUsed);
+    const bonus = creds.bonusCredits;
     
     return {
       daily: dailyRemaining,
@@ -307,7 +308,7 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({ chil
       bonus,
       total: dailyRemaining + monthlyRemaining + bonus,
     };
-  }, [tier, subscription.credits]);
+  }, [tier]);
 
   // Check if user has enough credits
   const hasCredits = useCallback((cost: number) => {
