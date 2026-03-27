@@ -401,14 +401,14 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({ chil
     }
   }, [tier, getCredits, showUpgradePrompt]);
 
-  const useQuestion = useCallback(async () => {
-    return useCredits(1, 'question');
-  }, [useCredits]);
-
   const showUpgradePrompt = useCallback((feature: string) => {
     setUpgradeFeature(feature);
     setUpgradeModalOpen(true);
   }, []);
+
+  const useQuestion = useCallback(async () => {
+    return useCredits(1, 'question');
+  }, [useCredits]);
 
   const initiateCheckout = useCallback(async (checkoutTier: 'plus' | 'pro', planType: PlanType) => {
     setIsCheckoutLoading(true);
