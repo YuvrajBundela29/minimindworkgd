@@ -329,6 +329,11 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({ chil
     return getCredits().daily; // Free tier shows daily only
   }, [tier, getCredits]);
 
+  const showUpgradePrompt = useCallback((feature: string) => {
+    setUpgradeFeature(feature);
+    setUpgradeModalOpen(true);
+  }, []);
+
   // Use credits for an action
   const useCredits = useCallback(async (cost: number, mode: string) => {
     const available = getCredits();
@@ -341,7 +346,6 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({ chil
     // Read from ref for accurate cumulative tracking
     const currentCredits = creditsRef.current;
     
-    // Deduct from daily first, then monthly, then bonus
     let remainingCost = cost;
     let newDailyUsed = currentCredits.dailyUsed;
     let newMonthlyUsed = currentCredits.monthlyUsed;
@@ -358,14 +362,13 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({ chil
       remainingCost -= fromMonthly;
     }
 
-    // Update ref immediately (synchronous) so next call sees updated values
+    // Update ref immediately so next call sees updated values
     creditsRef.current = {
       ...currentCredits,
       dailyUsed: newDailyUsed,
       monthlyUsed: newMonthlyUsed,
     };
 
-    // Update React state
     setSubscription(prev => ({
       ...prev,
       dailyQuestionsUsed: prev.dailyQuestionsUsed + 1,
@@ -400,11 +403,6 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({ chil
       return true;
     }
   }, [tier, getCredits, showUpgradePrompt]);
-
-  const showUpgradePrompt = useCallback((feature: string) => {
-    setUpgradeFeature(feature);
-    setUpgradeModalOpen(true);
-  }, []);
 
   const useQuestion = useCallback(async () => {
     return useCredits(1, 'question');
