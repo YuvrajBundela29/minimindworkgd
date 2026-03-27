@@ -1,37 +1,23 @@
 
-# Fix Credit Display and Deduction
 
-## Problem
-Credits show as "13 credits" (or 15) in the side menu and never decrease because:
-1. The `useCredits()` function checks for a logged-in user and returns early (`if (!user) return false`) without deducting anything for non-authenticated users
-2. Even for logged-in users, the local state update happens but the SideMenu reads `getRemainingQuestions()` which already works -- however the DB update may fail silently if the `user_subscriptions` row doesn't exist
+## Update Razorpay Live API Keys
 
-## Solution
-Make the credit system work for ALL users (logged in or not) by always updating local state first, and persisting to localStorage for non-authenticated users.
+Your project already has `RAZORPAY_KEY_ID` and `RAZORPAY_KEY_SECRET` configured with test/fake values. We need to replace them with your real live keys.
 
-## Changes
+### What I'll do
 
-### 1. `src/contexts/SubscriptionContext.tsx` -- Fix `useCredits` for non-auth users
+1. **Prompt you to enter your live `RAZORPAY_KEY_ID`** (starts with `rzp_live_...`) — this is the Key ID from your Razorpay Dashboard → API Keys
+2. **Prompt you to enter your live `RAZORPAY_KEY_SECRET`** — the corresponding secret key
 
-**Current behavior (broken):**
-- Line 323-324: `if (!user) return false` -- skips deduction entirely for guests
+These are stored securely as backend secrets and are only accessible from server-side edge functions — never exposed to the browser or client code.
 
-**New behavior:**
-- Always update the local state (dailyUsed, monthlyUsed) regardless of auth status
-- For logged-in users: also persist to the database (existing behavior)
-- For non-logged-in users: persist to `localStorage` so credits survive page refreshes
-- On mount, load credit usage from `localStorage` if no auth user exists
+### What you need ready
 
-### 2. `src/contexts/SubscriptionContext.tsx` -- Load saved credits from localStorage
+From your Razorpay Dashboard → Settings → API Keys:
+- **Key ID** — e.g. `rzp_live_xxxxxxxxxxxxxxx`
+- **Key Secret** — shown only once when generated
 
-- In the `refreshSubscription` function, when no user is found (line 196-212), check `localStorage` for saved credit state (daily used count and last reset date)
-- If the saved date is today, restore the dailyUsed count; otherwise start fresh (daily reset)
+### No code changes needed
 
-### 3. `src/components/SideMenu.tsx` -- Use `getCredits()` for live total
+The existing edge functions (`create-razorpay-order`, `verify-razorpay-payment`, `razorpay-webhook`) already read these secrets by name. Updating the values is all that's required to go live.
 
-- Replace `getRemainingQuestions()` with `getCredits().total` to show the real-time remaining credit count
-- This ensures the displayed number updates immediately after any credit deduction
-
-## Files to Modify
-1. `src/contexts/SubscriptionContext.tsx` -- local credit tracking for guests + always update state
-2. `src/components/SideMenu.tsx` -- show live credit total
