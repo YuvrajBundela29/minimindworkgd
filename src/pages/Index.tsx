@@ -399,7 +399,7 @@ const Index = () => {
     
     // Check if user has at least 1 credit (beginner mode cost)
     if (!hasCredits(1)) {
-      showUpgradePrompt('Ask a Question');
+      setShowCreditExhaustion(true);
       return;
     }
     
@@ -433,6 +433,8 @@ const Index = () => {
         setAnswers(prev => ({ ...prev, [modeKey]: skipMsg }));
         newAnswers[modeKey] = skipMsg;
         setLoadingModes(prev => ({ ...prev, [modeKey]: false }));
+        // Show exhaustion modal on first skip
+        setShowCreditExhaustion(true);
         continue;
       }
       
@@ -446,10 +448,27 @@ const Index = () => {
         // Deduct credits after successful response
         await useCredits(cost, modeKey);
         
-        // Check low credits warning
+        // Check milestone notifications
         const remaining = getCredits();
-        if (remaining.total > 0 && remaining.total <= 5) {
-          toast.warning(`⚡ Running low on credits! ${remaining.total} remaining`);
+        const limits = CREDIT_LIMITS[tier];
+        const totalLimit = limits.daily + limits.monthly;
+        if (totalLimit > 0 && remaining.total > 0) {
+          const pct = (remaining.total / totalLimit) * 100;
+          const milestones = JSON.parse(sessionStorage.getItem('minimind-credit-milestones') || '{}');
+          
+          if (pct <= 10 && !milestones['10']) {
+            toast.warning(`⚡ Only ${remaining.total} credits left this period`, { duration: 5000, action: { label: 'Upgrade', onClick: () => setCurrentPage('subscription') } });
+            milestones['10'] = true;
+            sessionStorage.setItem('minimind-credit-milestones', JSON.stringify(milestones));
+          } else if (pct <= 20 && !milestones['20']) {
+            toast.warning(`⚡ Running low — ${remaining.total} credits left`, { duration: 5000, action: { label: 'View plans', onClick: () => setCurrentPage('subscription') } });
+            milestones['20'] = true;
+            sessionStorage.setItem('minimind-credit-milestones', JSON.stringify(milestones));
+          } else if (pct <= 50 && !milestones['50']) {
+            toast.info(`⚡ Halfway through your credits this period`, { duration: 3000 });
+            milestones['50'] = true;
+            sessionStorage.setItem('minimind-credit-milestones', JSON.stringify(milestones));
+          }
         }
         
         setAnswers(prev => ({ ...prev, [modeKey]: response }));
