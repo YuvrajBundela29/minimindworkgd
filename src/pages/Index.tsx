@@ -603,7 +603,7 @@ const Index = () => {
     
     const cost = CREDIT_COSTS[modeKey] || 1;
     if (!hasCredits(cost)) {
-      showUpgradePrompt(`Follow-up in ${modeKey} mode`);
+      setShowCreditExhaustion(true);
       return;
     }
     
