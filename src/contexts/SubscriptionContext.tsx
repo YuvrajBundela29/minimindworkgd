@@ -592,6 +592,7 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({ chil
         useQuestion,
         useCredits,
         refreshSubscription,
+        syncCreditsFromServer,
         isUpgradeModalOpen,
         setUpgradeModalOpen,
         upgradeFeature,
