@@ -136,6 +136,7 @@ interface SubscriptionContextType {
   useQuestion: () => Promise<boolean>;
   useCredits: (cost: number, mode: string) => Promise<boolean>;
   refreshSubscription: () => Promise<void>;
+  syncCreditsFromServer: (creditsRemaining: number, dailyRemaining: number | null, monthlyRemaining: number | null) => void;
   
   // Upgrade flow
   isUpgradeModalOpen: boolean;
