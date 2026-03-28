@@ -1,45 +1,93 @@
 
 
-## Fix: Credits Not Deducting When Using the App
+## Fix Credit Deduction & Build Credit UX System
 
-### Root Cause
+### Current Problem
+Credits are deducted **client-side only** via `SubscriptionContext.useCredits()` which calls `supabase.rpc('update_user_credits')`. The `chat` edge function does **zero** server-side credit checking or deduction. A user can bypass deduction entirely by modifying client code.
 
-The `useCredits` function in `SubscriptionContext.tsx` reads `subscription.credits.dailyUsed` from a **stale closure**. When `handleSubmit` in `Index.tsx` calls `useCredits` four times in a `for` loop (once per mode), each call reads the same base value because React state hasn't re-rendered between iterations.
-
-Example: if `dailyUsed` starts at 0 and costs are 1, 2, 3, 4:
-- Call 1: `newDailyUsed = 0 + 1 = 1` → writes 1 to DB
-- Call 2: `newDailyUsed = 0 + 2 = 2` → **overwrites** DB with 2 (should be 3)
-- Call 3: `newDailyUsed = 0 + 3 = 3` → **overwrites** DB with 3 (should be 6)
-- Call 4: `newDailyUsed = 0 + 4 = 4` → **overwrites** DB with 4 (should be 10)
-
-Only the last mode's cost is effectively applied, and on refresh the DB value resets everything.
-
-### Fix (2 files)
-
-**1. `src/contexts/SubscriptionContext.tsx`** — Use a **ref** to track cumulative credit usage so multiple rapid calls within one render cycle accumulate correctly:
-
-- Add a `creditsRef` that mirrors `subscription.credits` and stays in sync via `useEffect`
-- In `useCredits`, read from `creditsRef.current` instead of `subscription.credits`
-- After computing new values, update **both** the ref (immediately) and state (via setter)
-- This ensures call 2 sees the result of call 1, even without a re-render
-
-**2. `src/pages/Index.tsx`** — No changes needed if the ref fix works correctly. The existing for-loop + `await useCredits(cost, modeKey)` pattern will now accumulate properly since the ref updates synchronously.
-
-### Technical Detail
+### Architecture Overview
 
 ```text
-Before (broken):
-  useCredits(1) → reads state.dailyUsed=0 → sets 1
-  useCredits(2) → reads state.dailyUsed=0 → sets 2  ← STALE!
-  
-After (fixed):  
-  useCredits(1) → reads ref.dailyUsed=0 → sets ref=1, state=1
-  useCredits(2) → reads ref.dailyUsed=1 → sets ref=3, state=3  ← CORRECT
+Current:  Client → chat edge fn → AI → response → Client deducts credits (unreliable)
+Proposed: Client → chat edge fn → check credits → AI → deduct credits → response (with remaining count)
 ```
 
-### Changes Summary
+---
+
+### Part 1 — Server-Side Credit Deduction (Critical Fix)
+
+**Database migration:** Create a `SECURITY DEFINER` function `deduct_user_credit` that:
+- Accepts `p_user_id uuid` and `p_cost integer`
+- Checks daily/monthly pools with auto-reset logic (new day resets daily, new month resets monthly)
+- Deducts from daily pool first, then monthly pool
+- Returns JSON: `{ success, credits_remaining, daily_remaining, monthly_remaining, tier, error? }`
+
+**Edge function (`chat/index.ts`):** After successful AI response (line ~656):
+- Create a service-role admin client
+- Call `deduct_user_credit(userId, cost)` where cost is derived from the mode
+- Include `credits_remaining` in the response payload
+- If credits exhausted pre-check fails, return `{ error: "credits_exhausted", tier }` with status 402
+- Never block the response if deduction fails post-AI-call — log and return response anyway
+
+**Client (`SubscriptionContext.tsx`):** Keep `useCredits` for optimistic UI updates, but treat the server response as source of truth. After each AI call, sync `creditsRef` with the server-returned `credits_remaining`.
+
+---
+
+### Part 2 — CreditBadge Component
+
+New file: `src/components/CreditBadge.tsx`
+
+- Reads from `useSubscription()` context (already has `getCredits()`)
+- **Desktop**: Shows `⚡ 47 credits` badge in header
+- **Mobile**: Shows `⚡` icon only; full details in popover
+- Color logic: green (>20%), amber+pulse (<20%), red (0)
+- Clicking opens a Popover with: plan name, credits remaining, reset date, upgrade button
+- Placed in `MobileHeader.tsx` (right side, before profile button)
+
+---
+
+### Part 3 — Credit Exhaustion Modal
+
+New file: `src/components/CreditExhaustionModal.tsx`
+
+- Triggered when `useCredits` returns false or server returns `credits_exhausted`
+- Content adapts to current tier (Free vs Plus)
+- Shows progress bar at 0%, social proof line, upgrade CTA
+- Dismissible, shown max once per session (`sessionStorage`)
+- Primary CTA navigates to `/subscription`
+
+Integration: In `Index.tsx`, replace `showUpgradePrompt('Ask a Question')` with opening this modal.
+
+---
+
+### Part 4 — Milestone Toast Notifications
+
+Modify `Index.tsx` `handleSubmit`: after each successful mode response, check total remaining credits against tier limits. Show sonner toasts at 50%, 20%, 10% thresholds. Track shown milestones in `sessionStorage` key `minimind-credit-milestones`.
+
+---
+
+### Part 5 — Credit History Section
+
+New file: `src/components/CreditHistory.tsx`
+
+- Query `usage_logs` grouped by day for last 30 days
+- Show table: Date | Queries | Credits Used
+- Show total used this period, remaining, next refill countdown
+- Add to `SubscriptionPage.tsx` as a new section
+
+---
+
+### Files Changed
 
 | File | Change |
 |------|--------|
-| `SubscriptionContext.tsx` | Add `creditsRef` to track credit state synchronously; update `useCredits` and `hasCredits`/`getCredits` to read from ref for real-time accuracy |
+| **DB migration** | Create `deduct_user_credit(uuid, int)` function |
+| `supabase/functions/chat/index.ts` | Add pre-check + post-deduction with service-role client; return `credits_remaining` in response |
+| `src/components/CreditBadge.tsx` | **New** — persistent credit counter |
+| `src/components/CreditExhaustionModal.tsx` | **New** — conversion modal at 0 credits |
+| `src/components/CreditHistory.tsx` | **New** — usage transparency table |
+| `src/components/MobileHeader.tsx` | Add CreditBadge to header |
+| `src/contexts/SubscriptionContext.tsx` | Sync credits from server response; expose `syncCreditsFromServer` method |
+| `src/pages/Index.tsx` | Use CreditExhaustionModal; add milestone toast logic; sync credits from AI response |
+| `src/components/pages/SubscriptionPage.tsx` | Add CreditHistory section |
 
