@@ -21,7 +21,7 @@ import { logUsage } from '@/services/usageLogger';
 import CreditExhaustionModal from '@/components/CreditExhaustionModal';
 // Session persistence key
 const SESSION_STORAGE_KEY = 'minimind-current-session';
-import { useSubscription, CREDIT_COSTS } from '@/contexts/SubscriptionContext';
+import { useSubscription, CREDIT_COSTS, CREDIT_LIMITS } from '@/contexts/SubscriptionContext';
 import { useEarlyAccess } from '@/contexts/EarlyAccessContext';
 
 // Lazy load heavy page components
@@ -392,7 +392,7 @@ const Index = () => {
   }, [purposeLens, customLensPrompt]);
   
   // Handle question submission with staggered loading
-  const { useCredits, hasCredits, getCredits, showUpgradePrompt } = useSubscription();
+  const { useCredits, hasCredits, getCredits, showUpgradePrompt, tier } = useSubscription();
 
   const handleSubmit = useCallback(async () => {
     if (!question.trim()) return;
