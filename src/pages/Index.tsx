@@ -18,10 +18,10 @@ import speechService from '@/services/speechService';
 import { downloadPDF, sharePDF, SharePlatform } from '@/utils/pdfGenerator';
 import { supabase } from '@/integrations/supabase/client';
 import { logUsage } from '@/services/usageLogger';
-
+import CreditExhaustionModal from '@/components/CreditExhaustionModal';
 // Session persistence key
 const SESSION_STORAGE_KEY = 'minimind-current-session';
-import { useSubscription, CREDIT_COSTS } from '@/contexts/SubscriptionContext';
+import { useSubscription, CREDIT_COSTS, CREDIT_LIMITS } from '@/contexts/SubscriptionContext';
 import { useEarlyAccess } from '@/contexts/EarlyAccessContext';
 
 // Lazy load heavy page components
@@ -132,6 +132,9 @@ const Index = () => {
   const [stats, setStats] = useState({
     totalQuestions: 0, todayQuestions: 0, favoriteMode: 'beginner' as ModeKey, streak: 0,
   });
+  
+  // Credit exhaustion modal
+  const [showCreditExhaustion, setShowCreditExhaustion] = useState(false);
   
   // Back button handler ref
   const backPressTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -389,14 +392,14 @@ const Index = () => {
   }, [purposeLens, customLensPrompt]);
   
   // Handle question submission with staggered loading
-  const { useCredits, hasCredits, getCredits, showUpgradePrompt } = useSubscription();
+  const { useCredits, hasCredits, getCredits, showUpgradePrompt, tier, syncCreditsFromServer } = useSubscription();
 
   const handleSubmit = useCallback(async () => {
     if (!question.trim()) return;
     
     // Check if user has at least 1 credit (beginner mode cost)
     if (!hasCredits(1)) {
-      showUpgradePrompt('Ask a Question');
+      setShowCreditExhaustion(true);
       return;
     }
     
@@ -430,6 +433,8 @@ const Index = () => {
         setAnswers(prev => ({ ...prev, [modeKey]: skipMsg }));
         newAnswers[modeKey] = skipMsg;
         setLoadingModes(prev => ({ ...prev, [modeKey]: false }));
+        // Show exhaustion modal on first skip
+        setShowCreditExhaustion(true);
         continue;
       }
       
@@ -443,10 +448,27 @@ const Index = () => {
         // Deduct credits after successful response
         await useCredits(cost, modeKey);
         
-        // Check low credits warning
+        // Check milestone notifications
         const remaining = getCredits();
-        if (remaining.total > 0 && remaining.total <= 5) {
-          toast.warning(`⚡ Running low on credits! ${remaining.total} remaining`);
+        const limits = CREDIT_LIMITS[tier];
+        const totalLimit = limits.daily + limits.monthly;
+        if (totalLimit > 0 && remaining.total > 0) {
+          const pct = (remaining.total / totalLimit) * 100;
+          const milestones = JSON.parse(sessionStorage.getItem('minimind-credit-milestones') || '{}');
+          
+          if (pct <= 10 && !milestones['10']) {
+            toast.warning(`⚡ Only ${remaining.total} credits left this period`, { duration: 5000, action: { label: 'Upgrade', onClick: () => setCurrentPage('subscription') } });
+            milestones['10'] = true;
+            sessionStorage.setItem('minimind-credit-milestones', JSON.stringify(milestones));
+          } else if (pct <= 20 && !milestones['20']) {
+            toast.warning(`⚡ Running low — ${remaining.total} credits left`, { duration: 5000, action: { label: 'View plans', onClick: () => setCurrentPage('subscription') } });
+            milestones['20'] = true;
+            sessionStorage.setItem('minimind-credit-milestones', JSON.stringify(milestones));
+          } else if (pct <= 50 && !milestones['50']) {
+            toast.info(`⚡ Halfway through your credits this period`, { duration: 3000 });
+            milestones['50'] = true;
+            sessionStorage.setItem('minimind-credit-milestones', JSON.stringify(milestones));
+          }
         }
         
         setAnswers(prev => ({ ...prev, [modeKey]: response }));
@@ -581,7 +603,7 @@ const Index = () => {
     
     const cost = CREDIT_COSTS[modeKey] || 1;
     if (!hasCredits(cost)) {
-      showUpgradePrompt(`Follow-up in ${modeKey} mode`);
+      setShowCreditExhaustion(true);
       return;
     }
     
@@ -776,7 +798,7 @@ const Index = () => {
 
   return (
     <div className="app-container">
-      <MobileHeader onMenuClick={() => setIsMenuOpen(true)} onProfileClick={() => user ? setCurrentPage('profile') : setCurrentPage('auth')} currentLens={purposeLens} onNewChat={handleNewChat} hasActiveChat={hasAskedQuestion} />
+      <MobileHeader onMenuClick={() => setIsMenuOpen(true)} onProfileClick={() => user ? setCurrentPage('profile') : setCurrentPage('auth')} currentLens={purposeLens} onNewChat={handleNewChat} hasActiveChat={hasAskedQuestion} onNavigateToSubscription={() => setCurrentPage('subscription')} />
       <SideMenu isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} currentPage={currentPage as NavigationId} onNavigate={setCurrentPage} theme={theme} onToggleTheme={toggleTheme} onShowGuide={() => setShowOnboarding(true)} onNewChat={handleNewChat} />
       
       <main className="page-content px-4 custom-scrollbar">
@@ -916,6 +938,13 @@ const Index = () => {
           onSelect={handlePurposeLensSelect}
         />
       )}
+      
+      {/* Credit Exhaustion Modal */}
+      <CreditExhaustionModal
+        open={showCreditExhaustion}
+        onOpenChange={setShowCreditExhaustion}
+        onNavigateToSubscription={() => setCurrentPage('subscription')}
+      />
     </div>
   );
 };

@@ -136,6 +136,7 @@ interface SubscriptionContextType {
   useQuestion: () => Promise<boolean>;
   useCredits: (cost: number, mode: string) => Promise<boolean>;
   refreshSubscription: () => Promise<void>;
+  syncCreditsFromServer: (creditsRemaining: number, dailyRemaining: number | null, monthlyRemaining: number | null) => void;
   
   // Upgrade flow
   isUpgradeModalOpen: boolean;
@@ -404,6 +405,24 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({ chil
     }
   }, [tier, getCredits, showUpgradePrompt]);
 
+  // Sync credits from server response (source of truth)
+  const syncCreditsFromServer = useCallback((creditsRemaining: number, dailyRemaining: number | null, monthlyRemaining: number | null) => {
+    const limits = CREDIT_LIMITS[tier];
+    const newDailyUsed = dailyRemaining !== null ? limits.daily - dailyRemaining : creditsRef.current.dailyUsed;
+    const newMonthlyUsed = monthlyRemaining !== null ? limits.monthly - monthlyRemaining : creditsRef.current.monthlyUsed;
+    
+    creditsRef.current = {
+      ...creditsRef.current,
+      dailyUsed: Math.max(0, newDailyUsed),
+      monthlyUsed: Math.max(0, newMonthlyUsed),
+    };
+    
+    setSubscription(prev => ({
+      ...prev,
+      credits: { ...prev.credits, dailyUsed: creditsRef.current.dailyUsed, monthlyUsed: creditsRef.current.monthlyUsed },
+    }));
+  }, [tier]);
+
   const useQuestion = useCallback(async () => {
     return useCredits(1, 'question');
   }, [useCredits]);
@@ -573,6 +592,7 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({ chil
         useQuestion,
         useCredits,
         refreshSubscription,
+        syncCreditsFromServer,
         isUpgradeModalOpen,
         setUpgradeModalOpen,
         upgradeFeature,
