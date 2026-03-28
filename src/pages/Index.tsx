@@ -18,7 +18,7 @@ import speechService from '@/services/speechService';
 import { downloadPDF, sharePDF, SharePlatform } from '@/utils/pdfGenerator';
 import { supabase } from '@/integrations/supabase/client';
 import { logUsage } from '@/services/usageLogger';
-
+import CreditExhaustionModal from '@/components/CreditExhaustionModal';
 // Session persistence key
 const SESSION_STORAGE_KEY = 'minimind-current-session';
 import { useSubscription, CREDIT_COSTS } from '@/contexts/SubscriptionContext';
@@ -132,6 +132,9 @@ const Index = () => {
   const [stats, setStats] = useState({
     totalQuestions: 0, todayQuestions: 0, favoriteMode: 'beginner' as ModeKey, streak: 0,
   });
+  
+  // Credit exhaustion modal
+  const [showCreditExhaustion, setShowCreditExhaustion] = useState(false);
   
   // Back button handler ref
   const backPressTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
