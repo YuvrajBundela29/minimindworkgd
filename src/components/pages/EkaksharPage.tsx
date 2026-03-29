@@ -380,7 +380,7 @@ const EkaksharPage: React.FC<EkaksharPageProps> = ({ language }) => {
                   </div>
                 </Card>
               </motion.div>
-            )
+            )}
 
             {/* Trust Footer & Feedback */}
             <div className="space-y-3 pt-2">
