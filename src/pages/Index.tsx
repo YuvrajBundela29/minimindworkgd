@@ -863,7 +863,7 @@ const Index = () => {
           {currentPage === 'settings' && (
             <Suspense fallback={<PageLoadingFallback />}>
               <motion.div key="settings" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                <SettingsPage theme={theme} onToggleTheme={toggleTheme} selectedLanguage={selectedLanguage} onLanguageSelect={setSelectedLanguage} onClearHistory={handleClearHistory} stats={stats} />
+                <SettingsPage theme={theme} onToggleTheme={toggleTheme} selectedLanguage={selectedLanguage} onLanguageSelect={setSelectedLanguage} onClearHistory={handleClearHistory} onNavigateToLegal={(page) => setCurrentPage(page)} stats={stats} />
               </motion.div>
             </Suspense>
           )}
