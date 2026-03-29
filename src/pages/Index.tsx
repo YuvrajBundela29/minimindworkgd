@@ -371,24 +371,24 @@ const Index = () => {
     questionText: string,
     modeKey: ModeKey,
     language: LanguageKey
-  ): Promise<string> => {
+  ): Promise<{ text: string; credits_remaining: number | null; daily_remaining: number | null; monthly_remaining: number | null }> => {
     // Check cache first (include purpose lens in cache key)
     const cacheKey = apiCache.generateKey(questionText, modeKey, `${language}-${purposeLens}`);
     const cached = apiCache.get(cacheKey);
     if (cached) {
-      return cached;
+      return { text: cached, credits_remaining: null, daily_remaining: null, monthly_remaining: null };
     }
     
     // Fetch from API with purpose lens
-    const response = await AIService.getExplanation(questionText, modeKey, language, {
+    const result = await AIService.getExplanation(questionText, modeKey, language, {
       purposeLens,
       customLensPrompt: purposeLens === 'custom' ? customLensPrompt : undefined
     });
     
-    // Cache the response
-    apiCache.set(cacheKey, response);
+    // Cache the response text
+    apiCache.set(cacheKey, result.response);
     
-    return response;
+    return { text: result.response, credits_remaining: result.credits_remaining, daily_remaining: result.daily_remaining, monthly_remaining: result.monthly_remaining };
   }, [purposeLens, customLensPrompt]);
   
   // Handle question submission with staggered loading
