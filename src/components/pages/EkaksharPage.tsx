@@ -360,8 +360,8 @@ const EkaksharPage: React.FC<EkaksharPageProps> = ({ language }) => {
                       <Copy className="w-4 h-4 text-muted-foreground" />
                     </button>
                   </div>
-                  <div className="p-4 bg-muted/50 rounded-xl">
-                    <pre className="whitespace-pre-wrap text-sm font-mono text-foreground overflow-x-auto">
+                  <div className="p-4 bg-muted/50 rounded-xl overflow-x-auto -mx-1">
+                    <pre className="whitespace-pre text-xs font-mono text-foreground min-w-max leading-relaxed">
                       {results.visual_map}
                     </pre>
                   </div>
