@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Menu, User, Bell, SquarePen } from 'lucide-react';
+import { Menu, User, SquarePen } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
 import { PurposeLensKey } from '@/config/minimind';
@@ -50,8 +50,8 @@ const MobileHeader: React.FC<MobileHeaderProps> = ({
 
   return (
     <header className="app-header">
-      {/* Left: Menu (mobile) + Logo */}
-      <div className="flex items-center gap-3">
+      {/* Left: Menu + Logo */}
+      <div className="flex items-center gap-2.5">
         <motion.button
           className="header-icon-btn lg:hidden"
           onClick={onMenuClick}
@@ -61,7 +61,10 @@ const MobileHeader: React.FC<MobileHeaderProps> = ({
           <Menu className="w-5 h-5" />
         </motion.button>
 
-        <span className="logo-text-premium">MiniMind</span>
+        <div className="flex items-center gap-2">
+          <span className="text-xl">🧠</span>
+          <span className="logo-text-premium text-lg">MiniMind</span>
+        </div>
       </div>
 
       {/* Right: Actions */}
@@ -81,15 +84,6 @@ const MobileHeader: React.FC<MobileHeaderProps> = ({
 
         {/* Credits */}
         <CreditBadge onNavigateToSubscription={onNavigateToSubscription} />
-
-        {/* Notification placeholder */}
-        <motion.button
-          className="header-icon-btn hidden sm:flex"
-          whileTap={{ scale: 0.95 }}
-          aria-label="Notifications"
-        >
-          <Bell className="w-[18px] h-[18px]" />
-        </motion.button>
 
         {/* Profile avatar */}
         <motion.button
