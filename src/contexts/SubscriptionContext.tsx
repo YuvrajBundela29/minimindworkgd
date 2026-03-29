@@ -339,7 +339,7 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({ chil
       return false;
     }
 
-    // Read from ref for accurate cumulative tracking
+    // Optimistic UI update only — server deducts via deduct_user_credit atomically
     const currentCredits = creditsRef.current;
     
     let remainingCost = cost;
@@ -355,10 +355,9 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({ chil
       const monthlyAvailable = CREDIT_LIMITS[tier].monthly - currentCredits.monthlyUsed;
       const fromMonthly = Math.min(remainingCost, monthlyAvailable);
       newMonthlyUsed += fromMonthly;
-      remainingCost -= fromMonthly;
     }
 
-    // Update ref immediately so next call sees updated values
+    // Update ref immediately for rapid-call accuracy
     creditsRef.current = {
       ...currentCredits,
       dailyUsed: newDailyUsed,
@@ -375,29 +374,24 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({ chil
       },
     }));
 
+    // For guest users, persist to localStorage
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      
-      if (user) {
-        const today = new Date().toISOString().split('T')[0];
-        await supabase.rpc('update_user_credits', {
-          p_daily_used: newDailyUsed,
-          p_monthly_used: newMonthlyUsed,
-          p_daily_reset: today,
-        });
-      } else {
+      if (!user) {
         const today = new Date().toISOString().split('T')[0];
         localStorage.setItem('minimind_guest_credits', JSON.stringify({
           date: today,
           dailyUsed: newDailyUsed,
         }));
       }
-      
-      return true;
+      // For authenticated users: do NOT call update_user_credits here.
+      // The chat edge function already calls deduct_user_credit atomically.
+      // syncCreditsFromServer will update the UI with the server's response.
     } catch (error) {
-      console.error('Error persisting credits:', error);
-      return true;
+      console.error('Error in useCredits:', error);
     }
+    
+    return true;
   }, [tier, getCredits, showUpgradePrompt]);
 
   // Sync credits from server response (source of truth)
