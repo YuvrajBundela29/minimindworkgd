@@ -148,6 +148,16 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSignOut }) => {
         }));
         setAchievements(achievementsWithStatus);
       }
+
+      // Fetch streak data
+      const { data: streakRow } = await supabase
+        .from('user_streaks')
+        .select('current_streak')
+        .eq('user_id', user.id)
+        .single();
+      if (streakRow) {
+        setStreakData({ currentStreak: streakRow.current_streak });
+      }
     } catch (error) {
       console.error('Error fetching user data:', error);
       toast.error('Failed to load profile data');
