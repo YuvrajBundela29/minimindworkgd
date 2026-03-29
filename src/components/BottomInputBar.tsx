@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Mic, Wand2, Paperclip, X, FileText } from 'lucide-react';
+import { Send, Mic, Wand2, Paperclip, X, FileText, ArrowUp } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface FileInfo {
@@ -44,6 +44,7 @@ const BottomInputBar: React.FC<BottomInputBarProps> = ({
   isRefining = false,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [attachedFile, setAttachedFile] = useState<FileInfo | null>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -54,6 +55,25 @@ const BottomInputBar: React.FC<BottomInputBarProps> = ({
     } else if (value.trim() && !isLoading) {
       onSubmit();
     }
+    // Reset textarea height
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSubmit(e);
+    }
+  };
+
+  const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    onChange(e.target.value);
+    // Auto-resize
+    const el = e.target;
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 160) + 'px';
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -111,6 +131,8 @@ const BottomInputBar: React.FC<BottomInputBarProps> = ({
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
+  const hasContent = value.trim() || attachedFile;
+
   return (
     <div className="app-input-bar">
       <div className="app-input-inner">
@@ -118,19 +140,19 @@ const BottomInputBar: React.FC<BottomInputBarProps> = ({
         <AnimatePresence>
           {attachedFile && (
             <motion.div
-              initial={{ opacity: 0, y: 10, height: 0 }}
+              initial={{ opacity: 0, y: 8, height: 0 }}
               animate={{ opacity: 1, y: 0, height: 'auto' }}
-              exit={{ opacity: 0, y: 10, height: 0 }}
+              exit={{ opacity: 0, y: 8, height: 0 }}
               className="mb-2"
             >
-              <div className="flex items-center gap-3 p-2.5 rounded-xl bg-primary/8 border border-primary/15">
+              <div className="flex items-center gap-3 p-2.5 rounded-xl bg-primary/5 border border-primary/10">
                 {attachedFile.preview ? (
-                  <div className="w-9 h-9 rounded-lg overflow-hidden bg-muted flex-shrink-0">
+                  <div className="w-10 h-10 rounded-lg overflow-hidden bg-muted flex-shrink-0">
                     <img src={attachedFile.preview} alt="Preview" className="w-full h-full object-cover" />
                   </div>
                 ) : (
-                  <div className="w-9 h-9 rounded-lg bg-primary/15 flex items-center justify-center flex-shrink-0">
-                    <FileText className="w-4 h-4 text-primary" />
+                  <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                    <FileText className="w-4.5 h-4.5 text-primary" />
                   </div>
                 )}
                 <div className="flex-1 min-w-0">
@@ -150,88 +172,89 @@ const BottomInputBar: React.FC<BottomInputBarProps> = ({
           )}
         </AnimatePresence>
 
-        <form onSubmit={handleSubmit} className="flex items-end gap-1.5">
-          {/* Left actions */}
-          <div className="flex items-center gap-0.5 pb-0.5">
-            {onFileAnalysis && (
-              <>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  className="hidden"
-                  accept=".jpg,.jpeg,.png,.webp,.pdf,.txt,.csv"
-                  onChange={handleFileSelect}
-                  aria-label="Select file to analyze"
-                />
-                <motion.button
-                  type="button"
-                  className="header-icon-btn"
-                  onClick={() => fileInputRef.current?.click()}
-                  whileTap={{ scale: 0.95 }}
-                  aria-label="Attach file"
-                  disabled={isLoading}
-                >
-                  <Paperclip className="w-[18px] h-[18px]" />
-                </motion.button>
-              </>
-            )}
-          </div>
+        {/* Main Input Area - ChatGPT/Claude style */}
+        <div className="premium-input-container">
+          {/* Top: Textarea */}
+          <textarea
+            ref={textareaRef}
+            value={value}
+            onChange={handleTextareaChange}
+            onKeyDown={handleKeyDown}
+            placeholder={attachedFile ? "Add a message or just send..." : placeholder}
+            className="premium-textarea"
+            disabled={isLoading}
+            rows={1}
+          />
 
-          {/* Input */}
-          <div className="flex-1 min-w-0 relative">
-            <div className="input-field-container">
-              <input
-                type="text"
-                value={value}
-                onChange={(e) => onChange(e.target.value)}
-                placeholder={attachedFile ? "Add a message or just send..." : placeholder}
-                className="w-full bg-transparent border-none outline-none text-foreground text-sm py-2.5 px-3"
-                disabled={isLoading}
-              />
-            </div>
-          </div>
+          {/* Bottom: Action row */}
+          <div className="flex items-center justify-between px-1 pb-1.5">
+            {/* Left actions */}
+            <div className="flex items-center gap-0.5">
+              {onFileAnalysis && (
+                <>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    className="hidden"
+                    accept=".jpg,.jpeg,.png,.webp,.pdf,.txt,.csv"
+                    onChange={handleFileSelect}
+                    aria-label="Select file to analyze"
+                  />
+                  <motion.button
+                    type="button"
+                    className="input-action-btn"
+                    onClick={() => fileInputRef.current?.click()}
+                    whileTap={{ scale: 0.92 }}
+                    aria-label="Attach file"
+                    disabled={isLoading}
+                  >
+                    <Paperclip className="w-[18px] h-[18px]" />
+                  </motion.button>
+                </>
+              )}
 
-          {/* Right actions */}
-          <div className="flex items-center gap-0.5 pb-0.5">
-            <motion.button
-              type="button"
-              className="header-icon-btn"
-              onClick={onVoiceInput}
-              whileTap={{ scale: 0.95 }}
-              aria-label="Voice input"
-              disabled={isLoading}
-            >
-              <Mic className="w-[18px] h-[18px]" />
-            </motion.button>
-
-            {onRefinePrompt && value.trim() && !attachedFile && (
               <motion.button
                 type="button"
-                className="header-icon-btn"
-                onClick={onRefinePrompt}
-                whileTap={{ scale: 0.95 }}
-                aria-label="Refine prompt"
-                disabled={isLoading || isRefining}
+                className="input-action-btn"
+                onClick={onVoiceInput}
+                whileTap={{ scale: 0.92 }}
+                aria-label="Voice input"
+                disabled={isLoading}
               >
-                <Wand2 className={`w-[18px] h-[18px] ${isRefining ? 'text-primary animate-pulse' : ''}`} />
+                <Mic className="w-[18px] h-[18px]" />
               </motion.button>
-            )}
 
+              {onRefinePrompt && value.trim() && !attachedFile && (
+                <motion.button
+                  type="button"
+                  className="input-action-btn"
+                  onClick={onRefinePrompt}
+                  whileTap={{ scale: 0.92 }}
+                  aria-label="Refine prompt with AI"
+                  disabled={isLoading || isRefining}
+                >
+                  <Wand2 className={`w-[18px] h-[18px] ${isRefining ? 'text-primary animate-pulse' : ''}`} />
+                </motion.button>
+              )}
+            </div>
+
+            {/* Send button */}
             <motion.button
-              type="submit"
-              className="send-btn"
-              whileTap={{ scale: 0.95 }}
-              disabled={(!value.trim() && !attachedFile) || isLoading}
+              type="button"
+              onClick={handleSubmit}
+              className={`send-btn-premium ${hasContent ? 'send-btn-active' : 'send-btn-inactive'}`}
+              whileTap={{ scale: 0.92 }}
+              disabled={!hasContent || isLoading}
               aria-label="Send"
             >
               {isLoading ? (
                 <div className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
               ) : (
-                <Send className="w-4 h-4" />
+                <ArrowUp className="w-4 h-4" strokeWidth={2.5} />
               )}
             </motion.button>
           </div>
-        </form>
+        </div>
       </div>
     </div>
   );

@@ -8,39 +8,39 @@ interface HeroEmptyStateProps {
 const SUGGESTED_PROMPTS = [
   {
     emoji: '🧬',
-    text: 'Explain DNA replication step by step',
-    tag: 'Class 12 Biology',
+    text: 'How does DNA replicate itself before cell division?',
+    tag: 'Biology',
     tagColor: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300',
   },
   {
-    emoji: '⚗️',
-    text: 'Why do atoms form chemical bonds?',
-    tag: 'Chemistry',
-    tagColor: 'bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300',
-  },
-  {
-    emoji: '📐',
-    text: 'Prove Pythagoras theorem with examples',
-    tag: 'Class 10 Math',
-    tagColor: 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300',
-  },
-  {
-    emoji: '💡',
-    text: 'How does an electric motor work?',
+    emoji: '⚡',
+    text: 'Why does E = mc² matter and what does it really mean?',
     tag: 'Physics',
     tagColor: 'bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300',
   },
   {
     emoji: '🧮',
-    text: 'What is integration and why do we need it?',
-    tag: 'JEE Math',
-    tagColor: 'bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300',
+    text: 'What is calculus and why was it invented?',
+    tag: 'Mathematics',
+    tagColor: 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300',
   },
   {
-    emoji: '🫀',
-    text: 'Explain the human circulatory system',
-    tag: 'NEET Biology',
-    tagColor: 'bg-pink-100 text-pink-700 dark:bg-pink-900/50 dark:text-pink-300',
+    emoji: '⚗️',
+    text: 'Why do some chemical reactions release heat while others absorb it?',
+    tag: 'Chemistry',
+    tagColor: 'bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300',
+  },
+  {
+    emoji: '🌍',
+    text: 'How do tectonic plates shape Earth\'s surface over millions of years?',
+    tag: 'Geography',
+    tagColor: 'bg-teal-100 text-teal-700 dark:bg-teal-900/50 dark:text-teal-300',
+  },
+  {
+    emoji: '🤖',
+    text: 'How does artificial intelligence actually learn from data?',
+    tag: 'Technology',
+    tagColor: 'bg-rose-100 text-rose-700 dark:bg-rose-900/50 dark:text-rose-300',
   },
 ];
 
@@ -51,28 +51,28 @@ const HeroEmptyState: React.FC<HeroEmptyStateProps> = ({ onPromptClick }) => {
       <div className="text-center mb-8 animate-in slide-in-from-bottom-4 duration-500">
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/8 border border-primary/15 mb-5">
           <Sparkles className="w-3.5 h-3.5 text-primary" />
-          <span className="text-xs font-medium text-primary tracking-wide">MiniMind AI</span>
+          <span className="text-xs font-medium text-primary tracking-wide">4 AI Tutors • One Question</span>
         </div>
 
         <h1 className="text-2xl sm:text-3xl md:text-4xl font-heading font-bold text-foreground mb-3 leading-tight">
           What do you want to
           <br />
-          <span className="gradient-text">learn today?</span>
+          <span className="gradient-text">understand today?</span>
         </h1>
 
-        <p className="text-muted-foreground text-sm sm:text-base max-w-sm mx-auto leading-relaxed">
-          4 AI tutors explain any topic your way — from ELI5 to expert.
+        <p className="text-muted-foreground text-sm sm:text-base max-w-md mx-auto leading-relaxed">
+          Ask any question — get 4 expert explanations from Beginner to Mastery level, tailored to how you learn.
         </p>
       </div>
 
       {/* Prompt Grid */}
       <div className="w-full animate-in slide-in-from-bottom-6 duration-700 delay-150">
         <p className="text-xs font-medium text-muted-foreground mb-3 text-center tracking-wide uppercase">
-          Popular topics
+          Try asking
         </p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 px-1">
-          {SUGGESTED_PROMPTS.map((prompt, index) => (
+          {SUGGESTED_PROMPTS.map((prompt) => (
             <button
               key={prompt.text}
               onClick={() => onPromptClick(prompt.text)}
@@ -83,7 +83,7 @@ const HeroEmptyState: React.FC<HeroEmptyStateProps> = ({ onPromptClick }) => {
                 {prompt.emoji}
               </span>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground line-clamp-1 group-hover:text-primary transition-colors">
+                <p className="text-sm font-medium text-foreground line-clamp-2 group-hover:text-primary transition-colors">
                   {prompt.text}
                 </p>
                 <span className={`inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full mt-1 ${prompt.tagColor}`}>
@@ -98,7 +98,7 @@ const HeroEmptyState: React.FC<HeroEmptyStateProps> = ({ onPromptClick }) => {
 
       {/* Trust signal */}
       <p className="text-[10px] text-muted-foreground/50 mt-6 text-center tracking-wide">
-        Trusted by 10,000+ students • 4 explanation styles • Exam-focused
+        Trusted by 10,000+ students • Beginner → Thinker → Story → Mastery
       </p>
     </div>
   );
