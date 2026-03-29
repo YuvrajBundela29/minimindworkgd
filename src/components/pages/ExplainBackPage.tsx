@@ -91,12 +91,26 @@ const ExplainBackPage: React.FC = () => {
       useCredits(3, 'explain_back_evaluate');
       
       const responseText = (data.response as string) || 'Unable to evaluate right now. Please try again.';
-      const scoreMatch = responseText.match(/(\d+)\s*\/\s*10/);
-      const score = scoreMatch ? parseInt(scoreMatch[1]) * 10 : 70;
+      
+      // Parse score from "SCORE: XX" line at the start of response
+      let score = 50; // fallback
+      const scoreLineMatch = responseText.match(/^SCORE:\s*(\d+)/m);
+      if (scoreLineMatch) {
+        score = Math.min(100, Math.max(0, parseInt(scoreLineMatch[1])));
+      } else {
+        // Fallback: try "Accuracy: XX%"
+        const accuracyMatch = responseText.match(/Accuracy:\s*(\d+)\s*%/i);
+        if (accuracyMatch) {
+          score = Math.min(100, Math.max(0, parseInt(accuracyMatch[1])));
+        }
+      }
+      
+      // Clean the "SCORE: XX" line from displayed feedback
+      const cleanedFeedback = responseText.replace(/^SCORE:\s*\d+\s*\n*/m, '').trim();
 
       setEvaluation({
         score,
-        feedback: responseText,
+        feedback: cleanedFeedback,
       });
       
       setStep('feedback');
