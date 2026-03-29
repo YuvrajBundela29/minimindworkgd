@@ -5,6 +5,7 @@ import { useSubscription, PRICING, FREE_DAILY_LIMIT, CREDIT_LIMITS, TOP_UP_PRODU
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import CreditHistory from '@/components/CreditHistory';
+import ReferralSection from '@/components/ReferralSection';
 
 const SubscriptionPage: React.FC = () => {
   const { tier, subscription, initiateCheckout, initiateTopUp, isCheckoutLoading, getCredits } = useSubscription();
