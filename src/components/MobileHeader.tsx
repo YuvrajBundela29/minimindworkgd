@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import minimindLogo from '@/assets/minimind-logo.png';
 import { Menu, User, SquarePen } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
@@ -62,7 +63,7 @@ const MobileHeader: React.FC<MobileHeaderProps> = ({
         </motion.button>
 
         <div className="flex items-center gap-2">
-          <span className="text-xl">🧠</span>
+          <img src={minimindLogo} alt="MiniMind" className="w-7 h-7" width={28} height={28} />
           <span className="logo-text-premium text-lg">MiniMind</span>
         </div>
       </div>
