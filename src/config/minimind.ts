@@ -81,12 +81,12 @@ export const languages = {
 export type LanguageKey = keyof typeof languages;
 
 export const suggestedPrompts = [
-  "What would happen if humans could photosynthesize like plants?",
-  "Can AI truly understand human emotions or just simulate them?",
-  "What if Earth had two moons instead of one?",
-  "How would society change if we didn't need to sleep?",
-  "Why do we have different personalities and what shapes them?",
-  "What would the world be like if the Internet was never invented?",
+  "How does DNA replicate itself before cell division?",
+  "Why does E = mc² matter and what does it really mean?",
+  "What is calculus and why was it invented?",
+  "Why do some chemical reactions release heat while others absorb it?",
+  "How do tectonic plates shape Earth's surface over millions of years?",
+  "How does artificial intelligence actually learn from data?",
 ];
 
 // Purpose Lens configuration - adapts all 4 modes to user's learning context
