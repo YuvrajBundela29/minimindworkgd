@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { 
   User, Trophy, Flame, Calendar, Edit2, Save, X, LogOut,
-  TrendingUp, Brain, BarChart3, Camera, Upload
+  TrendingUp, Brain, BarChart3, Camera, Upload, Sparkles
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -11,6 +11,7 @@ import { Card } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ModeKey, modes } from '@/config/minimind';
+import { AvatarCustomizer, AvatarWithFrame } from '@/components/AvatarCustomizer';
 
 const displayNameSchema = z.string()
   .max(100, 'Display name must be less than 100 characters')
@@ -54,10 +55,19 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSignOut }) => {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [showAvatarCustomizer, setShowAvatarCustomizer] = useState(false);
+  const [selectedFrameId, setSelectedFrameId] = useState('default');
+  const [presetAvatar, setPresetAvatar] = useState<string | null>(null);
+  const [streakData, setStreakData] = useState({ currentStreak: 0 });
 
   useEffect(() => {
     fetchUserData();
     loadLocalStats();
+    // Load saved avatar customization from localStorage
+    const savedFrame = localStorage.getItem('minimind-avatar-frame');
+    const savedPreset = localStorage.getItem('minimind-preset-avatar');
+    if (savedFrame) setSelectedFrameId(savedFrame);
+    if (savedPreset) setPresetAvatar(savedPreset);
   }, []);
 
   const loadLocalStats = () => {
@@ -138,6 +148,16 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSignOut }) => {
         }));
         setAchievements(achievementsWithStatus);
       }
+
+      // Fetch streak data
+      const { data: streakRow } = await supabase
+        .from('user_streaks')
+        .select('current_streak')
+        .eq('user_id', user.id)
+        .single();
+      if (streakRow) {
+        setStreakData({ currentStreak: streakRow.current_streak });
+      }
     } catch (error) {
       console.error('Error fetching user data:', error);
       toast.error('Failed to load profile data');
@@ -176,6 +196,25 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSignOut }) => {
   };
 
   const handleAvatarClick = () => {
+    setShowAvatarCustomizer(true);
+  };
+
+  const handleSelectFrame = (frameId: string) => {
+    setSelectedFrameId(frameId);
+    localStorage.setItem('minimind-avatar-frame', frameId);
+    toast.success('Frame updated!');
+  };
+
+  const handleSelectPresetAvatar = (emoji: string) => {
+    setPresetAvatar(emoji);
+    localStorage.setItem('minimind-preset-avatar', emoji);
+    // Clear uploaded avatar when selecting preset
+    setAvatarUrl(null);
+    toast.success('Avatar updated!');
+  };
+
+  const handleUploadFromCustomizer = () => {
+    setShowAvatarCustomizer(false);
     fileInputRef.current?.click();
   };
 
@@ -230,6 +269,9 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSignOut }) => {
 
       setAvatarUrl(publicUrl);
       setProfile({ ...profile, avatar_url: publicUrl });
+      // Clear preset avatar when uploading custom
+      setPresetAvatar(null);
+      localStorage.removeItem('minimind-preset-avatar');
       toast.success('Profile picture updated!');
     } catch (error) {
       console.error('Error uploading avatar:', error);
@@ -282,6 +324,20 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSignOut }) => {
         className="hidden"
       />
 
+      {/* Avatar Customizer Modal */}
+      <AvatarCustomizer
+        isOpen={showAvatarCustomizer}
+        onClose={() => setShowAvatarCustomizer(false)}
+        currentAvatarUrl={avatarUrl}
+        currentFrameId={selectedFrameId}
+        currentPresetAvatar={presetAvatar}
+        totalQuestions={statistics?.total_questions || 0}
+        currentStreak={streakData.currentStreak}
+        onSelectFrame={handleSelectFrame}
+        onSelectPresetAvatar={handleSelectPresetAvatar}
+        onUploadClick={handleUploadFromCustomizer}
+      />
+
       {/* Profile Header */}
       <motion.div
         className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary/20 via-accent/10 to-primary/5 p-6 border border-primary/20"
@@ -290,37 +346,29 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSignOut }) => {
       >
         <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-primary/20 to-transparent rounded-full blur-3xl" />
         <div className="relative flex items-start gap-4">
-          {/* Avatar with upload */}
+          {/* Avatar with frame */}
           <div className="relative group">
             <button
               onClick={handleAvatarClick}
               disabled={isUploadingAvatar}
-              className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-lg overflow-hidden relative"
+              className="relative"
             >
-              {avatarUrl ? (
-                <img 
-                  src={avatarUrl} 
-                  alt="Profile" 
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <User className="w-8 h-8 text-white" />
-              )}
+              <AvatarWithFrame
+                avatarUrl={presetAvatar ? null : avatarUrl}
+                presetAvatar={presetAvatar}
+                frameId={selectedFrameId}
+                size="md"
+              />
               
               {/* Overlay on hover */}
-              <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+              <div className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                 {isUploadingAvatar ? (
                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                 ) : (
-                  <Camera className="w-5 h-5 text-white" />
+                  <Sparkles className="w-5 h-5 text-white" />
                 )}
               </div>
             </button>
-            
-            {/* Upload badge */}
-            <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-primary flex items-center justify-center shadow-md">
-              <Upload className="w-3 h-3 text-primary-foreground" />
-            </div>
           </div>
 
           <div className="flex-1">
@@ -361,6 +409,12 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSignOut }) => {
               </div>
             )}
             <p className="text-sm text-muted-foreground mt-0.5">{user.email}</p>
+            <button 
+              onClick={() => setShowAvatarCustomizer(true)}
+              className="text-xs text-primary font-medium mt-1.5 hover:underline"
+            >
+              Customize avatar & frame
+            </button>
           </div>
         </div>
       </motion.div>

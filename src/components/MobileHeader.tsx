@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
 import { PurposeLensKey } from '@/config/minimind';
 import CreditBadge from '@/components/CreditBadge';
+import { AvatarWithFrame } from '@/components/AvatarCustomizer';
 
 interface MobileHeaderProps {
   onMenuClick: () => void;
@@ -24,6 +25,8 @@ const MobileHeader: React.FC<MobileHeaderProps> = ({
   onNavigateToSubscription,
 }) => {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [presetAvatar, setPresetAvatar] = useState<string | null>(null);
+  const [frameId, setFrameId] = useState('default');
 
   useEffect(() => {
     const fetchAvatar = async () => {
@@ -40,13 +43,34 @@ const MobileHeader: React.FC<MobileHeaderProps> = ({
       }
     };
 
+    const loadCustomization = () => {
+      const savedFrame = localStorage.getItem('minimind-avatar-frame');
+      const savedPreset = localStorage.getItem('minimind-preset-avatar');
+      if (savedFrame) setFrameId(savedFrame);
+      if (savedPreset) setPresetAvatar(savedPreset);
+    };
+
     fetchAvatar();
+    loadCustomization();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
       fetchAvatar();
+      loadCustomization();
     });
 
-    return () => subscription.unsubscribe();
+    // Listen for storage changes (when user updates avatar in profile)
+    const handleStorage = () => {
+      const savedFrame = localStorage.getItem('minimind-avatar-frame');
+      const savedPreset = localStorage.getItem('minimind-preset-avatar');
+      if (savedFrame) setFrameId(savedFrame);
+      setPresetAvatar(savedPreset);
+    };
+    window.addEventListener('storage', handleStorage);
+
+    return () => {
+      subscription.unsubscribe();
+      window.removeEventListener('storage', handleStorage);
+    };
   }, []);
 
   return (
@@ -88,20 +112,17 @@ const MobileHeader: React.FC<MobileHeaderProps> = ({
 
         {/* Profile avatar */}
         <motion.button
-          className="header-avatar"
+          className="relative"
           onClick={onProfileClick}
           whileTap={{ scale: 0.95 }}
           aria-label="Profile"
         >
-          {avatarUrl ? (
-            <img
-              src={avatarUrl}
-              alt="Profile"
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <User className="w-4 h-4 text-muted-foreground" />
-          )}
+          <AvatarWithFrame
+            avatarUrl={presetAvatar ? null : avatarUrl}
+            presetAvatar={presetAvatar}
+            frameId={frameId}
+            size="sm"
+          />
         </motion.button>
       </div>
     </header>
