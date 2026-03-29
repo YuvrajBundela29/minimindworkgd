@@ -416,9 +416,10 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSignOut }) => {
           </Card>
         </TabsContent>
 
-        {/* Progress Tab - CHANGE 5: Fix proportional bars */}
+        {/* Progress Tab */}
         <TabsContent value="progress" className="mt-4 space-y-4">
-          <Card className="p-5 bg-card border-border/50">
+          {/* Mode Usage */}
+          <Card className="p-5 bg-card/80 backdrop-blur-sm border-border/50">
             <div className="flex items-center gap-2 mb-4">
               <BarChart3 className="w-5 h-5 text-primary" />
               <h3 className="font-semibold text-foreground">Mode Usage</h3>
@@ -426,7 +427,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSignOut }) => {
             <div className="space-y-4">
               {(Object.keys(modes) as ModeKey[]).map((modeKey) => {
                 const usage = modeUsage[modeKey] || 0;
-                const percentage = maxUsage > 0 ? (usage / maxUsage) * 100 : 0;
+                const percentage = (usage / maxUsage) * 100;
                 return (
                   <div key={modeKey} className="space-y-2">
                     <div className="flex items-center justify-between text-sm">
@@ -434,19 +435,15 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSignOut }) => {
                         <span className="text-lg">{modes[modeKey].icon}</span>
                         <span className="font-medium text-foreground">{modes[modeKey].name}</span>
                       </span>
-                      <span className="text-muted-foreground">
-                        {usage === 0 ? <span className="text-xs italic">Not used yet</span> : `${usage} uses`}
-                      </span>
+                      <span className="text-muted-foreground">{usage} uses</span>
                     </div>
                     <div className="h-2 bg-muted rounded-full overflow-hidden">
-                      {usage > 0 && (
-                        <motion.div
-                          className="h-full bg-gradient-to-r from-primary to-accent rounded-full"
-                          initial={{ width: 0 }}
-                          animate={{ width: `${percentage}%` }}
-                          transition={{ duration: 0.8, ease: [0.25, 0.1, 0.25, 1] }}
-                        />
-                      )}
+                      <motion.div
+                        className="h-full bg-gradient-to-r from-primary to-accent rounded-full"
+                        initial={{ width: 0 }}
+                        animate={{ width: `${percentage}%` }}
+                        transition={{ duration: 0.5 }}
+                      />
                     </div>
                   </div>
                 );
@@ -455,11 +452,12 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSignOut }) => {
           </Card>
 
           {/* Skills Growing */}
-          <Card className="p-5 bg-card border-border/50">
+          <Card className="p-5 bg-card/80 backdrop-blur-sm border-border/50">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold text-foreground">Skills Growing</h3>
               <span className="text-xs text-emerald-500 flex items-center gap-1">
-                <TrendingUp className="w-3 h-3" /> Improving
+                <TrendingUp className="w-3 h-3" />
+                Improving
               </span>
             </div>
             <div className="space-y-4">
@@ -472,55 +470,41 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSignOut }) => {
                       <span className="text-xs text-muted-foreground">{skill.level}%</span>
                     </div>
                   </div>
-                  <div className="h-2 bg-muted rounded-full overflow-hidden">
-                    <motion.div
-                      className="h-full bg-gradient-to-r from-primary to-accent rounded-full"
-                      initial={{ width: 0 }}
-                      animate={{ width: `${skill.level}%` }}
-                      transition={{ duration: 0.8, ease: [0.25, 0.1, 0.25, 1] }}
-                    />
-                  </div>
+                  <Progress value={skill.level} className="h-2" />
                 </div>
               ))}
             </div>
           </Card>
         </TabsContent>
 
-        {/* CHANGE 6: Badge earned/locked states */}
+        {/* Achievements Tab */}
         <TabsContent value="achievements" className="mt-4">
           <div className="grid grid-cols-2 gap-3">
-            {achievements.map((achievement, index) => {
-              const isEarned = achievement.unlocked;
-              return (
-                <motion.div
-                  key={achievement.id}
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 0.05 * index }}
-                >
-                  <Card className={isEarned ? 'badge-card-earned badge-shimmer' : 'badge-card-locked'}>
-                    <div className={isEarned ? '' : 'badge-icon'}>
-                      <div className="text-3xl mb-2">{achievement.icon}</div>
-                    </div>
-                    <h4 className={`font-semibold text-sm ${isEarned ? 'text-primary' : 'text-muted-foreground'}`}>
-                      {achievement.name}
-                    </h4>
-                    <p className="text-xs text-muted-foreground mt-1">{achievement.description}</p>
-                    {isEarned && (
-                      <p className="text-[10px] text-emerald-600 dark:text-emerald-400 mt-2 flex items-center gap-1">
-                        ✓ Earned {achievement.unlocked_at ? new Date(achievement.unlocked_at).toLocaleDateString() : ''}
-                      </p>
-                    )}
-                    {!isEarned && (
-                      <p className="text-[10px] text-muted-foreground mt-2 flex items-center gap-1">
-                        <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                        {achievement.description}
-                      </p>
-                    )}
-                  </Card>
-                </motion.div>
-              );
-            })}
+            {achievements.map((achievement, index) => (
+              <motion.div
+                key={achievement.id}
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.05 * index }}
+              >
+                <Card className={`p-4 ${
+                  achievement.unlocked
+                    ? 'bg-gradient-to-br from-amber-500/10 to-yellow-500/5 border-amber-500/30'
+                    : 'bg-card/50 border-border opacity-60'
+                }`}>
+                  <div className="text-3xl mb-2">{achievement.icon}</div>
+                  <h4 className={`font-semibold text-sm ${achievement.unlocked ? 'text-foreground' : 'text-muted-foreground'}`}>
+                    {achievement.name}
+                  </h4>
+                  <p className="text-xs text-muted-foreground mt-1">{achievement.description}</p>
+                  {achievement.unlocked && achievement.unlocked_at && (
+                    <p className="text-[10px] text-amber-600 dark:text-amber-400 mt-2">
+                      Unlocked {new Date(achievement.unlocked_at).toLocaleDateString()}
+                    </p>
+                  )}
+                </Card>
+              </motion.div>
+            ))}
           </div>
         </TabsContent>
       </Tabs>
