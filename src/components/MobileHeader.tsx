@@ -112,20 +112,17 @@ const MobileHeader: React.FC<MobileHeaderProps> = ({
 
         {/* Profile avatar */}
         <motion.button
-          className="header-avatar"
+          className="relative"
           onClick={onProfileClick}
           whileTap={{ scale: 0.95 }}
           aria-label="Profile"
         >
-          {avatarUrl ? (
-            <img
-              src={avatarUrl}
-              alt="Profile"
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <User className="w-4 h-4 text-muted-foreground" />
-          )}
+          <AvatarWithFrame
+            avatarUrl={presetAvatar ? null : avatarUrl}
+            presetAvatar={presetAvatar}
+            frameId={frameId}
+            size="sm"
+          />
         </motion.button>
       </div>
     </header>
