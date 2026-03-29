@@ -63,6 +63,11 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSignOut }) => {
   useEffect(() => {
     fetchUserData();
     loadLocalStats();
+    // Load saved avatar customization from localStorage
+    const savedFrame = localStorage.getItem('minimind-avatar-frame');
+    const savedPreset = localStorage.getItem('minimind-preset-avatar');
+    if (savedFrame) setSelectedFrameId(savedFrame);
+    if (savedPreset) setPresetAvatar(savedPreset);
   }, []);
 
   const loadLocalStats = () => {
