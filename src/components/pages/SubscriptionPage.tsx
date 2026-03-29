@@ -5,6 +5,7 @@ import { useSubscription, PRICING, FREE_DAILY_LIMIT, CREDIT_LIMITS, TOP_UP_PRODU
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import CreditHistory from '@/components/CreditHistory';
+import ReferralSection from '@/components/ReferralSection';
 
 const SubscriptionPage: React.FC = () => {
   const { tier, subscription, initiateCheckout, initiateTopUp, isCheckoutLoading, getCredits } = useSubscription();
@@ -369,6 +370,15 @@ const SubscriptionPage: React.FC = () => {
         transition={{ delay: 0.35 }}
       >
         <CreditHistory />
+      </motion.div>
+
+      {/* Referral Section */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.38 }}
+      >
+        <ReferralSection />
       </motion.div>
 
       {/* Early Learner Advantage */}
