@@ -111,12 +111,9 @@ const ModeCard: React.FC<ModeCardProps> = ({
           <h3 className="font-heading font-semibold text-lg text-foreground truncate">
             {mode.name}
           </h3>
-          <span className={`mode-badge ${mode.badgeClass} shrink-0 text-[10px] px-1.5 py-0.5`}>
-            {mode.badge}
-          </span>
           <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-medium shrink-0">
             <Zap className="w-2.5 h-2.5" />
-            {creditCost} credit{creditCost !== 1 ? 's' : ''}
+            {creditCost}
           </span>
         </div>
         
