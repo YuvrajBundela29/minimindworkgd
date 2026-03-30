@@ -44,6 +44,15 @@ interface SkillArea {
   trend: 'up' | 'stable' | 'down';
 }
 
+interface BrainProfile {
+  summary: string;
+  strengths: string[];
+  growthAreas: string[];
+  focusMode: string;
+  learningPattern: string;
+  recommendedPlan: string[];
+}
+
 const ProfilePage: React.FC<ProfilePageProps> = ({ onSignOut }) => {
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
