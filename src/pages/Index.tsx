@@ -18,7 +18,9 @@ import speechService from '@/services/speechService';
 import { downloadPDF, sharePDF, SharePlatform } from '@/utils/pdfGenerator';
 import { supabase } from '@/integrations/supabase/client';
 import { logUsage } from '@/services/usageLogger';
+import { checkAndUnlockAchievements } from '@/hooks/useAchievementChecker';
 import CreditExhaustionModal from '@/components/CreditExhaustionModal';
+import AchievementCelebration from '@/components/AchievementCelebration';
 // Session persistence key
 const SESSION_STORAGE_KEY = 'minimind-current-session';
 import { useSubscription, CREDIT_COSTS, CREDIT_LIMITS } from '@/contexts/SubscriptionContext';
