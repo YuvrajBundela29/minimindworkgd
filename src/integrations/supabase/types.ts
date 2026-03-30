@@ -44,6 +44,211 @@ export type Database = {
         }
         Relationships: []
       }
+      arena_challenges: {
+        Row: {
+          active: boolean | null
+          correct_answer: string
+          created_at: string | null
+          date: string
+          difficulty: string | null
+          explanation: string
+          hint: string | null
+          id: string
+          question: string
+          subject: string
+          topic: string
+        }
+        Insert: {
+          active?: boolean | null
+          correct_answer: string
+          created_at?: string | null
+          date: string
+          difficulty?: string | null
+          explanation: string
+          hint?: string | null
+          id?: string
+          question: string
+          subject: string
+          topic: string
+        }
+        Update: {
+          active?: boolean | null
+          correct_answer?: string
+          created_at?: string | null
+          date?: string
+          difficulty?: string | null
+          explanation?: string
+          hint?: string | null
+          id?: string
+          question?: string
+          subject?: string
+          topic?: string
+        }
+        Relationships: []
+      }
+      arena_leaderboard: {
+        Row: {
+          challenge_id: string
+          display_name: string | null
+          id: string
+          rank: number | null
+          score: number
+          submitted_at: string | null
+          user_id: string
+        }
+        Insert: {
+          challenge_id: string
+          display_name?: string | null
+          id?: string
+          rank?: number | null
+          score: number
+          submitted_at?: string | null
+          user_id: string
+        }
+        Update: {
+          challenge_id?: string
+          display_name?: string | null
+          id?: string
+          rank?: number | null
+          score?: number
+          submitted_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "arena_leaderboard_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "arena_challenges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      arena_submissions: {
+        Row: {
+          challenge_id: string
+          id: string
+          score: number | null
+          submitted_at: string | null
+          time_taken_seconds: number | null
+          used_hint: boolean | null
+          user_answer: string
+          user_id: string
+        }
+        Insert: {
+          challenge_id: string
+          id?: string
+          score?: number | null
+          submitted_at?: string | null
+          time_taken_seconds?: number | null
+          used_hint?: boolean | null
+          user_answer: string
+          user_id: string
+        }
+        Update: {
+          challenge_id?: string
+          id?: string
+          score?: number | null
+          submitted_at?: string | null
+          time_taken_seconds?: number | null
+          used_hint?: boolean | null
+          user_answer?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "arena_submissions_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "arena_challenges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      certificates: {
+        Row: {
+          certificate_code: string
+          id: string
+          issued_at: string | null
+          learning_path_id: string
+          learning_path_name: string
+          mastery_score: number
+          user_id: string
+        }
+        Insert: {
+          certificate_code: string
+          id?: string
+          issued_at?: string | null
+          learning_path_id: string
+          learning_path_name: string
+          mastery_score: number
+          user_id: string
+        }
+        Update: {
+          certificate_code?: string
+          id?: string
+          issued_at?: string | null
+          learning_path_id?: string
+          learning_path_name?: string
+          mastery_score?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      coin_transactions: {
+        Row: {
+          amount: number
+          created_at: string | null
+          id: string
+          reason: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          id?: string
+          reason: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          id?: string
+          reason?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      parent_child_links: {
+        Row: {
+          child_nickname: string | null
+          child_user_id: string
+          code_expires_at: string | null
+          id: string
+          link_code: string | null
+          linked_at: string | null
+          parent_user_id: string
+        }
+        Insert: {
+          child_nickname?: string | null
+          child_user_id: string
+          code_expires_at?: string | null
+          id?: string
+          link_code?: string | null
+          linked_at?: string | null
+          parent_user_id: string
+        }
+        Update: {
+          child_nickname?: string | null
+          child_user_id?: string
+          code_expires_at?: string | null
+          id?: string
+          link_code?: string | null
+          linked_at?: string | null
+          parent_user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -155,6 +360,33 @@ export type Database = {
         }
         Relationships: []
       }
+      shop_items: {
+        Row: {
+          cost_coins: number
+          description: string | null
+          id: string
+          is_active: boolean | null
+          item_type: string
+          name: string
+        }
+        Insert: {
+          cost_coins: number
+          description?: string | null
+          id: string
+          is_active?: boolean | null
+          item_type: string
+          name: string
+        }
+        Update: {
+          cost_coins?: number
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          item_type?: string
+          name?: string
+        }
+        Relationships: []
+      }
       usage_logs: {
         Row: {
           created_at: string
@@ -210,6 +442,56 @@ export type Database = {
             columns: ["achievement_id"]
             isOneToOne: false
             referencedRelation: "achievements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_coins: {
+        Row: {
+          balance: number | null
+          total_earned: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          balance?: number | null
+          total_earned?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          balance?: number | null
+          total_earned?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_purchases: {
+        Row: {
+          id: string
+          item_id: string
+          purchased_at: string | null
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          item_id: string
+          purchased_at?: string | null
+          user_id: string
+        }
+        Update: {
+          id?: string
+          item_id?: string
+          purchased_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_purchases_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "shop_items"
             referencedColumns: ["id"]
           },
         ]
