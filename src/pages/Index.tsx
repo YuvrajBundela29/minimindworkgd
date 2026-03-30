@@ -87,7 +87,7 @@ const Index = () => {
   const abortControllerRef = useRef<AbortController | null>(null);
   
   // State Management
-  const [currentPage, setCurrentPage] = useState<NavigationId | 'auth' | 'terms' | 'privacy' | 'refund'>('home');
+  const [currentPage, setCurrentPage] = useState<NavigationId | 'auth' | 'terms' | 'privacy' | 'refund' | 'arena' | 'shop' | 'certificates' | 'parentdashboard' | 'gurudashboard' | 'wrapped'>('home');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [selectedLanguage, setSelectedLanguage] = useState<LanguageKey>('en');
