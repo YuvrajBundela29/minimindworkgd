@@ -48,6 +48,7 @@ const ArenaPage = React.lazy(() => import('@/components/pages/ArenaPage'));
 const ShopPage = React.lazy(() => import('@/components/pages/ShopPage'));
 const CertificatePage = React.lazy(() => import('@/components/pages/CertificatePage'));
 const GuruDashboardPage = React.lazy(() => import('@/components/pages/GuruDashboardPage'));
+const ProgressDashboard = React.lazy(() => import('@/components/pages/ProgressDashboard'));
 const ExplorePage = React.lazy(() => import('@/components/pages/ExplorePage'));
 const AccountPage = React.lazy(() => import('@/components/pages/AccountPage'));
 
@@ -102,7 +103,7 @@ const Index = () => {
   const abortControllerRef = useRef<AbortController | null>(null);
   
   // State Management
-  const [currentPage, setCurrentPageRaw] = useState<NavigationId | 'auth' | 'terms' | 'privacy' | 'refund' | 'arena' | 'shop' | 'certificates' | 'gurudashboard' | 'explore' | 'account'>('home');
+  const [currentPage, setCurrentPageRaw] = useState<NavigationId | 'auth' | 'terms' | 'privacy' | 'refund' | 'arena' | 'shop' | 'certificates' | 'gurudashboard' | 'explore' | 'account' | 'progressdashboard'>('home');
   
   // Wrap setCurrentPage to track navigation history for back button
   const setCurrentPage = useCallback((page: typeof currentPage) => {
@@ -1012,6 +1013,22 @@ const Index = () => {
             <Suspense fallback={<PageLoadingFallback />}>
               <motion.div key="account" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
                 <AccountPage onNavigate={(page: string) => setCurrentPage(page as typeof currentPage)} onSignOut={handleSignOut} />
+              </motion.div>
+            </Suspense>
+          )}
+
+          {currentPage === 'gurudashboard' && (
+            <Suspense fallback={<PageLoadingFallback />}>
+              <motion.div key="gurudashboard" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                <GuruDashboardPage />
+              </motion.div>
+            </Suspense>
+          )}
+
+          {currentPage === 'progressdashboard' && (
+            <Suspense fallback={<PageLoadingFallback />}>
+              <motion.div key="progressdashboard" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                <ProgressDashboard />
               </motion.div>
             </Suspense>
           )}
