@@ -836,7 +836,7 @@ const Index = () => {
   return (
     <div className="app-container">
       <MobileHeader onMenuClick={() => setIsMenuOpen(true)} onProfileClick={() => user ? setCurrentPage('profile') : setCurrentPage('auth')} currentLens={purposeLens} onNewChat={handleNewChat} hasActiveChat={hasAskedQuestion} onNavigateToSubscription={() => setCurrentPage('subscription')} onNavigateToShop={() => setCurrentPage('shop')} />
-      <SideMenu isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} currentPage={currentPage} onNavigate={(page: string) => setCurrentPage(page as typeof currentPage)} theme={theme} onToggleTheme={toggleTheme} onShowGuide={() => setShowOnboarding(true)} onNewChat={handleNewChat} />
+      <SideMenu isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} currentPage={currentPage} onNavigate={(page: string) => setCurrentPage(page as typeof currentPage)} theme={theme} onToggleTheme={toggleTheme} onShowGuide={() => setShowOnboarding(true)} onNewChat={handleNewChat} history={history.map(h => ({ id: h.id, question: h.question, timestamp: h.timestamp }))} onLoadHistoryItem={(item) => { const found = history.find(h => h.id === item.id); if (found) handleLoadHistory(found); }} />
       
       <main className="page-content px-4 custom-scrollbar">
         <AnimatePresence mode="wait">
