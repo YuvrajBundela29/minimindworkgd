@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
   User, Clock, FileText, Crown, Settings, 
@@ -22,12 +22,29 @@ const ACCOUNT_ITEMS = [
 
 const AccountPage: React.FC<AccountPageProps> = ({ onNavigate, onSignOut }) => {
   const { tier } = useSubscription();
+  const [displayName, setDisplayName] = useState<string>('');
+  const [userEmail, setUserEmail] = useState<string>('');
   const tierLabel = tier === 'free' ? 'Free Plan' : tier === 'plus' ? 'Plus Plan' : 'Pro Plan';
   const tierGradient = tier === 'pro'
     ? 'from-amber-500 to-orange-500'
     : tier === 'plus'
     ? 'from-violet-500 to-purple-500'
     : 'from-slate-400 to-slate-500';
+
+  useEffect(() => {
+    const loadProfile = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      setUserEmail(user.email || '');
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('display_name')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      setDisplayName(profile?.display_name || user.email?.split('@')[0] || '');
+    };
+    loadProfile();
+  }, []);
 
   return (
     <div className="space-y-5 pb-24 max-w-lg mx-auto">
@@ -41,8 +58,8 @@ const AccountPage: React.FC<AccountPageProps> = ({ onNavigate, onSignOut }) => {
           <User className="w-5 h-5 text-primary" />
           <span className="text-sm font-semibold text-primary">Account</span>
         </div>
-        <h1 className="text-xl font-bold text-foreground">Your Account</h1>
-        <p className="text-xs text-muted-foreground mt-1">Manage your profile and preferences</p>
+        <h1 className="text-xl font-bold text-foreground">Hi, {displayName} 👋</h1>
+        <p className="text-xs text-muted-foreground mt-1">{userEmail}</p>
       </motion.div>
 
       {/* Current Plan Card */}
