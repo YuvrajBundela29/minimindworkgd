@@ -426,7 +426,7 @@ serve(async (req) => {
       );
     }
 
-    // --- SERVER-SIDE CREDIT CHECK & DEDUCTION ---
+    // --- SERVER-SIDE CREDIT DEDUCTION (BEFORE AI call) ---
     const creditCost = getCreditCost(type, mode);
     
     // Create admin client for credit operations (bypasses RLS) only for authenticated users
@@ -437,30 +437,56 @@ serve(async (req) => {
         )
       : null;
 
-    // Pre-check credits (only for non-free operations)
+    // Deduct credits atomically BEFORE the AI call to prevent race conditions
+    let creditsRemaining: number | null = null;
+    let dailyRemaining: number | null = null;
+    let monthlyRemaining: number | null = null;
+
     if (creditCost > 0 && userId && adminClient) {
       try {
-        const { data: preCheck, error: preCheckError } = await adminClient.rpc('deduct_user_credit', {
+        const { data: deductResult, error: deductError } = await adminClient.rpc('deduct_user_credit', {
           p_user_id: userId,
-          p_cost: 0 // Pre-check mode
+          p_cost: creditCost
         });
 
-        if (preCheckError) {
-          console.error("Credit pre-check error:", preCheckError.message);
-          // Don't block — proceed and try to deduct after
-        } else if (preCheck && !preCheck.success && preCheck.error === 'credits_exhausted') {
+        if (deductError) {
+          console.error("Credit deduction error:", deductError.message);
           return new Response(
-            JSON.stringify({ 
-              error: "credits_exhausted", 
-              tier: preCheck.tier,
-              credits_remaining: 0 
-            }),
-            { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            JSON.stringify({ error: "credit_check_failed" }),
+            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );
         }
+
+        if (deductResult && !deductResult.success) {
+          if (deductResult.error === 'credits_exhausted') {
+            return new Response(
+              JSON.stringify({ 
+                error: "credits_exhausted", 
+                tier: deductResult.tier,
+                credits_remaining: deductResult.credits_remaining ?? 0 
+              }),
+              { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
+          return new Response(
+            JSON.stringify({ error: deductResult.error || "credit_deduction_failed" }),
+            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        if (deductResult) {
+          creditsRemaining = deductResult.credits_remaining ?? null;
+          dailyRemaining = deductResult.daily_remaining ?? null;
+          monthlyRemaining = deductResult.monthly_remaining ?? null;
+          const userLabel = userId.substring(0, 8);
+          console.log(`User ${userLabel}... - Deducted ${creditCost} credits BEFORE AI call. Remaining: ${creditsRemaining}`);
+        }
       } catch (e) {
-        console.error("Credit pre-check exception:", e);
-        // Don't block on pre-check failure
+        console.error("Credit deduction exception:", e);
+        return new Response(
+          JSON.stringify({ error: "credit_system_error" }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
       }
     }
 
@@ -766,7 +792,25 @@ Then provide your detailed feedback:
       }),
     });
 
+    // Helper to refund credits on AI failure
+    const refundCredits = async () => {
+      if (creditCost > 0 && userId && adminClient) {
+        try {
+          await adminClient.rpc('refund_user_credit', {
+            p_user_id: userId,
+            p_cost: creditCost
+          });
+          console.log(`User ${userLabel} - Refunded ${creditCost} credits after AI failure`);
+        } catch (refundErr) {
+          console.error("Credit refund failed:", refundErr);
+        }
+      }
+    };
+
     if (!response.ok) {
+      // Refund credits since AI call failed
+      await refundCredits();
+
       if (response.status === 429) {
         return new Response(
           JSON.stringify({ error: "Rate limits exceeded. Please try again in a moment." }),
@@ -788,32 +832,15 @@ Then provide your detailed feedback:
     }
 
     const data = await response.json();
-    const generatedText = data.choices?.[0]?.message?.content || "I couldn't generate a response. Please try again.";
+    const generatedText = data.choices?.[0]?.message?.content;
 
-    // --- SERVER-SIDE CREDIT DEDUCTION (after successful AI response) ---
-    let creditsRemaining: number | null = null;
-    let dailyRemaining: number | null = null;
-    let monthlyRemaining: number | null = null;
-
-    if (creditCost > 0 && userId && adminClient) {
-      try {
-        const { data: deductResult, error: deductError } = await adminClient.rpc('deduct_user_credit', {
-          p_user_id: userId,
-          p_cost: creditCost
-        });
-
-        if (deductError) {
-          console.error("Credit deduction error:", deductError.message);
-        } else if (deductResult) {
-          creditsRemaining = deductResult.credits_remaining ?? null;
-          dailyRemaining = deductResult.daily_remaining ?? null;
-          monthlyRemaining = deductResult.monthly_remaining ?? null;
-          console.log(`User ${userLabel} - Deducted ${creditCost} credits. Remaining: ${creditsRemaining}`);
-        }
-      } catch (e) {
-        console.error("Credit deduction exception:", e);
-        // Never block the response — user still gets their AI answer
-      }
+    if (!generatedText) {
+      // AI returned empty — refund
+      await refundCredits();
+      return new Response(
+        JSON.stringify({ error: "AI returned empty response. Credits refunded." }),
+        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     return new Response(
