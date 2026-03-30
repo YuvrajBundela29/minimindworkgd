@@ -196,28 +196,52 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSignOut }) => {
 
         if (toUnlock.length > 0) {
           const unlockedAt = new Date().toISOString();
-          const { error: unlockError } = await supabase
-            .from('user_achievements')
-            .insert(
-              toUnlock.map((achievement) => ({
-                user_id: user.id,
-                achievement_id: achievement.id,
-                unlocked_at: unlockedAt,
-              }))
-            );
+          // Use individual inserts to handle duplicates gracefully
+          const insertResults = await Promise.allSettled(
+            toUnlock.map((achievement) =>
+              supabase
+                .from('user_achievements')
+                .insert({
+                  user_id: user.id,
+                  achievement_id: achievement.id,
+                  unlocked_at: unlockedAt,
+                })
+                .select()
+            )
+          );
 
-          if (!unlockError) {
+          const newlyUnlocked = toUnlock.filter((_, i) => insertResults[i].status === 'fulfilled' && (insertResults[i] as PromiseFulfilledResult<any>).value.error === null);
+
+          if (newlyUnlocked.length > 0) {
             userAchievements = [
               ...(userAchievements ?? []),
-              ...toUnlock.map((achievement) => ({ achievement_id: achievement.id, unlocked_at: unlockedAt })),
+              ...newlyUnlocked.map((achievement) => ({ achievement_id: achievement.id, unlocked_at: unlockedAt })),
             ];
 
             await Promise.all(
-              toUnlock.map((achievement) => ensureBadgeCertificate(user.id, achievement.id, achievement.name))
+              newlyUnlocked.map((achievement) => ensureBadgeCertificate(user.id, achievement.id, achievement.name))
             );
 
-            // Show celebration popup instead of toast
-            setCelebrationAchievements(toUnlock.map(a => ({
+            // Auto-unlock best available frame
+            const { AVATAR_FRAMES } = await import('@/components/AvatarCustomizer');
+            const bestFrame = [...AVATAR_FRAMES]
+              .filter(f => {
+                if (f.unlockType === 'default') return false;
+                if (f.unlockType === 'questions') return totalQuestions >= f.unlockValue;
+                if (f.unlockType === 'streak') return currentStreak >= f.unlockValue;
+                return false;
+              })
+              .pop();
+
+            if (bestFrame) {
+              // Auto-apply the best frame
+              setSelectedFrameId(bestFrame.id);
+              localStorage.setItem('minimind-avatar-frame', bestFrame.id);
+              await supabase.from('profiles').update({ selected_frame: bestFrame.id }).eq('user_id', user.id);
+            }
+
+            // Show celebration popup
+            setCelebrationAchievements(newlyUnlocked.map(a => ({
               ...a,
               unlocked: true,
               unlocked_at: unlockedAt,

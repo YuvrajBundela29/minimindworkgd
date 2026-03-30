@@ -18,7 +18,9 @@ import speechService from '@/services/speechService';
 import { downloadPDF, sharePDF, SharePlatform } from '@/utils/pdfGenerator';
 import { supabase } from '@/integrations/supabase/client';
 import { logUsage } from '@/services/usageLogger';
+import { checkAndUnlockAchievements } from '@/hooks/useAchievementChecker';
 import CreditExhaustionModal from '@/components/CreditExhaustionModal';
+import AchievementCelebration from '@/components/AchievementCelebration';
 // Session persistence key
 const SESSION_STORAGE_KEY = 'minimind-current-session';
 import { useSubscription, CREDIT_COSTS, CREDIT_LIMITS } from '@/contexts/SubscriptionContext';
@@ -171,6 +173,7 @@ const Index = () => {
   
   // Credit exhaustion modal
   const [showCreditExhaustion, setShowCreditExhaustion] = useState(false);
+  const [celebrationAchievements, setCelebrationAchievements] = useState<Array<{ id: string; name: string; icon: string; description: string }>>([]);
   
   // Back button handler ref
   const backPressTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -561,6 +564,13 @@ const Index = () => {
       todayQuestions: prev.todayQuestions + 1
     }));
     setQuestion('');
+
+    // Check for new achievements after answering (fire-and-forget)
+    checkAndUnlockAchievements().then(newAchievements => {
+      if (newAchievements.length > 0) {
+        setCelebrationAchievements(newAchievements);
+      }
+    });
   }, [question, selectedLanguage, fetchModeExplanation, hasCredits, useCredits, getCredits, showUpgradePrompt]);
   
   const handleVoiceInput = useCallback(() => {
@@ -1086,6 +1096,16 @@ const Index = () => {
         onOpenChange={setShowCreditExhaustion}
         onNavigateToSubscription={() => setCurrentPage('subscription')}
       />
+
+      {/* Achievement Celebration */}
+      {celebrationAchievements.length > 0 && (
+        <AchievementCelebration
+          achievements={celebrationAchievements}
+          onClose={() => setCelebrationAchievements([])}
+          totalQuestions={stats.totalQuestions}
+          currentStreak={stats.streak}
+        />
+      )}
     </div>
   );
 };
