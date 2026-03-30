@@ -980,26 +980,10 @@ const Index = () => {
             </Suspense>
           )}
           
-          {currentPage === 'parentdashboard' && (
+          {currentPage === 'explore' && (
             <Suspense fallback={<PageLoadingFallback />}>
-              <motion.div key="parentdashboard" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                <ParentDashboardPage />
-              </motion.div>
-            </Suspense>
-          )}
-          
-          {currentPage === 'gurudashboard' && (
-            <Suspense fallback={<PageLoadingFallback />}>
-              <motion.div key="gurudashboard" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                <GuruDashboardPage />
-              </motion.div>
-            </Suspense>
-          )}
-          
-          {currentPage === 'wrapped' && (
-            <Suspense fallback={<PageLoadingFallback />}>
-              <motion.div key="wrapped" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                <WrappedPage />
+              <motion.div key="explore" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                <ExplorePage onNavigate={(page: string) => setCurrentPage(page as typeof currentPage)} />
               </motion.div>
             </Suspense>
           )}
