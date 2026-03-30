@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { LogIn, UserPlus, Mail, Lock, Eye, EyeOff, ArrowLeft, Sparkles, KeyRound } from 'lucide-react';
+import { LogIn, UserPlus, Mail, Lock, Eye, EyeOff, ArrowLeft, Sparkles, KeyRound, User as UserIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
@@ -9,6 +9,8 @@ import { z } from 'zod';
 // Validation schemas
 const emailSchema = z.string().email('Please enter a valid email address');
 const passwordSchema = z.string().min(6, 'Password must be at least 6 characters');
+const nameSchema = z.string().min(2, 'Name must be at least 2 characters').max(100, 'Name must be less than 100 characters')
+  .refine(val => !/<[^>]*>/.test(val), 'Name cannot contain HTML tags');
 
 interface AuthPageProps {
   onBack: () => void;
@@ -18,6 +20,7 @@ interface AuthPageProps {
 const AuthPage: React.FC<AuthPageProps> = ({ onBack, onAuthSuccess }) => {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
+  const [fullName, setFullName] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -50,6 +53,16 @@ const AuthPage: React.FC<AuthPageProps> = ({ onBack, onAuthSuccess }) => {
   }, [onAuthSuccess]);
 
   const validateInputs = (): boolean => {
+    if (!isLogin) {
+      try {
+        nameSchema.parse(fullName.trim());
+      } catch (e) {
+        if (e instanceof z.ZodError) {
+          toast.error(e.errors[0].message);
+          return false;
+        }
+      }
+    }
     try {
       emailSchema.parse(email);
     } catch (e) {
@@ -90,6 +103,9 @@ const AuthPage: React.FC<AuthPageProps> = ({ onBack, onAuthSuccess }) => {
           password,
           options: {
             emailRedirectTo: redirectUrl,
+            data: {
+              full_name: fullName.trim(),
+            },
           },
         });
         if (error) throw error;
@@ -298,6 +314,21 @@ const AuthPage: React.FC<AuthPageProps> = ({ onBack, onAuthSuccess }) => {
 
             {/* Email Form */}
             <form onSubmit={handleEmailAuth} className="space-y-4">
+            {!isLogin && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground">Full Name</label>
+                <div className="relative">
+                  <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                  <input
+                    type="text"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    placeholder="Your full name"
+                    className="w-full pl-10 pr-4 py-3 rounded-xl border-2 border-border bg-background focus:border-primary outline-none transition-colors"
+                  />
+                </div>
+              </div>
+            )}
             <div className="space-y-2">
               <label className="text-sm font-medium text-foreground">Email</label>
               <div className="relative">
