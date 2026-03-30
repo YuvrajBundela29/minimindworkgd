@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { LogIn, UserPlus, Mail, Lock, Eye, EyeOff, ArrowLeft, Sparkles, KeyRound } from 'lucide-react';
+import { LogIn, UserPlus, Mail, Lock, Eye, EyeOff, ArrowLeft, Sparkles, KeyRound, User } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
@@ -9,6 +9,8 @@ import { z } from 'zod';
 // Validation schemas
 const emailSchema = z.string().email('Please enter a valid email address');
 const passwordSchema = z.string().min(6, 'Password must be at least 6 characters');
+const nameSchema = z.string().min(2, 'Name must be at least 2 characters').max(100, 'Name must be less than 100 characters')
+  .refine(val => !/<[^>]*>/.test(val), 'Name cannot contain HTML tags');
 
 interface AuthPageProps {
   onBack: () => void;
@@ -18,6 +20,7 @@ interface AuthPageProps {
 const AuthPage: React.FC<AuthPageProps> = ({ onBack, onAuthSuccess }) => {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
+  const [fullName, setFullName] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
