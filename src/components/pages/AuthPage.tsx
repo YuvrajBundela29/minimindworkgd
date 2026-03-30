@@ -53,6 +53,16 @@ const AuthPage: React.FC<AuthPageProps> = ({ onBack, onAuthSuccess }) => {
   }, [onAuthSuccess]);
 
   const validateInputs = (): boolean => {
+    if (!isLogin) {
+      try {
+        nameSchema.parse(fullName.trim());
+      } catch (e) {
+        if (e instanceof z.ZodError) {
+          toast.error(e.errors[0].message);
+          return false;
+        }
+      }
+    }
     try {
       emailSchema.parse(email);
     } catch (e) {
