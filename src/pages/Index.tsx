@@ -49,6 +49,7 @@ const ShopPage = React.lazy(() => import('@/components/pages/ShopPage'));
 const CertificatePage = React.lazy(() => import('@/components/pages/CertificatePage'));
 const GuruDashboardPage = React.lazy(() => import('@/components/pages/GuruDashboardPage'));
 const ExplorePage = React.lazy(() => import('@/components/pages/ExplorePage'));
+const AccountPage = React.lazy(() => import('@/components/pages/AccountPage'));
 
 // Types for history
 export interface HistoryItem {
@@ -101,7 +102,7 @@ const Index = () => {
   const abortControllerRef = useRef<AbortController | null>(null);
   
   // State Management
-  const [currentPage, setCurrentPage] = useState<NavigationId | 'auth' | 'terms' | 'privacy' | 'refund' | 'arena' | 'shop' | 'certificates' | 'gurudashboard' | 'explore'>('home');
+  const [currentPage, setCurrentPage] = useState<NavigationId | 'auth' | 'terms' | 'privacy' | 'refund' | 'arena' | 'shop' | 'certificates' | 'gurudashboard' | 'explore' | 'account'>('home');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [selectedLanguage, setSelectedLanguage] = useState<LanguageKey>('en');
@@ -984,6 +985,14 @@ const Index = () => {
             <Suspense fallback={<PageLoadingFallback />}>
               <motion.div key="explore" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
                 <ExplorePage onNavigate={(page: string) => setCurrentPage(page as typeof currentPage)} />
+              </motion.div>
+            </Suspense>
+          )}
+          
+          {currentPage === 'account' && (
+            <Suspense fallback={<PageLoadingFallback />}>
+              <motion.div key="account" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                <AccountPage onNavigate={(page: string) => setCurrentPage(page as typeof currentPage)} onSignOut={handleSignOut} />
               </motion.div>
             </Suspense>
           )}
