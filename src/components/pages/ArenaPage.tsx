@@ -32,6 +32,7 @@ interface LeaderboardEntry {
 }
 
 const ArenaPage: React.FC = () => {
+  const { awardCoins } = useCoins();
   const [challenge, setChallenge] = useState<ArenaChallenge | null>(null);
   const [answer, setAnswer] = useState('');
   const [submitting, setSubmitting] = useState(false);
