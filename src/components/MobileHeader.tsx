@@ -25,6 +25,7 @@ const MobileHeader: React.FC<MobileHeaderProps> = ({
   onNewChat,
   hasActiveChat = false,
   onNavigateToSubscription,
+  onNavigateToShop,
 }) => {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [presetAvatar, setPresetAvatar] = useState<string | null>(null);
