@@ -23,6 +23,9 @@ import CreditExhaustionModal from '@/components/CreditExhaustionModal';
 const SESSION_STORAGE_KEY = 'minimind-current-session';
 import { useSubscription, CREDIT_COSTS, CREDIT_LIMITS } from '@/contexts/SubscriptionContext';
 import { useEarlyAccess } from '@/contexts/EarlyAccessContext';
+import { useNotificationEngine } from '@/hooks/useNotificationEngine';
+import StudyBuddy from '@/components/StudyBuddy';
+import CoinBadge from '@/components/CoinBadge';
 
 // Lazy load heavy page components
 const EkaksharPage = React.lazy(() => import('@/components/pages/EkaksharPage'));
@@ -82,6 +85,7 @@ const STAGGER_DELAY = 300; // ms between API calls
 
 const Index = () => {
   const { isEarlyAccess } = useEarlyAccess();
+  useNotificationEngine();
   
   // AbortController for cancelling pending requests
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -938,6 +942,54 @@ const Index = () => {
             <Suspense fallback={<PageLoadingFallback />}>
               <motion.div key="refund" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
                 <RefundPolicyPage onBack={() => setCurrentPage('settings')} />
+              </motion.div>
+            </Suspense>
+          )}
+          
+          {currentPage === 'arena' && (
+            <Suspense fallback={<PageLoadingFallback />}>
+              <motion.div key="arena" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                <ArenaPage />
+              </motion.div>
+            </Suspense>
+          )}
+          
+          {currentPage === 'shop' && (
+            <Suspense fallback={<PageLoadingFallback />}>
+              <motion.div key="shop" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                <ShopPage />
+              </motion.div>
+            </Suspense>
+          )}
+          
+          {currentPage === 'certificates' && (
+            <Suspense fallback={<PageLoadingFallback />}>
+              <motion.div key="certificates" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                <CertificatePage />
+              </motion.div>
+            </Suspense>
+          )}
+          
+          {currentPage === 'parentdashboard' && (
+            <Suspense fallback={<PageLoadingFallback />}>
+              <motion.div key="parentdashboard" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                <ParentDashboardPage />
+              </motion.div>
+            </Suspense>
+          )}
+          
+          {currentPage === 'gurudashboard' && (
+            <Suspense fallback={<PageLoadingFallback />}>
+              <motion.div key="gurudashboard" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                <GuruDashboardPage />
+              </motion.div>
+            </Suspense>
+          )}
+          
+          {currentPage === 'wrapped' && (
+            <Suspense fallback={<PageLoadingFallback />}>
+              <motion.div key="wrapped" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                <WrappedPage />
               </motion.div>
             </Suspense>
           )}
