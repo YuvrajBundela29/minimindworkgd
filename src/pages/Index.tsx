@@ -1038,6 +1038,9 @@ const Index = () => {
         />
       )}
       
+      {/* Study Buddy */}
+      <StudyBuddy />
+      
       {/* Credit Exhaustion Modal */}
       <CreditExhaustionModal
         open={showCreditExhaustion}
