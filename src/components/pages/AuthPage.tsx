@@ -103,6 +103,9 @@ const AuthPage: React.FC<AuthPageProps> = ({ onBack, onAuthSuccess }) => {
           password,
           options: {
             emailRedirectTo: redirectUrl,
+            data: {
+              full_name: fullName.trim(),
+            },
           },
         });
         if (error) throw error;
