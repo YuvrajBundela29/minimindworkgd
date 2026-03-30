@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Home, BarChart3, Zap, History, Settings, Sun, Moon, HelpCircle, User, BookOpen, Crown, FileSearch, Sparkles, MessageCircle, LayoutDashboard, MessageSquareHeart, Target, SquarePen } from 'lucide-react';
+import { X, Home, BarChart3, Zap, History, Settings, Sun, Moon, HelpCircle, User, BookOpen, Crown, FileSearch, Sparkles, MessageCircle, LayoutDashboard, MessageSquareHeart, Target, SquarePen, Trophy, ShoppingBag, Award, Users, GraduationCap, Gift } from 'lucide-react';
 import { navigationItems, NavigationId } from '@/config/minimind';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -24,8 +24,8 @@ const iconMap: Record<string, React.FC<{ className?: string }>> = {
 interface SideMenuProps {
   isOpen: boolean;
   onClose: () => void;
-  currentPage: NavigationId;
-  onNavigate: (page: NavigationId) => void;
+  currentPage: string;
+  onNavigate: (page: string) => void;
   theme: 'light' | 'dark';
   onToggleTheme: () => void;
   onShowGuide?: () => void;
@@ -158,6 +158,33 @@ const SideMenu: React.FC<SideMenuProps> = ({
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
+                  );
+                })}
+              </div>
+
+              {/* Explore Section */}
+              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-4">Explore</p>
+              <div className="space-y-1 mb-4">
+                {[
+                  { id: 'arena', label: '🏆 Arena', icon: Trophy, description: 'Daily challenge' },
+                  { id: 'shop', label: '🛍️ Shop', icon: ShoppingBag, description: 'Spend your coins' },
+                  { id: 'certificates', label: '🎓 Certificates', icon: Award, description: 'Your earned certificates' },
+                  { id: 'wrapped', label: '✨ Wrapped', icon: Gift, description: 'Your year in review' },
+                  { id: 'parentdashboard', label: '👨‍👩‍👧 Parent View', icon: Users, description: 'Monitor child learning' },
+                ].map((item) => {
+                  const isActive = currentPage === item.id;
+                  return (
+                    <motion.button
+                      key={item.id}
+                      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors touch-target ${
+                        isActive ? 'bg-primary text-primary-foreground' : 'hover:bg-muted text-foreground'
+                      }`}
+                      onClick={() => { onNavigate(item.id); onClose(); }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      <item.icon className="w-5 h-5" />
+                      <span className="font-medium">{item.label}</span>
+                    </motion.button>
                   );
                 })}
               </div>
