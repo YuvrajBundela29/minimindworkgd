@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Target, TrendingUp, BookOpen, Brain, Sparkles, 
@@ -64,6 +64,7 @@ const ProgressDashboard: React.FC = () => {
   const [activeTopics, setActiveTopics] = useState<LearningTopic[]>([]);
   const [brainAnalysis, setBrainAnalysis] = useState<BrainAnalysis | null>(null);
   const [analyzingBrain, setAnalyzingBrain] = useState(false);
+  const [hasAutoAnalyzed, setHasAutoAnalyzed] = useState(false);
 
   // Usage analytics hooks
   const { data: weeklyData, isLoading: weeklyLoading } = useWeeklyActivity();
@@ -134,7 +135,7 @@ const ProgressDashboard: React.FC = () => {
     }
   }, []);
 
-  const runBrainAnalysis = async () => {
+  const runBrainAnalysis = useCallback(async () => {
     setAnalyzingBrain(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -215,7 +216,15 @@ Return a JSON with these exact keys:
     } finally {
       setAnalyzingBrain(false);
     }
-  };
+  }, [totalLogs]);
+
+  useEffect(() => {
+    if (totalLogs < 3) return;
+    if (brainAnalysis || analyzingBrain || hasAutoAnalyzed) return;
+
+    setHasAutoAnalyzed(true);
+    void runBrainAnalysis();
+  }, [totalLogs, brainAnalysis, analyzingBrain, hasAutoAnalyzed, runBrainAnalysis]);
 
   const getTrendIcon = (trend: string) => {
     if (trend === 'up') return <TrendingUp className="w-3 h-3 text-emerald-500" />;
