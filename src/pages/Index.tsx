@@ -564,6 +564,13 @@ const Index = () => {
       todayQuestions: prev.todayQuestions + 1
     }));
     setQuestion('');
+
+    // Check for new achievements after answering (fire-and-forget)
+    checkAndUnlockAchievements().then(newAchievements => {
+      if (newAchievements.length > 0) {
+        setCelebrationAchievements(newAchievements);
+      }
+    });
   }, [question, selectedLanguage, fetchModeExplanation, hasCredits, useCredits, getCredits, showUpgradePrompt]);
   
   const handleVoiceInput = useCallback(() => {
