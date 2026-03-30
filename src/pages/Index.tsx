@@ -40,6 +40,12 @@ const NotesPage = React.lazy(() => import('@/components/pages/NotesPage'));
 const TermsOfServicePage = React.lazy(() => import('@/components/pages/TermsOfServicePage'));
 const PrivacyPolicyPage = React.lazy(() => import('@/components/pages/PrivacyPolicyPage'));
 const RefundPolicyPage = React.lazy(() => import('@/components/pages/RefundPolicyPage'));
+const ArenaPage = React.lazy(() => import('@/components/pages/ArenaPage'));
+const ShopPage = React.lazy(() => import('@/components/pages/ShopPage'));
+const CertificatePage = React.lazy(() => import('@/components/pages/CertificatePage'));
+const ParentDashboardPage = React.lazy(() => import('@/components/pages/ParentDashboardPage'));
+const GuruDashboardPage = React.lazy(() => import('@/components/pages/GuruDashboardPage'));
+const WrappedPage = React.lazy(() => import('@/components/pages/WrappedPage'));
 
 // Types for history
 export interface HistoryItem {
