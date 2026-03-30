@@ -125,6 +125,22 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSignOut }) => {
         .select('*')
         .eq('user_id', user.id)
         .single();
+
+      // Get actual question count from usage_logs (source of truth)
+      const { count: actualQuestionCount } = await supabase
+        .from('usage_logs')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id);
+
+      // Sync total_questions if out of date
+      const realCount = actualQuestionCount ?? 0;
+      if (statsData && statsData.total_questions !== realCount) {
+        await supabase
+          .from('user_statistics')
+          .update({ total_questions: realCount })
+          .eq('user_id', user.id);
+        statsData.total_questions = realCount;
+      }
       
       if (statsData) {
         setStatistics(statsData);
@@ -150,7 +166,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSignOut }) => {
         setStreakData({ currentStreak: streakRow.current_streak });
       }
 
-      const totalQuestions = statsData?.total_questions ?? 0;
+      const totalQuestions = statsData?.total_questions ?? realCount;
       const currentStreak = streakRow?.current_streak ?? 0;
 
       const { data: allAchievements } = await supabase.from('achievements').select('*');
