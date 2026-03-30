@@ -225,34 +225,34 @@
   }
 
   /* --- BOTTOM INPUT BAR ---
-     Fixed bottom, responsive width */
+     Fixed bottom, responsive width, below side menu overlay */
   .app-input-bar {
-    @apply fixed bottom-0 left-0 right-0 z-50;
-    padding: 8px 12px;
-    padding-bottom: calc(8px + env(safe-area-inset-bottom));
-    background: hsl(var(--background) / 0.92);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border-top: 1px solid hsl(var(--border));
+    @apply fixed bottom-0 left-0 right-0 z-40;
+    padding: 10px 14px;
+    padding-bottom: calc(10px + env(safe-area-inset-bottom));
+    background: hsl(var(--background) / 0.85);
+    backdrop-filter: blur(20px) saturate(1.8);
+    -webkit-backdrop-filter: blur(20px) saturate(1.8);
+    border-top: none;
   }
 
   @media (min-width: 768px) {
     .app-input-bar {
       @apply left-auto right-auto;
       width: 100%;
-      max-width: 48rem; /* match max-w-3xl */
+      max-width: 48rem;
       margin: 0 auto;
       left: 50%;
       transform: translateX(-50%);
-      border-left: 1px solid hsl(var(--border));
-      border-right: 1px solid hsl(var(--border));
-      border-radius: 16px 16px 0 0;
+      border-radius: 20px 20px 0 0;
+      padding: 12px 16px;
+      padding-bottom: calc(12px + env(safe-area-inset-bottom));
     }
   }
 
   @media (min-width: 1024px) {
     .app-input-bar {
-      max-width: 56rem; /* match max-w-4xl */
+      max-width: 56rem;
     }
   }
 
@@ -262,50 +262,87 @@
 
   /* Premium input container — ChatGPT/Claude style */
   .premium-input-container {
-    @apply rounded-2xl border border-border bg-card transition-all;
-    box-shadow: 0 1px 6px hsl(0 0% 0% / 0.06);
+    @apply rounded-2xl border transition-all;
+    border-color: hsl(var(--border) / 0.6);
+    background: hsl(var(--card));
+    box-shadow: 
+      0 0 0 1px hsl(var(--border) / 0.1),
+      0 2px 8px hsl(0 0% 0% / 0.06),
+      0 8px 24px hsl(0 0% 0% / 0.04);
+  }
+
+  .dark .premium-input-container {
+    background: hsl(220 14% 11%);
+    border-color: hsl(var(--border) / 0.4);
+    box-shadow: 
+      0 0 0 1px hsl(0 0% 100% / 0.04),
+      0 2px 8px hsl(0 0% 0% / 0.3),
+      0 8px 24px hsl(0 0% 0% / 0.2);
   }
 
   .premium-input-container:focus-within {
     border-color: hsl(var(--primary) / 0.5);
-    box-shadow: 0 0 0 2px hsl(var(--primary) / 0.1), 0 2px 8px hsl(0 0% 0% / 0.06);
+    box-shadow: 
+      0 0 0 2px hsl(var(--primary) / 0.12),
+      0 2px 12px hsl(var(--primary) / 0.08),
+      0 8px 24px hsl(0 0% 0% / 0.06);
+  }
+
+  .dark .premium-input-container:focus-within {
+    border-color: hsl(var(--primary) / 0.5);
+    box-shadow: 
+      0 0 0 2px hsl(var(--primary) / 0.15),
+      0 2px 12px hsl(var(--primary) / 0.1),
+      0 8px 24px hsl(0 0% 0% / 0.3);
   }
 
   .premium-textarea {
     @apply w-full bg-transparent border-none outline-none text-foreground text-sm resize-none;
-    padding: 14px 16px 4px 16px;
-    min-height: 44px;
+    padding: 14px 16px 6px 16px;
+    min-height: 46px;
     max-height: 160px;
-    line-height: 1.5;
+    line-height: 1.55;
+    font-family: var(--font-body);
   }
 
   .premium-textarea::placeholder {
-    @apply text-muted-foreground/60;
+    @apply text-muted-foreground/50;
+    font-weight: 400;
   }
 
   /* Input action buttons — subtle ghost style */
   .input-action-btn {
-    @apply flex items-center justify-center w-8 h-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors;
+    @apply flex items-center justify-center w-8 h-8 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-all;
   }
 
   .input-action-btn:disabled {
     @apply opacity-40 cursor-not-allowed;
   }
 
+  .input-action-btn:active {
+    transform: scale(0.92);
+  }
+
   /* Premium send button */
   .send-btn-premium {
-    @apply flex items-center justify-center w-8 h-8 rounded-lg transition-all;
+    @apply flex items-center justify-center w-8 h-8 rounded-xl transition-all;
     min-width: 32px;
     min-height: 32px;
   }
 
   .send-btn-active {
-    background: hsl(var(--foreground));
-    color: hsl(var(--background));
+    background: var(--gradient-primary);
+    color: hsl(var(--primary-foreground));
+    box-shadow: 0 2px 8px hsl(var(--primary) / 0.3);
+  }
+
+  .send-btn-active:hover {
+    box-shadow: 0 4px 12px hsl(var(--primary) / 0.4);
+    transform: scale(1.04);
   }
 
   .send-btn-inactive {
-    @apply bg-muted text-muted-foreground opacity-50 cursor-not-allowed;
+    @apply bg-muted text-muted-foreground opacity-40 cursor-not-allowed;
   }
 
   .send-btn-premium:disabled {
