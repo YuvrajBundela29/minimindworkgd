@@ -6,7 +6,9 @@ import {
   GraduationCap, Rocket, Star, TrendingUp, ChevronDown
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 import { useSubscription, CREDIT_COSTS } from '@/contexts/SubscriptionContext';
+import { useCoins } from '@/hooks/useCoins';
 import { useEarlyAccess } from '@/contexts/EarlyAccessContext';
 import { ModeKey, modes } from '@/config/minimind';
 import AIService from '@/services/aiService';

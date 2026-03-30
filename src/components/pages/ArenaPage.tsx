@@ -9,6 +9,7 @@ import { Progress } from '@/components/ui/progress';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import AIService from '@/services/aiService';
+import { useCoins } from '@/hooks/useCoins';
 
 interface ArenaChallenge {
   id: string;

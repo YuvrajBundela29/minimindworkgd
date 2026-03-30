@@ -26,6 +26,7 @@ import { useEarlyAccess } from '@/contexts/EarlyAccessContext';
 import { useNotificationEngine } from '@/hooks/useNotificationEngine';
 import StudyBuddy from '@/components/StudyBuddy';
 import CoinBadge from '@/components/CoinBadge';
+import { useCoins } from '@/hooks/useCoins';
 
 // Lazy load heavy page components
 const EkaksharPage = React.lazy(() => import('@/components/pages/EkaksharPage'));
