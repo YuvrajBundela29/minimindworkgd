@@ -297,7 +297,7 @@ const Index = () => {
     }
   }, [currentQuestion, answers, hasAskedQuestion, chatHistories]);
   
-  // Navigation history stack for back button
+  // Navigation history stack for back button (moved ref declaration near other refs)
   const pageHistoryRef = useRef<string[]>(['home']);
 
   // Hardware back button handler
