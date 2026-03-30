@@ -302,6 +302,127 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSignOut }) => {
     }
   };
 
+  const normalizeBrainProfile = (raw: any): BrainProfile | null => {
+    if (!raw || typeof raw !== 'object') return null;
+
+    const strengths = Array.isArray(raw.strengths)
+      ? raw.strengths.filter((x: unknown) => typeof x === 'string').slice(0, 3)
+      : [];
+    const growthAreas = Array.isArray(raw.growthAreas)
+      ? raw.growthAreas.filter((x: unknown) => typeof x === 'string').slice(0, 3)
+      : [];
+    const recommendedPlan = Array.isArray(raw.recommendedPlan)
+      ? raw.recommendedPlan.filter((x: unknown) => typeof x === 'string').slice(0, 4)
+      : [];
+
+    if (typeof raw.summary !== 'string' || raw.summary.trim().length === 0) return null;
+
+    return {
+      summary: raw.summary,
+      strengths,
+      growthAreas,
+      focusMode: typeof raw.focusMode === 'string' ? raw.focusMode : 'Balanced',
+      learningPattern: typeof raw.learningPattern === 'string' ? raw.learningPattern : 'Adaptive learner',
+      recommendedPlan,
+    };
+  };
+
+  const analyzeBrainProfile = useCallback(async (showToast = true): Promise<BrainProfile | null> => {
+    if (!user) return null;
+    if (profileQuestionCount < 3) {
+      if (showToast) toast.info('Ask at least 3 questions to unlock auto analysis.');
+      return null;
+    }
+
+    setAnalyzingBrain(true);
+    try {
+      const prompt = `Analyze this learner and return ONLY valid JSON.
+
+Data:
+- Total questions: ${profileQuestionCount}
+- Current streak: ${streakData.currentStreak}
+- Mode usage: ${JSON.stringify(modeUsage)}
+- Skill levels: ${JSON.stringify(skillAreas)}
+
+Return exactly this JSON shape:
+{
+  "summary": "2-3 sentence personalized summary",
+  "strengths": ["...", "...", "..."],
+  "growthAreas": ["...", "..."],
+  "focusMode": "best mode for this learner",
+  "learningPattern": "short description of learning behavior",
+  "recommendedPlan": ["step 1", "step 2", "step 3"]
+}`;
+
+      const result = await AIService.invokeChat({
+        prompt,
+        mode: 'mastery',
+        language: 'en',
+        type: 'explain',
+      });
+
+      const text = result.response ?? '';
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) throw new Error('Invalid profile analysis response');
+
+      const parsed = JSON.parse(jsonMatch[0]);
+      const normalized = normalizeBrainProfile(parsed);
+      if (!normalized) throw new Error('Invalid profile analysis payload');
+
+      setBrainProfile(normalized);
+      localStorage.setItem(`minimind-brain-profile-${user.id}`, JSON.stringify(normalized));
+
+      if (showToast) {
+        toast.success('Brain analysis updated!');
+      }
+
+      return normalized;
+    } catch (error) {
+      console.error('Brain profile analysis failed:', error);
+      if (showToast) {
+        toast.error('Could not generate brain analysis right now.');
+      }
+      return null;
+    } finally {
+      setAnalyzingBrain(false);
+    }
+  }, [user, profileQuestionCount, streakData.currentStreak, modeUsage, skillAreas]);
+
+  useEffect(() => {
+    if (activeTab !== 'progress') return;
+    if (!user || analyzingBrain || brainProfile || profileQuestionCount < 3) return;
+    void analyzeBrainProfile(false);
+  }, [activeTab, user, analyzingBrain, brainProfile, profileQuestionCount, analyzeBrainProfile]);
+
+  const handleExportProgress = useCallback(async () => {
+    const analysis = brainProfile ?? (await analyzeBrainProfile(false));
+
+    const report = {
+      generatedAt: new Date().toISOString(),
+      learner: profile?.display_name || user?.email || 'Learner',
+      stats: {
+        totalQuestions: profileQuestionCount,
+        streak: streakData.currentStreak,
+        unlockedAchievements: achievements.filter(a => a.unlocked).length,
+      },
+      modeUsage,
+      skillAreas,
+      brainProfile: analysis,
+    };
+
+    const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `MiniMind-Progress-Report-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    toast.success('Progress report exported!');
+  }, [brainProfile, analyzeBrainProfile, profile?.display_name, user?.email, profileQuestionCount, streakData.currentStreak, achievements, modeUsage, skillAreas]);
+
   const handleSaveProfile = async () => {
     if (!user) return;
     
