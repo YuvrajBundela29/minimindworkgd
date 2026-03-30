@@ -13,6 +13,7 @@ import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ModeKey, modes } from '@/config/minimind';
 import { AvatarCustomizer, AvatarWithFrame } from '@/components/AvatarCustomizer';
+import AchievementCelebration from '@/components/AchievementCelebration';
 
 const displayNameSchema = z.string()
   .max(100, 'Display name must be less than 100 characters')
@@ -60,6 +61,7 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSignOut }) => {
   const [selectedFrameId, setSelectedFrameId] = useState('default');
   const [presetAvatar, setPresetAvatar] = useState<string | null>(null);
   const [streakData, setStreakData] = useState({ currentStreak: 0 });
+  const [celebrationAchievements, setCelebrationAchievements] = useState<Achievement[]>([]);
 
   useEffect(() => {
     fetchUserData();
@@ -214,7 +216,12 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSignOut }) => {
               toUnlock.map((achievement) => ensureBadgeCertificate(user.id, achievement.id, achievement.name))
             );
 
-            toast.success(`🏅 ${toUnlock.length} new badge${toUnlock.length > 1 ? 's' : ''} unlocked with certificates!`);
+            // Show celebration popup instead of toast
+            setCelebrationAchievements(toUnlock.map(a => ({
+              ...a,
+              unlocked: true,
+              unlocked_at: unlockedAt,
+            })));
           }
         }
 
@@ -383,6 +390,16 @@ const ProfilePage: React.FC<ProfilePageProps> = ({ onSignOut }) => {
 
   return (
     <div className="space-y-6 pb-24">
+      {/* Achievement Celebration Popup */}
+      {celebrationAchievements.length > 0 && (
+        <AchievementCelebration
+          achievements={celebrationAchievements}
+          onClose={() => setCelebrationAchievements([])}
+          onClaimFrame={handleSelectFrame}
+          totalQuestions={statistics?.total_questions || 0}
+          currentStreak={streakData.currentStreak}
+        />
+      )}
       {/* Hidden file input */}
       <input
         ref={fileInputRef}
