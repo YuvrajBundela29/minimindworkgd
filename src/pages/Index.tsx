@@ -165,6 +165,31 @@ const Index = () => {
   
   // History
   const [history, setHistory] = useState<HistoryItem[]>([]);
+
+  const normalizeHistoryAnswers = (raw: unknown): Record<ModeKey, string> => {
+    const source = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
+    return {
+      beginner: typeof source.beginner === 'string' ? source.beginner : '',
+      thinker: typeof source.thinker === 'string' ? source.thinker : '',
+      story: typeof source.story === 'string' ? source.story : '',
+      mastery: typeof source.mastery === 'string' ? source.mastery : '',
+    };
+  };
+
+  const saveHistoryToCloud = useCallback(async (item: HistoryItem) => {
+    if (!user) return;
+
+    const { error } = await supabase.from('user_history').insert({
+      user_id: user.id,
+      question: item.question,
+      answers: item.answers,
+      language: item.language,
+    });
+
+    if (error) {
+      console.error('Failed to save history to backend:', error);
+    }
+  }, [user]);
   
   // Progress stats
   const [stats, setStats] = useState({
@@ -283,9 +308,47 @@ const Index = () => {
     localStorage.setItem('minimind-onboarding-seen', 'true');
   }, []);
   
-  useEffect(() => { if (history.length > 0) localStorage.setItem('minimind-history', JSON.stringify(history)); }, [history]);
+  useEffect(() => { localStorage.setItem('minimind-history', JSON.stringify(history)); }, [history]);
   useEffect(() => { localStorage.setItem('minimind-stats', JSON.stringify(stats)); }, [stats]);
   useEffect(() => { localStorage.setItem('minimind-language', selectedLanguage); }, [selectedLanguage]);
+
+  useEffect(() => {
+    if (!user) return;
+
+    let cancelled = false;
+
+    const loadCloudHistory = async () => {
+      const { data, error } = await supabase
+        .from('user_history')
+        .select('id, question, answers, language, created_at')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (error) {
+        console.error('Failed to load cloud history:', error);
+        return;
+      }
+
+      if (cancelled) return;
+
+      const parsed: HistoryItem[] = (data ?? []).map((row) => ({
+        id: row.id,
+        question: row.question,
+        answers: normalizeHistoryAnswers(row.answers),
+        timestamp: new Date(row.created_at),
+        language: (row.language as LanguageKey) || 'en',
+      }));
+
+      setHistory(parsed);
+    };
+
+    void loadCloudHistory();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
   
   // Persist session state to localStorage
   useEffect(() => {
@@ -558,6 +621,7 @@ const Index = () => {
       language: selectedLanguage
     };
     setHistory(prev => [historyItem, ...prev.slice(0, 49)]);
+    void saveHistoryToCloud(historyItem);
     setStats(prev => ({
       ...prev,
       totalQuestions: prev.totalQuestions + 1,
@@ -571,7 +635,7 @@ const Index = () => {
         setCelebrationAchievements(newAchievements);
       }
     });
-  }, [question, selectedLanguage, fetchModeExplanation, hasCredits, useCredits, getCredits, showUpgradePrompt]);
+  }, [question, selectedLanguage, fetchModeExplanation, hasCredits, useCredits, getCredits, showUpgradePrompt, saveHistoryToCloud]);
   
   const handleVoiceInput = useCallback(() => {
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
@@ -692,7 +756,21 @@ const Index = () => {
   
   const handleChatInputChange = useCallback((mode: string, value: string) => { setChatInputs(prev => ({ ...prev, [mode as ModeKey]: value })); }, []);
   const handleLoadHistory = useCallback((item: HistoryItem) => { setAnswers(item.answers); setCurrentQuestion(item.question); setHasAskedQuestion(true); setCurrentPage('home'); toast.success('Loaded from history!'); }, []);
-  const handleClearHistory = useCallback(() => { setHistory([]); localStorage.removeItem('minimind-history'); toast.success('History cleared!'); }, []);
+  const handleClearHistory = useCallback(async () => {
+    setHistory([]);
+    localStorage.removeItem('minimind-history');
+
+    if (user) {
+      const { error } = await supabase.from('user_history').delete().eq('user_id', user.id);
+      if (error) {
+        console.error('Failed clearing cloud history:', error);
+        toast.error('Could not clear cloud history.');
+        return;
+      }
+    }
+
+    toast.success('History cleared!');
+  }, [user]);
   const handleFullscreen = useCallback((mode: string) => { setFullscreenMode(mode as ModeKey); }, []);
   const handleSignOut = async () => { 
     await supabase.auth.signOut(); 
@@ -831,12 +909,13 @@ const Index = () => {
       language: selectedLanguage
     };
     setHistory(prev => [historyItem, ...prev.slice(0, 49)]);
+    void saveHistoryToCloud(historyItem);
     setStats(prev => ({
       ...prev,
       totalQuestions: prev.totalQuestions + 1,
       todayQuestions: prev.todayQuestions + 1
     }));
-  }, [selectedLanguage, fetchModeExplanation, syncCreditsFromServer, getCredits]);
+  }, [selectedLanguage, fetchModeExplanation, syncCreditsFromServer, getCredits, saveHistoryToCloud]);
 
   // Mandatory sign-in gate for early access
   if (isCheckingAuth) {
