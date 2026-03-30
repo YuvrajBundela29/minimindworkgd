@@ -47,9 +47,8 @@ const RefundPolicyPage = React.lazy(() => import('@/components/pages/RefundPolic
 const ArenaPage = React.lazy(() => import('@/components/pages/ArenaPage'));
 const ShopPage = React.lazy(() => import('@/components/pages/ShopPage'));
 const CertificatePage = React.lazy(() => import('@/components/pages/CertificatePage'));
-const ParentDashboardPage = React.lazy(() => import('@/components/pages/ParentDashboardPage'));
 const GuruDashboardPage = React.lazy(() => import('@/components/pages/GuruDashboardPage'));
-const WrappedPage = React.lazy(() => import('@/components/pages/WrappedPage'));
+const ExplorePage = React.lazy(() => import('@/components/pages/ExplorePage'));
 
 // Types for history
 export interface HistoryItem {
@@ -102,7 +101,7 @@ const Index = () => {
   const abortControllerRef = useRef<AbortController | null>(null);
   
   // State Management
-  const [currentPage, setCurrentPage] = useState<NavigationId | 'auth' | 'terms' | 'privacy' | 'refund' | 'arena' | 'shop' | 'certificates' | 'parentdashboard' | 'gurudashboard' | 'wrapped'>('home');
+  const [currentPage, setCurrentPage] = useState<NavigationId | 'auth' | 'terms' | 'privacy' | 'refund' | 'arena' | 'shop' | 'certificates' | 'gurudashboard' | 'explore'>('home');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [selectedLanguage, setSelectedLanguage] = useState<LanguageKey>('en');
@@ -837,7 +836,7 @@ const Index = () => {
   return (
     <div className="app-container">
       <MobileHeader onMenuClick={() => setIsMenuOpen(true)} onProfileClick={() => user ? setCurrentPage('profile') : setCurrentPage('auth')} currentLens={purposeLens} onNewChat={handleNewChat} hasActiveChat={hasAskedQuestion} onNavigateToSubscription={() => setCurrentPage('subscription')} onNavigateToShop={() => setCurrentPage('shop')} />
-      <SideMenu isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} currentPage={currentPage} onNavigate={(page: string) => setCurrentPage(page as typeof currentPage)} theme={theme} onToggleTheme={toggleTheme} onShowGuide={() => setShowOnboarding(true)} onNewChat={handleNewChat} />
+      <SideMenu isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} currentPage={currentPage} onNavigate={(page: string) => setCurrentPage(page as typeof currentPage)} theme={theme} onToggleTheme={toggleTheme} onShowGuide={() => setShowOnboarding(true)} onNewChat={handleNewChat} history={history.map(h => ({ id: h.id, question: h.question, timestamp: h.timestamp }))} onLoadHistoryItem={(item) => { const found = history.find(h => h.id === item.id); if (found) handleLoadHistory(found); }} />
       
       <main className="page-content px-4 custom-scrollbar">
         <AnimatePresence mode="wait">
@@ -981,26 +980,10 @@ const Index = () => {
             </Suspense>
           )}
           
-          {currentPage === 'parentdashboard' && (
+          {currentPage === 'explore' && (
             <Suspense fallback={<PageLoadingFallback />}>
-              <motion.div key="parentdashboard" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                <ParentDashboardPage />
-              </motion.div>
-            </Suspense>
-          )}
-          
-          {currentPage === 'gurudashboard' && (
-            <Suspense fallback={<PageLoadingFallback />}>
-              <motion.div key="gurudashboard" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                <GuruDashboardPage />
-              </motion.div>
-            </Suspense>
-          )}
-          
-          {currentPage === 'wrapped' && (
-            <Suspense fallback={<PageLoadingFallback />}>
-              <motion.div key="wrapped" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-                <WrappedPage />
+              <motion.div key="explore" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+                <ExplorePage onNavigate={(page: string) => setCurrentPage(page as typeof currentPage)} />
               </motion.div>
             </Suspense>
           )}
