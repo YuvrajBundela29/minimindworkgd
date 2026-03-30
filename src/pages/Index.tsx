@@ -102,7 +102,18 @@ const Index = () => {
   const abortControllerRef = useRef<AbortController | null>(null);
   
   // State Management
-  const [currentPage, setCurrentPage] = useState<NavigationId | 'auth' | 'terms' | 'privacy' | 'refund' | 'arena' | 'shop' | 'certificates' | 'gurudashboard' | 'explore' | 'account'>('home');
+  const [currentPage, setCurrentPageRaw] = useState<NavigationId | 'auth' | 'terms' | 'privacy' | 'refund' | 'arena' | 'shop' | 'certificates' | 'gurudashboard' | 'explore' | 'account'>('home');
+  
+  // Wrap setCurrentPage to track navigation history for back button
+  const setCurrentPage = useCallback((page: typeof currentPage) => {
+    setCurrentPageRaw(prev => {
+      if (page !== prev) {
+        pageHistoryRef.current.push(page);
+        window.history.pushState({ page }, '');
+      }
+      return page;
+    });
+  }, []);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [selectedLanguage, setSelectedLanguage] = useState<LanguageKey>('en');
