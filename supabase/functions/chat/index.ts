@@ -710,22 +710,6 @@ Then provide your detailed feedback:
     const userLabel = userId ?? "guest";
     console.log(`User ${userLabel} - Processing ${type} request, mode: ${mode}, language: ${language}, cost: ${creditCost}`);
 
-    const response = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${NVIDIA_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemma-3n-e2b-it",
-        messages: apiMessages,
-        max_tokens: 1024,
-        temperature: 0.20,
-        top_p: 0.70,
-        stream: false,
-      }),
-    });
-
     // Helper to refund credits on AI failure
     const refundCredits = async () => {
       if (creditCost > 0 && userId && adminClient) {
@@ -740,6 +724,45 @@ Then provide your detailed feedback:
         }
       }
     };
+
+    // Abort the upstream call before the edge function's 150s idle timeout fires
+    const controller = new AbortController();
+    const UPSTREAM_TIMEOUT_MS = 120_000;
+    const timeoutId = setTimeout(() => controller.abort(), UPSTREAM_TIMEOUT_MS);
+
+    let response: Response;
+    try {
+      response = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${NVIDIA_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemma-3n-e2b-it",
+          messages: apiMessages,
+          max_tokens: 512,
+          temperature: 0.20,
+          top_p: 0.70,
+          stream: false,
+        }),
+        signal: controller.signal,
+      });
+    } catch (err) {
+      clearTimeout(timeoutId);
+      await refundCredits();
+      const isAbort = err instanceof Error && err.name === "AbortError";
+      console.error(`User ${userLabel} - NVIDIA fetch ${isAbort ? "timed out" : "failed"}:`, err);
+      return new Response(
+        JSON.stringify({
+          error: isAbort
+            ? "AI model took too long to respond. Please try again or use a shorter prompt."
+            : "AI service unreachable. Please try again.",
+        }),
+        { status: 504, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       // Refund credits since AI call failed
