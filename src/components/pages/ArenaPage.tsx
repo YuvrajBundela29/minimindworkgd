@@ -219,10 +219,9 @@ const ArenaPage: React.FC = () => {
         display_name: displayName,
       });
 
-      // Award credits via refund (negative deduction = credit addition)
+      // Award credits via secure wrapper that uses auth.uid() server-side
       if (earnedCredits > 0) {
-        await supabase.rpc('refund_user_credit', {
-          p_user_id: currentUserId,
+        await supabase.rpc('refund_own_credit', {
           p_cost: earnedCredits,
         });
       }
