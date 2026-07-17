@@ -116,15 +116,34 @@ const ArenaPage: React.FC = () => {
           }
         }
 
-        // Load leaderboard
+        // Load leaderboard (user_id column intentionally excluded — hidden by column grants)
         const { data: lb } = await supabase
           .from('arena_leaderboard')
-          .select('*')
+          .select('id, display_name, score, submitted_at, challenge_id')
           .eq('challenge_id', ch.id)
           .order('score', { ascending: false })
           .limit(50);
 
-        if (lb) setLeaderboard(lb as LeaderboardEntry[]);
+        // Separately fetch the current user's own row id so we can highlight it
+        let myRowId: string | null = null;
+        if (user) {
+          const { data: mine } = await supabase
+            .from('arena_leaderboard')
+            .select('id')
+            .eq('challenge_id', ch.id)
+            .eq('user_id', user.id)
+            .maybeSingle();
+          myRowId = mine?.id ?? null;
+        }
+
+        if (lb) {
+          setLeaderboard(
+            (lb as Omit<LeaderboardEntry, 'user_id'>[]).map((e) => ({
+              ...e,
+              user_id: e.id === myRowId ? (user?.id ?? '') : '',
+            })) as LeaderboardEntry[]
+          );
+        }
       }
     };
     loadChallenge();
@@ -200,10 +219,9 @@ const ArenaPage: React.FC = () => {
         display_name: displayName,
       });
 
-      // Award credits via refund (negative deduction = credit addition)
+      // Award credits via secure wrapper that uses auth.uid() server-side
       if (earnedCredits > 0) {
-        await supabase.rpc('refund_user_credit', {
-          p_user_id: currentUserId,
+        await supabase.rpc('refund_own_credit', {
           p_cost: earnedCredits,
         });
       }

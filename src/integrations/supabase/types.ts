@@ -782,6 +782,7 @@ export type Database = {
           user_id: string
         }[]
       }
+      refund_own_credit: { Args: { p_cost: number }; Returns: Json }
       refund_user_credit: {
         Args: { p_cost: number; p_user_id: string }
         Returns: Json
@@ -796,6 +797,16 @@ export type Database = {
         Returns: boolean
       }
       use_daily_question: { Args: never; Returns: boolean }
+      verify_certificate: {
+        Args: { p_code: string }
+        Returns: {
+          certificate_code: string
+          holder_name: string
+          issued_at: string
+          learning_path_name: string
+          mastery_score: number
+        }[]
+      }
     }
     Enums: {
       plan_type: "monthly" | "yearly"
