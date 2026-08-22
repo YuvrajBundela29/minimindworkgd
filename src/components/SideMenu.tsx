@@ -27,6 +27,8 @@ interface SideMenuProps {
   onLoadHistoryItem?: (item: HistoryEntry) => void;
   /** Rendered as a permanent sidebar (laptop/desktop) instead of an overlay drawer */
   pinned?: boolean;
+  /** Collapse the pinned sidebar (desktop only) */
+  onCollapse?: () => void;
 }
 
 const SideMenu: React.FC<SideMenuProps> = ({
@@ -41,7 +43,9 @@ const SideMenu: React.FC<SideMenuProps> = ({
   history = [],
   onLoadHistoryItem,
   pinned = false,
+  onCollapse,
 }) => {
+
 
   const { tier, getCredits } = useSubscription();
   const credits = getCredits();

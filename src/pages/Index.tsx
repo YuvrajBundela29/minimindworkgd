@@ -120,6 +120,14 @@ const Index = () => {
     });
   }, []);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return localStorage.getItem('minimind-sidebar-collapsed') === '1';
+  });
+  useEffect(() => {
+    localStorage.setItem('minimind-sidebar-collapsed', sidebarCollapsed ? '1' : '0');
+  }, [sidebarCollapsed]);
+
   const isDesktop = useIsDesktop();
 
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
