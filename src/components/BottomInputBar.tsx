@@ -21,6 +21,8 @@ interface BottomInputBarProps {
   placeholder?: string;
   isLoading?: boolean;
   isRefining?: boolean;
+  /** 'fixed' docks the composer to the bottom (active chat), 'centered' renders it inline (empty state) */
+  variant?: 'fixed' | 'centered';
 }
 
 const SUPPORTED_TYPES: Record<string, { label: string }> = {
