@@ -46,11 +46,11 @@ const SUGGESTED_PROMPTS = [
   },
 ];
 
-const HeroEmptyState: React.FC<HeroEmptyStateProps> = ({ onPromptClick }) => {
+const HeroEmptyState: React.FC<HeroEmptyStateProps> = ({ onPromptClick, composer }) => {
   return (
-    <div className="flex flex-col items-center justify-center py-10 md:py-16 lg:py-20 animate-in fade-in duration-300 max-w-2xl mx-auto w-full">
+    <div className="hero-centered flex flex-col items-center justify-center animate-in fade-in duration-300 max-w-2xl mx-auto w-full">
       {/* Hero Text */}
-      <div className="text-center mb-8 animate-in slide-in-from-bottom-4 duration-500">
+      <div className="text-center mb-6 animate-in slide-in-from-bottom-4 duration-500">
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/8 border border-primary/15 mb-5">
           <Sparkles className="w-3.5 h-3.5 text-primary" />
           <span className="text-xs font-medium text-primary tracking-wide">4 AI Tutors • One Question</span>
@@ -66,6 +66,13 @@ const HeroEmptyState: React.FC<HeroEmptyStateProps> = ({ onPromptClick }) => {
           Ask any question — get 4 expert explanations from Beginner to Mastery level, tailored to how you learn.
         </p>
       </div>
+
+      {/* Centered composer (ChatGPT-style landing state) */}
+      {composer && (
+        <div className="w-full mb-6 animate-in slide-in-from-bottom-4 duration-500 delay-75">
+          {composer}
+        </div>
+      )}
 
       {/* Prompt Grid */}
       <div className="w-full animate-in slide-in-from-bottom-6 duration-700 delay-150">
