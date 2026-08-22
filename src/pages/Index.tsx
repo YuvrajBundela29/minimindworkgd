@@ -947,19 +947,37 @@ const Index = () => {
     return <EarlyAccessGate onSignIn={() => setCurrentPage('auth')} />;
   }
 
+  // ChatGPT-style landing: composer sits centered until the first question
+  const isLandingState = currentPage === 'home' && !hasAskedQuestion && !isAnyLoading;
+
   return (
     <div className="app-container lg:has-sidebar">
       <MobileHeader onMenuClick={() => setIsMenuOpen(true)} onProfileClick={() => user ? setCurrentPage('profile') : setCurrentPage('auth')} currentLens={purposeLens} onNewChat={handleNewChat} hasActiveChat={hasAskedQuestion} onNavigateToSubscription={() => setCurrentPage('subscription')} onNavigateToShop={() => setCurrentPage('shop')} />
       <SideMenu pinned={isDesktop} isOpen={isMenuOpen && !isDesktop} onClose={() => setIsMenuOpen(false)} currentPage={currentPage} onNavigate={(page: string) => setCurrentPage(page as typeof currentPage)} theme={theme} onToggleTheme={toggleTheme} onShowGuide={() => setShowOnboarding(true)} onNewChat={handleNewChat} history={history.map(h => ({ id: h.id, question: h.question, timestamp: h.timestamp }))} onLoadHistoryItem={(item) => { const found = history.find(h => h.id === item.id); if (found) handleLoadHistory(found); }} />
 
       
-      <main className="page-content px-4 custom-scrollbar">
+      <main className={`page-content px-4 custom-scrollbar ${isLandingState ? 'page-content--landing' : ''}`}>
         <AnimatePresence mode="wait">
           {currentPage === 'home' && (
-            <motion.div key="home" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-4">
-              {/* Hero Empty State when no question asked */}
-              {!hasAskedQuestion && !isAnyLoading && (
-                <HeroEmptyState onPromptClick={handlePromptClick} />
+            <motion.div key="home" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className={isLandingState ? 'h-full' : 'space-y-4'}>
+              {/* Hero Empty State with centered composer (ChatGPT landing) */}
+              {isLandingState && (
+                <HeroEmptyState
+                  onPromptClick={handlePromptClick}
+                  composer={
+                    <BottomInputBar
+                      variant="centered"
+                      value={question}
+                      onChange={setQuestion}
+                      onSubmit={handleSubmit}
+                      onVoiceInput={handleVoiceInput}
+                      onRefinePrompt={handleRefinePrompt}
+                      placeholder="Ask anything... MiniMind explains it 4 ways!"
+                      isLoading={isAnyLoading}
+                      isRefining={isRefining}
+                    />
+                  }
+                />
               )}
               
               {/* Mode Cards - shown when loading or has answers */}
@@ -1131,7 +1149,7 @@ const Index = () => {
       
       <QuestionLimitBanner />
       
-      {currentPage === 'home' && <BottomInputBar value={question} onChange={setQuestion} onSubmit={handleSubmit} onVoiceInput={handleVoiceInput} onRefinePrompt={handleRefinePrompt} placeholder="Ask anything... MiniMind explains it 4 ways!" isLoading={isAnyLoading} isRefining={isRefining} />}
+      {currentPage === 'home' && !isLandingState && <BottomInputBar value={question} onChange={setQuestion} onSubmit={handleSubmit} onVoiceInput={handleVoiceInput} onRefinePrompt={handleRefinePrompt} placeholder="Ask anything... MiniMind explains it 4 ways!" isLoading={isAnyLoading} isRefining={isRefining} />}
       
       {fullscreenMode && (
         <Suspense fallback={<PageLoadingFallback />}>
