@@ -43,6 +43,7 @@ const SideMenu: React.FC<SideMenuProps> = ({
   history = [],
   onLoadHistoryItem,
   pinned = false,
+  onCollapse,
 }) => {
 
   const { tier, getCredits } = useSubscription();
