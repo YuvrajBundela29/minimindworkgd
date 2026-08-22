@@ -44,6 +44,7 @@ const BottomInputBar: React.FC<BottomInputBarProps> = ({
   placeholder = "Ask anything...",
   isLoading = false,
   isRefining = false,
+  variant = 'fixed',
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
