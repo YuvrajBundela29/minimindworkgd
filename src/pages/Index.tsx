@@ -2,6 +2,8 @@ import React, { useState, useCallback, useEffect, Suspense, useRef, memo } from 
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import MobileHeader from '@/components/MobileHeader';
+import { useIsDesktop } from '@/hooks/use-desktop';
+
 import BottomInputBar from '@/components/BottomInputBar';
 import ModeCard from '@/components/ModeCard';
 import SideMenu from '@/components/SideMenu';
