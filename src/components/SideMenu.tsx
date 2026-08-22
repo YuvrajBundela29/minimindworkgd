@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   X, SquarePen, Sun, Moon, HelpCircle, MessageSquareHeart, 
   Zap, Clock, User, Settings, BookOpen, Crown, FileText, 
-  Compass, ChevronRight
+  Compass, ChevronRight, PanelLeftClose
 } from 'lucide-react';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import minimindLogo from '@/assets/minimind-logo.png';
@@ -27,6 +27,8 @@ interface SideMenuProps {
   onLoadHistoryItem?: (item: HistoryEntry) => void;
   /** Rendered as a permanent sidebar (laptop/desktop) instead of an overlay drawer */
   pinned?: boolean;
+  /** Collapse the pinned sidebar (desktop only) */
+  onCollapse?: () => void;
 }
 
 const SideMenu: React.FC<SideMenuProps> = ({
@@ -41,6 +43,7 @@ const SideMenu: React.FC<SideMenuProps> = ({
   history = [],
   onLoadHistoryItem,
   pinned = false,
+  onCollapse,
 }) => {
 
   const { tier, getCredits } = useSubscription();
@@ -95,15 +98,18 @@ const SideMenu: React.FC<SideMenuProps> = ({
                     </span>
                   )}
                 </div>
-                {!pinned && (
-                  <motion.button
-                    className="p-1.5 rounded-lg hover:bg-muted/80 transition-colors"
-                    onClick={onClose}
-                    whileTap={{ scale: 0.9 }}
-                  >
-                    <X className="w-4 h-4 text-muted-foreground" />
-                  </motion.button>
-                )}
+                <motion.button
+                  className="p-1.5 rounded-lg hover:bg-muted/80 transition-colors"
+                  onClick={pinned ? onCollapse : onClose}
+                  whileTap={{ scale: 0.9 }}
+                  aria-label={pinned ? 'Collapse navigation menu' : 'Close menu'}
+                  title={pinned ? 'Collapse sidebar' : 'Close'}
+                >
+                  {pinned
+                    ? <PanelLeftClose className="w-4 h-4 text-muted-foreground" />
+                    : <X className="w-4 h-4 text-muted-foreground" />}
+                </motion.button>
+
 
               </div>
 
