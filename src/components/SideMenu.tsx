@@ -25,6 +25,8 @@ interface SideMenuProps {
   onNewChat?: () => void;
   history?: HistoryEntry[];
   onLoadHistoryItem?: (item: HistoryEntry) => void;
+  /** Rendered as a permanent sidebar (laptop/desktop) instead of an overlay drawer */
+  pinned?: boolean;
 }
 
 const SideMenu: React.FC<SideMenuProps> = ({
@@ -38,7 +40,9 @@ const SideMenu: React.FC<SideMenuProps> = ({
   onNewChat,
   history = [],
   onLoadHistoryItem,
+  pinned = false,
 }) => {
+
   const { tier, getCredits } = useSubscription();
   const credits = getCredits();
 
@@ -72,30 +76,13 @@ const SideMenu: React.FC<SideMenuProps> = ({
     ? 'from-violet-500 to-purple-500' 
     : 'from-slate-400 to-slate-500';
 
-  return (
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          <motion.div
-            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={onClose}
-          />
-          
-          <motion.div
-            className="fixed left-0 top-0 bottom-0 z-50 w-[280px] flex flex-col overflow-hidden"
-            style={{
-              background: theme === 'dark' 
-                ? 'linear-gradient(180deg, hsl(220 14% 8%) 0%, hsl(220 14% 6%) 100%)' 
-                : 'linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(220 14% 97%) 100%)',
-            }}
-            initial={{ x: '-100%' }}
-            animate={{ x: 0 }}
-            exit={{ x: '-100%' }}
-            transition={{ type: 'spring', damping: 28, stiffness: 320 }}
-          >
+  const panelBg = theme === 'dark'
+    ? 'linear-gradient(180deg, hsl(220 14% 8%) 0%, hsl(220 14% 6%) 100%)'
+    : 'linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(220 14% 97%) 100%)';
+
+  const body = (
+    <>
+
             {/* ── Header: Logo + New Chat ── */}
             <div className="px-3 pt-4 pb-2">
               <div className="flex items-center justify-between mb-3">
@@ -108,13 +95,16 @@ const SideMenu: React.FC<SideMenuProps> = ({
                     </span>
                   )}
                 </div>
-                <motion.button
-                  className="p-1.5 rounded-lg hover:bg-muted/80 transition-colors"
-                  onClick={onClose}
-                  whileTap={{ scale: 0.9 }}
-                >
-                  <X className="w-4 h-4 text-muted-foreground" />
-                </motion.button>
+                {!pinned && (
+                  <motion.button
+                    className="p-1.5 rounded-lg hover:bg-muted/80 transition-colors"
+                    onClick={onClose}
+                    whileTap={{ scale: 0.9 }}
+                  >
+                    <X className="w-4 h-4 text-muted-foreground" />
+                  </motion.button>
+                )}
+
               </div>
 
               {/* New Chat Button */}
@@ -248,11 +238,47 @@ const SideMenu: React.FC<SideMenuProps> = ({
                 </motion.a>
               </div>
             </div>
+    </>
+  );
+
+  if (pinned) {
+    return (
+      <aside
+        className="hidden lg:flex fixed left-0 top-0 bottom-0 z-30 w-[280px] flex-col overflow-hidden border-r border-border/50"
+        style={{ background: panelBg }}
+      >
+        {body}
+      </aside>
+    );
+  }
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <>
+          <motion.div
+            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+          />
+
+          <motion.div
+            className="fixed left-0 top-0 bottom-0 z-50 w-[280px] flex flex-col overflow-hidden"
+            style={{ background: panelBg }}
+            initial={{ x: '-100%' }}
+            animate={{ x: 0 }}
+            exit={{ x: '-100%' }}
+            transition={{ type: 'spring', damping: 28, stiffness: 320 }}
+          >
+            {body}
           </motion.div>
         </>
       )}
     </AnimatePresence>
   );
+
 };
 
 export default SideMenu;

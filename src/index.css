@@ -256,6 +256,39 @@
     }
   }
 
+  /* ============================================
+     DESKTOP / LAPTOP — permanent sidebar layout
+     Mobile & tablet (<1024px) are untouched.
+     ============================================ */
+  @media (min-width: 1024px) {
+    .lg\:has-sidebar .app-header {
+      left: 280px;
+    }
+
+    .lg\:has-sidebar .page-content {
+      margin-left: max(280px, calc(280px + (100vw - 280px - 56rem) / 2));
+      margin-right: auto;
+      max-width: min(56rem, calc(100vw - 280px - 4rem));
+      padding-bottom: 104px;
+    }
+
+
+    .lg\:has-sidebar .app-input-bar {
+      left: calc(280px + (100vw - 280px) / 2);
+      max-width: min(52rem, calc(100vw - 280px - 3rem));
+    }
+  }
+
+  @media (min-width: 1536px) {
+    .lg\:has-sidebar .page-content {
+      max-width: min(64rem, calc(100vw - 280px - 4rem));
+    }
+    .lg\:has-sidebar .app-input-bar {
+      max-width: 60rem;
+    }
+  }
+
+
   .app-input-inner {
     @apply w-full;
   }
