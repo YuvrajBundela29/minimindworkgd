@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   X, SquarePen, Sun, Moon, HelpCircle, MessageSquareHeart, 
   Zap, Clock, User, Settings, BookOpen, Crown, FileText, 
-  Compass, ChevronRight
+  Compass, ChevronRight, PanelLeftClose
 } from 'lucide-react';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import minimindLogo from '@/assets/minimind-logo.png';
