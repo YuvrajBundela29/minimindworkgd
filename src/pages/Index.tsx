@@ -947,6 +947,9 @@ const Index = () => {
     return <EarlyAccessGate onSignIn={() => setCurrentPage('auth')} />;
   }
 
+  // ChatGPT-style landing: composer sits centered until the first question
+  const isLandingState = currentPage === 'home' && !hasAskedQuestion && !isAnyLoading;
+
   return (
     <div className="app-container lg:has-sidebar">
       <MobileHeader onMenuClick={() => setIsMenuOpen(true)} onProfileClick={() => user ? setCurrentPage('profile') : setCurrentPage('auth')} currentLens={purposeLens} onNewChat={handleNewChat} hasActiveChat={hasAskedQuestion} onNavigateToSubscription={() => setCurrentPage('subscription')} onNavigateToShop={() => setCurrentPage('shop')} />
