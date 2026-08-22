@@ -3,6 +3,8 @@ import { Sparkles, ChevronRight } from 'lucide-react';
 
 interface HeroEmptyStateProps {
   onPromptClick: (prompt: string) => void;
+  /** Composer rendered in the centre of the hero, ChatGPT-style */
+  composer?: React.ReactNode;
 }
 
 const SUGGESTED_PROMPTS = [
