@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   X, SquarePen, Sun, Moon, HelpCircle, MessageSquareHeart, 
   Zap, Clock, User, Settings, BookOpen, Crown, FileText, 
-  Compass, ChevronRight, PanelLeftClose
+  Compass, ChevronRight, PanelLeftClose, PanelLeftOpen
 } from 'lucide-react';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import minimindLogo from '@/assets/minimind-logo.png';
@@ -29,6 +29,10 @@ interface SideMenuProps {
   pinned?: boolean;
   /** Collapse the pinned sidebar (desktop only) */
   onCollapse?: () => void;
+  /** Expand the collapsed icon rail back to the full sidebar */
+  onExpand?: () => void;
+  /** Pinned sidebar is collapsed to an icon rail */
+  collapsed?: boolean;
 }
 
 const SideMenu: React.FC<SideMenuProps> = ({
@@ -44,6 +48,8 @@ const SideMenu: React.FC<SideMenuProps> = ({
   onLoadHistoryItem,
   pinned = false,
   onCollapse,
+  onExpand,
+  collapsed = false,
 }) => {
 
   const { tier, getCredits } = useSubscription();
