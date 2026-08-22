@@ -94,6 +94,19 @@ const MobileHeader: React.FC<MobileHeaderProps> = ({
           <Menu className="w-5 h-5" />
         </motion.button>
 
+        {onToggleSidebar && (
+          <motion.button
+            className="header-icon-btn hidden lg:flex"
+            onClick={onToggleSidebar}
+            whileTap={{ scale: 0.95 }}
+            aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          >
+            <PanelLeft className="w-5 h-5" />
+          </motion.button>
+        )}
+
+
         <div className="flex items-center gap-2">
           <img src={minimindLogo} alt="MiniMind" className="w-7 h-7" width={28} height={28} />
           <span className="logo-text-premium text-lg">MiniMind</span>

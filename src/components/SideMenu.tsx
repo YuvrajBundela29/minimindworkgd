@@ -3,8 +3,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   X, SquarePen, Sun, Moon, HelpCircle, MessageSquareHeart, 
   Zap, Clock, User, Settings, BookOpen, Crown, FileText, 
-  Compass, ChevronRight
+  Compass, ChevronRight, PanelLeftClose
 } from 'lucide-react';
+
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import minimindLogo from '@/assets/minimind-logo.png';
 
@@ -104,12 +105,25 @@ const SideMenu: React.FC<SideMenuProps> = ({
                     className="p-1.5 rounded-lg hover:bg-muted/80 transition-colors"
                     onClick={onClose}
                     whileTap={{ scale: 0.9 }}
+                    aria-label="Close menu"
                   >
                     <X className="w-4 h-4 text-muted-foreground" />
                   </motion.button>
                 )}
+                {pinned && onCollapse && (
+                  <motion.button
+                    className="p-1.5 rounded-lg hover:bg-muted/80 transition-colors"
+                    onClick={onCollapse}
+                    whileTap={{ scale: 0.9 }}
+                    aria-label="Collapse sidebar"
+                    title="Collapse sidebar"
+                  >
+                    <PanelLeftClose className="w-4 h-4 text-muted-foreground" />
+                  </motion.button>
+                )}
 
               </div>
+
 
               {/* New Chat Button */}
               {onNewChat && (
