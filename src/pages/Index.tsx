@@ -121,6 +121,8 @@ const Index = () => {
   }, []);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const isDesktop = useIsDesktop();
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const sidebarPinned = isDesktop && !sidebarCollapsed;
 
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [selectedLanguage, setSelectedLanguage] = useState<LanguageKey>('en');
