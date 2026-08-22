@@ -1131,7 +1131,7 @@ const Index = () => {
       
       <QuestionLimitBanner />
       
-      {currentPage === 'home' && <BottomInputBar value={question} onChange={setQuestion} onSubmit={handleSubmit} onVoiceInput={handleVoiceInput} onRefinePrompt={handleRefinePrompt} placeholder="Ask anything... MiniMind explains it 4 ways!" isLoading={isAnyLoading} isRefining={isRefining} />}
+      {currentPage === 'home' && !isLandingState && <BottomInputBar value={question} onChange={setQuestion} onSubmit={handleSubmit} onVoiceInput={handleVoiceInput} onRefinePrompt={handleRefinePrompt} placeholder="Ask anything... MiniMind explains it 4 ways!" isLoading={isAnyLoading} isRefining={isRefining} />}
       
       {fullscreenMode && (
         <Suspense fallback={<PageLoadingFallback />}>
