@@ -98,15 +98,18 @@ const SideMenu: React.FC<SideMenuProps> = ({
                     </span>
                   )}
                 </div>
-                {!pinned && (
-                  <motion.button
-                    className="p-1.5 rounded-lg hover:bg-muted/80 transition-colors"
-                    onClick={onClose}
-                    whileTap={{ scale: 0.9 }}
-                  >
-                    <X className="w-4 h-4 text-muted-foreground" />
-                  </motion.button>
-                )}
+                <motion.button
+                  className="p-1.5 rounded-lg hover:bg-muted/80 transition-colors"
+                  onClick={pinned ? onCollapse : onClose}
+                  whileTap={{ scale: 0.9 }}
+                  aria-label={pinned ? 'Collapse navigation menu' : 'Close menu'}
+                  title={pinned ? 'Collapse sidebar' : 'Close'}
+                >
+                  {pinned
+                    ? <PanelLeftClose className="w-4 h-4 text-muted-foreground" />
+                    : <X className="w-4 h-4 text-muted-foreground" />}
+                </motion.button>
+
 
               </div>
 
