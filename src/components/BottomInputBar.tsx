@@ -137,7 +137,7 @@ const BottomInputBar: React.FC<BottomInputBarProps> = ({
   const hasContent = value.trim() || attachedFile;
 
   return (
-    <div className="app-input-bar">
+    <div className={variant === 'centered' ? 'app-input-centered' : 'app-input-bar'}>
       <div className="app-input-inner">
         {/* Attached File Preview */}
         <AnimatePresence>
