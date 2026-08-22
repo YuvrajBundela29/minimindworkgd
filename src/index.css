@@ -266,10 +266,12 @@
     }
 
     .lg\:has-sidebar .page-content {
-      margin-left: 280px;
+      margin-left: max(280px, calc(280px + (100vw - 280px - 56rem) / 2));
+      margin-right: auto;
       max-width: min(56rem, calc(100vw - 280px - 4rem));
       padding-bottom: 104px;
     }
+
 
     .lg\:has-sidebar .app-input-bar {
       left: calc(280px + (100vw - 280px) / 2);
