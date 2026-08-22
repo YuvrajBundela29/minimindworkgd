@@ -25,6 +25,8 @@ interface SideMenuProps {
   onNewChat?: () => void;
   history?: HistoryEntry[];
   onLoadHistoryItem?: (item: HistoryEntry) => void;
+  /** Rendered as a permanent sidebar (laptop/desktop) instead of an overlay drawer */
+  pinned?: boolean;
 }
 
 const SideMenu: React.FC<SideMenuProps> = ({
@@ -38,7 +40,9 @@ const SideMenu: React.FC<SideMenuProps> = ({
   onNewChat,
   history = [],
   onLoadHistoryItem,
+  pinned = false,
 }) => {
+
   const { tier, getCredits } = useSubscription();
   const credits = getCredits();
 
