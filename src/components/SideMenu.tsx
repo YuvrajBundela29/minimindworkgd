@@ -95,13 +95,16 @@ const SideMenu: React.FC<SideMenuProps> = ({
                     </span>
                   )}
                 </div>
-                <motion.button
-                  className="p-1.5 rounded-lg hover:bg-muted/80 transition-colors"
-                  onClick={onClose}
-                  whileTap={{ scale: 0.9 }}
-                >
-                  <X className="w-4 h-4 text-muted-foreground" />
-                </motion.button>
+                {!pinned && (
+                  <motion.button
+                    className="p-1.5 rounded-lg hover:bg-muted/80 transition-colors"
+                    onClick={onClose}
+                    whileTap={{ scale: 0.9 }}
+                  >
+                    <X className="w-4 h-4 text-muted-foreground" />
+                  </motion.button>
+                )}
+
               </div>
 
               {/* New Chat Button */}
