@@ -118,6 +118,8 @@ const Index = () => {
     });
   }, []);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const isDesktop = useIsDesktop();
+
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [selectedLanguage, setSelectedLanguage] = useState<LanguageKey>('en');
   const [hasAskedQuestion, setHasAskedQuestion] = useState(false);
