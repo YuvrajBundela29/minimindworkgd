@@ -261,32 +261,46 @@
      Mobile & tablet (<1024px) are untouched.
      ============================================ */
   @media (min-width: 1024px) {
-    .lg\:has-sidebar .app-header {
-      left: 280px;
+    .lg\:has-sidebar,
+    .lg\:has-rail {
+      --app-sidebar-w: 280px;
     }
 
-    .lg\:has-sidebar .page-content {
-      margin-left: max(280px, calc(280px + (100vw - 280px - 56rem) / 2));
+    .lg\:has-rail {
+      --app-sidebar-w: 72px;
+    }
+
+    .lg\:has-sidebar .app-header,
+    .lg\:has-rail .app-header {
+      left: var(--app-sidebar-w);
+    }
+
+    .lg\:has-sidebar .page-content,
+    .lg\:has-rail .page-content {
+      margin-left: max(var(--app-sidebar-w), calc(var(--app-sidebar-w) + (100vw - var(--app-sidebar-w) - 56rem) / 2));
       margin-right: auto;
-      max-width: min(56rem, calc(100vw - 280px - 4rem));
+      max-width: min(56rem, calc(100vw - var(--app-sidebar-w) - 4rem));
       padding-bottom: 104px;
     }
 
-
-    .lg\:has-sidebar .app-input-bar {
-      left: calc(280px + (100vw - 280px) / 2);
-      max-width: min(52rem, calc(100vw - 280px - 3rem));
+    .lg\:has-sidebar .app-input-bar,
+    .lg\:has-rail .app-input-bar {
+      left: calc(var(--app-sidebar-w) + (100vw - var(--app-sidebar-w)) / 2);
+      max-width: min(52rem, calc(100vw - var(--app-sidebar-w) - 3rem));
     }
   }
 
   @media (min-width: 1536px) {
-    .lg\:has-sidebar .page-content {
-      max-width: min(64rem, calc(100vw - 280px - 4rem));
+    .lg\:has-sidebar .page-content,
+    .lg\:has-rail .page-content {
+      max-width: min(64rem, calc(100vw - var(--app-sidebar-w) - 4rem));
     }
-    .lg\:has-sidebar .app-input-bar {
+    .lg\:has-sidebar .app-input-bar,
+    .lg\:has-rail .app-input-bar {
       max-width: 60rem;
     }
   }
+
 
   /* ============================================
      LANDING STATE — composer centered in the viewport
