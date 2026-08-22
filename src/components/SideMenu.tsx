@@ -252,11 +252,47 @@ const SideMenu: React.FC<SideMenuProps> = ({
                 </motion.a>
               </div>
             </div>
+    </>
+  );
+
+  if (pinned) {
+    return (
+      <aside
+        className="hidden lg:flex fixed left-0 top-0 bottom-0 z-30 w-[280px] flex-col overflow-hidden border-r border-border/50"
+        style={{ background: panelBg }}
+      >
+        {body}
+      </aside>
+    );
+  }
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <>
+          <motion.div
+            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+          />
+
+          <motion.div
+            className="fixed left-0 top-0 bottom-0 z-50 w-[280px] flex flex-col overflow-hidden"
+            style={{ background: panelBg }}
+            initial={{ x: '-100%' }}
+            animate={{ x: 0 }}
+            exit={{ x: '-100%' }}
+            transition={{ type: 'spring', damping: 28, stiffness: 320 }}
+          >
+            {body}
           </motion.div>
         </>
       )}
     </AnimatePresence>
   );
+
 };
 
 export default SideMenu;
