@@ -121,7 +121,6 @@ const Index = () => {
   }, []);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const isDesktop = useIsDesktop();
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [selectedLanguage, setSelectedLanguage] = useState<LanguageKey>('en');
@@ -952,9 +951,9 @@ const Index = () => {
   const isLandingState = currentPage === 'home' && !hasAskedQuestion && !isAnyLoading;
 
   return (
-    <div className={isDesktop ? (sidebarCollapsed ? 'app-container lg:has-rail' : 'app-container lg:has-sidebar') : 'app-container'}>
-      <MobileHeader onMenuClick={() => { if (isDesktop) { setSidebarCollapsed((c) => !c); } else { setIsMenuOpen(true); } }} onProfileClick={() => user ? setCurrentPage('profile') : setCurrentPage('auth')} currentLens={purposeLens} onNewChat={handleNewChat} hasActiveChat={hasAskedQuestion} onNavigateToSubscription={() => setCurrentPage('subscription')} onNavigateToShop={() => setCurrentPage('shop')} />
-      <SideMenu pinned={isDesktop} collapsed={sidebarCollapsed} onCollapse={() => setSidebarCollapsed(true)} onExpand={() => setSidebarCollapsed(false)} isOpen={isMenuOpen && !isDesktop} onClose={() => setIsMenuOpen(false)} currentPage={currentPage} onNavigate={(page: string) => setCurrentPage(page as typeof currentPage)} theme={theme} onToggleTheme={toggleTheme} onShowGuide={() => setShowOnboarding(true)} onNewChat={handleNewChat} history={history.map(h => ({ id: h.id, question: h.question, timestamp: h.timestamp }))} onLoadHistoryItem={(item) => { const found = history.find(h => h.id === item.id); if (found) handleLoadHistory(found); }} />
+    <div className="app-container lg:has-sidebar">
+      <MobileHeader onMenuClick={() => setIsMenuOpen(true)} onProfileClick={() => user ? setCurrentPage('profile') : setCurrentPage('auth')} currentLens={purposeLens} onNewChat={handleNewChat} hasActiveChat={hasAskedQuestion} onNavigateToSubscription={() => setCurrentPage('subscription')} onNavigateToShop={() => setCurrentPage('shop')} />
+      <SideMenu pinned={isDesktop} isOpen={isMenuOpen && !isDesktop} onClose={() => setIsMenuOpen(false)} currentPage={currentPage} onNavigate={(page: string) => setCurrentPage(page as typeof currentPage)} theme={theme} onToggleTheme={toggleTheme} onShowGuide={() => setShowOnboarding(true)} onNewChat={handleNewChat} history={history.map(h => ({ id: h.id, question: h.question, timestamp: h.timestamp }))} onLoadHistoryItem={(item) => { const found = history.find(h => h.id === item.id); if (found) handleLoadHistory(found); }} />
 
       
       <main className={`page-content px-4 custom-scrollbar ${isLandingState ? 'page-content--landing' : ''}`}>

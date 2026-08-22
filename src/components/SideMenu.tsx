@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   X, SquarePen, Sun, Moon, HelpCircle, MessageSquareHeart, 
   Zap, Clock, User, Settings, BookOpen, Crown, FileText, 
-  Compass, ChevronRight, PanelLeftClose, PanelLeftOpen
+  Compass, ChevronRight
 } from 'lucide-react';
 import { useSubscription } from '@/contexts/SubscriptionContext';
 import minimindLogo from '@/assets/minimind-logo.png';
@@ -27,12 +27,6 @@ interface SideMenuProps {
   onLoadHistoryItem?: (item: HistoryEntry) => void;
   /** Rendered as a permanent sidebar (laptop/desktop) instead of an overlay drawer */
   pinned?: boolean;
-  /** Collapse the pinned sidebar (desktop only) */
-  onCollapse?: () => void;
-  /** Expand the collapsed icon rail back to the full sidebar */
-  onExpand?: () => void;
-  /** Pinned sidebar is collapsed to an icon rail */
-  collapsed?: boolean;
 }
 
 const SideMenu: React.FC<SideMenuProps> = ({
@@ -47,9 +41,6 @@ const SideMenu: React.FC<SideMenuProps> = ({
   history = [],
   onLoadHistoryItem,
   pinned = false,
-  onCollapse,
-  onExpand,
-  collapsed = false,
 }) => {
 
   const { tier, getCredits } = useSubscription();
@@ -104,18 +95,15 @@ const SideMenu: React.FC<SideMenuProps> = ({
                     </span>
                   )}
                 </div>
-                <motion.button
-                  className="p-1.5 rounded-lg hover:bg-muted/80 transition-colors"
-                  onClick={pinned ? onCollapse : onClose}
-                  whileTap={{ scale: 0.9 }}
-                  aria-label={pinned ? 'Collapse navigation menu' : 'Close menu'}
-                  title={pinned ? 'Collapse sidebar' : 'Close'}
-                >
-                  {pinned
-                    ? <PanelLeftClose className="w-4 h-4 text-muted-foreground" />
-                    : <X className="w-4 h-4 text-muted-foreground" />}
-                </motion.button>
-
+                {!pinned && (
+                  <motion.button
+                    className="p-1.5 rounded-lg hover:bg-muted/80 transition-colors"
+                    onClick={onClose}
+                    whileTap={{ scale: 0.9 }}
+                  >
+                    <X className="w-4 h-4 text-muted-foreground" />
+                  </motion.button>
+                )}
 
               </div>
 
@@ -253,51 +241,6 @@ const SideMenu: React.FC<SideMenuProps> = ({
     </>
   );
 
-  if (pinned && collapsed) {
-    const railBtn = 'w-11 h-11 rounded-xl flex items-center justify-center transition-colors hover:bg-muted/70 text-muted-foreground';
-    return (
-      <aside
-        className="hidden lg:flex fixed left-0 top-0 bottom-0 z-30 w-[72px] flex-col items-center gap-1 py-3 border-r border-border/50"
-        style={{ background: panelBg }}
-      >
-        <button className="mb-3" onClick={onExpand} title="Expand menu" aria-label="Expand navigation menu">
-          <img src={minimindLogo} alt="MiniMind" className="w-9 h-9" width={36} height={36} />
-        </button>
-        {onNewChat && (
-          <button className={railBtn} onClick={onNewChat} title="New chat" aria-label="New chat">
-            <SquarePen className="w-5 h-5" />
-          </button>
-        )}
-        <button
-          className={`${railBtn} ${currentPage === 'explore' ? 'bg-primary/10 text-primary' : ''}`}
-          onClick={() => onNavigate('explore')} title="Explore" aria-label="Explore"
-        >
-          <Compass className="w-5 h-5" />
-        </button>
-        <button className={railBtn} onClick={onExpand} title="History" aria-label="History">
-          <Clock className="w-5 h-5" />
-        </button>
-        <button
-          className={`${railBtn} ${currentPage === 'account' ? 'bg-primary/10 text-primary' : ''}`}
-          onClick={() => onNavigate('account')} title="Account" aria-label="Account"
-        >
-          <User className="w-5 h-5" />
-        </button>
-        {onShowGuide && (
-          <button className={railBtn} onClick={onShowGuide} title="Guide" aria-label="Guide">
-            <HelpCircle className="w-5 h-5" />
-          </button>
-        )}
-        <button className={railBtn} onClick={onToggleTheme} title="Toggle theme" aria-label="Toggle theme">
-          {theme === 'light' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
-        </button>
-        <button className={`${railBtn} mt-auto`} onClick={onExpand} title="Expand sidebar" aria-label="Expand sidebar">
-          <PanelLeftOpen className="w-5 h-5" />
-        </button>
-      </aside>
-    );
-  }
-
   if (pinned) {
     return (
       <aside
@@ -308,7 +251,6 @@ const SideMenu: React.FC<SideMenuProps> = ({
       </aside>
     );
   }
-
 
   return (
     <AnimatePresence>
