@@ -730,16 +730,22 @@ Then provide your detailed feedback:
     const UPSTREAM_TIMEOUT_MS = 120_000;
     const timeoutId = setTimeout(() => controller.abort(), UPSTREAM_TIMEOUT_MS);
 
-    let response: Response;
-    try {
-      response = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
+    // Primary + fallbacks (models get retired on NVIDIA's catalog)
+    const MODELS = [
+      "meta/llama-3.1-8b-instruct",
+      "meta/llama-3.3-70b-instruct",
+      "mistralai/mistral-7b-instruct-v0.3",
+    ];
+
+    const callModel = (model: string) =>
+      fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${NVIDIA_API_KEY}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: "google/gemma-3n-e2b-it",
+          model,
           messages: apiMessages,
           max_tokens: 512,
           temperature: 0.20,
@@ -748,6 +754,15 @@ Then provide your detailed feedback:
         }),
         signal: controller.signal,
       });
+
+    let response: Response;
+    try {
+      response = await callModel(MODELS[0]);
+      // 404/410 = model missing or retired -> try fallbacks
+      for (let i = 1; i < MODELS.length && (response.status === 404 || response.status === 410); i++) {
+        console.warn(`Model ${MODELS[i - 1]} unavailable (${response.status}), trying ${MODELS[i]}`);
+        response = await callModel(MODELS[i]);
+      }
     } catch (err) {
       clearTimeout(timeoutId);
       await refundCredits();
