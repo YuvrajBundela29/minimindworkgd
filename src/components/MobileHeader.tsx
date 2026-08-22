@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import minimindLogo from '@/assets/minimind-logo.png';
-import { Menu, User, SquarePen } from 'lucide-react';
+import { Menu, User, SquarePen, PanelLeft } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { supabase } from '@/integrations/supabase/client';
 import { PurposeLensKey } from '@/config/minimind';
@@ -16,6 +16,8 @@ interface MobileHeaderProps {
   hasActiveChat?: boolean;
   onNavigateToSubscription?: () => void;
   onNavigateToShop?: () => void;
+  onToggleSidebar?: () => void;
+  sidebarCollapsed?: boolean;
 }
 
 const MobileHeader: React.FC<MobileHeaderProps> = ({
@@ -26,7 +28,10 @@ const MobileHeader: React.FC<MobileHeaderProps> = ({
   hasActiveChat = false,
   onNavigateToSubscription,
   onNavigateToShop,
+  onToggleSidebar,
+  sidebarCollapsed = false,
 }) => {
+
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [presetAvatar, setPresetAvatar] = useState<string | null>(null);
   const [frameId, setFrameId] = useState('default');

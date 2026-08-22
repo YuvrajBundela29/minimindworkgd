@@ -950,10 +950,12 @@ const Index = () => {
   // ChatGPT-style landing: composer sits centered until the first question
   const isLandingState = currentPage === 'home' && !hasAskedQuestion && !isAnyLoading;
 
+
   return (
-    <div className="app-container lg:has-sidebar">
-      <MobileHeader onMenuClick={() => setIsMenuOpen(true)} onProfileClick={() => user ? setCurrentPage('profile') : setCurrentPage('auth')} currentLens={purposeLens} onNewChat={handleNewChat} hasActiveChat={hasAskedQuestion} onNavigateToSubscription={() => setCurrentPage('subscription')} onNavigateToShop={() => setCurrentPage('shop')} />
-      <SideMenu pinned={isDesktop} isOpen={isMenuOpen && !isDesktop} onClose={() => setIsMenuOpen(false)} currentPage={currentPage} onNavigate={(page: string) => setCurrentPage(page as typeof currentPage)} theme={theme} onToggleTheme={toggleTheme} onShowGuide={() => setShowOnboarding(true)} onNewChat={handleNewChat} history={history.map(h => ({ id: h.id, question: h.question, timestamp: h.timestamp }))} onLoadHistoryItem={(item) => { const found = history.find(h => h.id === item.id); if (found) handleLoadHistory(found); }} />
+    <div className={`app-container ${sidebarCollapsed ? '' : 'lg:has-sidebar'}`}>
+      <MobileHeader onMenuClick={() => setIsMenuOpen(true)} onToggleSidebar={() => setSidebarCollapsed(v => !v)} sidebarCollapsed={sidebarCollapsed} onProfileClick={() => user ? setCurrentPage('profile') : setCurrentPage('auth')} currentLens={purposeLens} onNewChat={handleNewChat} hasActiveChat={hasAskedQuestion} onNavigateToSubscription={() => setCurrentPage('subscription')} onNavigateToShop={() => setCurrentPage('shop')} />
+      <SideMenu pinned={isDesktop && !sidebarCollapsed} onCollapse={() => setSidebarCollapsed(true)} isOpen={isMenuOpen && (!isDesktop || sidebarCollapsed)} onClose={() => setIsMenuOpen(false)} currentPage={currentPage} onNavigate={(page: string) => setCurrentPage(page as typeof currentPage)} theme={theme} onToggleTheme={toggleTheme} onShowGuide={() => setShowOnboarding(true)} onNewChat={handleNewChat} history={history.map(h => ({ id: h.id, question: h.question, timestamp: h.timestamp }))} onLoadHistoryItem={(item) => { const found = history.find(h => h.id === item.id); if (found) handleLoadHistory(found); }} />
+
 
       
       <main className={`page-content px-4 custom-scrollbar ${isLandingState ? 'page-content--landing' : ''}`}>
