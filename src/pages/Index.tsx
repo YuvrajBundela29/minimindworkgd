@@ -951,6 +951,7 @@ const Index = () => {
   const isLandingState = currentPage === 'home' && !hasAskedQuestion && !isAnyLoading;
 
 
+
   return (
     <div className={`app-container ${sidebarCollapsed ? '' : 'lg:has-sidebar'}`}>
       <MobileHeader onMenuClick={() => setIsMenuOpen(true)} onToggleSidebar={() => setSidebarCollapsed(v => !v)} sidebarCollapsed={sidebarCollapsed} onProfileClick={() => user ? setCurrentPage('profile') : setCurrentPage('auth')} currentLens={purposeLens} onNewChat={handleNewChat} hasActiveChat={hasAskedQuestion} onNavigateToSubscription={() => setCurrentPage('subscription')} onNavigateToShop={() => setCurrentPage('shop')} />
