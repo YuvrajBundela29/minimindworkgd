@@ -109,6 +109,17 @@ const SideMenu: React.FC<SideMenuProps> = ({
                     <X className="w-4 h-4 text-muted-foreground" />
                   </motion.button>
                 )}
+                {pinned && onToggleCollapse && (
+                  <motion.button
+                    className="p-1.5 rounded-lg hover:bg-muted/80 transition-colors"
+                    onClick={onToggleCollapse}
+                    whileTap={{ scale: 0.9 }}
+                    aria-label="Collapse sidebar"
+                    title="Collapse sidebar"
+                  >
+                    <PanelLeftClose className="w-4 h-4 text-muted-foreground" />
+                  </motion.button>
+                )}
 
               </div>
 
