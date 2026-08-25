@@ -261,27 +261,35 @@
      Mobile & tablet (<1024px) are untouched.
      ============================================ */
   @media (min-width: 1024px) {
+    .lg\:has-sidebar { --sidebar-w: 280px; }
+    .sidebar-collapsed.lg\:has-sidebar { --sidebar-w: 64px; }
+
     .lg\:has-sidebar .app-header {
-      left: 280px;
+      left: var(--sidebar-w);
     }
 
     .lg\:has-sidebar .page-content {
-      margin-left: max(280px, calc(280px + (100vw - 280px - 56rem) / 2));
+      margin-left: max(var(--sidebar-w), calc(var(--sidebar-w) + (100vw - var(--sidebar-w) - 56rem) / 2));
       margin-right: auto;
-      max-width: min(56rem, calc(100vw - 280px - 4rem));
+      max-width: min(56rem, calc(100vw - var(--sidebar-w) - 4rem));
       padding-bottom: 104px;
+      transition: margin-left 0.28s ease, max-width 0.28s ease;
     }
 
-
     .lg\:has-sidebar .app-input-bar {
-      left: calc(280px + (100vw - 280px) / 2);
-      max-width: min(52rem, calc(100vw - 280px - 3rem));
+      left: calc(var(--sidebar-w) + (100vw - var(--sidebar-w)) / 2);
+      max-width: min(52rem, calc(100vw - var(--sidebar-w) - 3rem));
+      transition: left 0.28s ease, max-width 0.28s ease;
+    }
+
+    .lg\:has-sidebar .app-header {
+      transition: left 0.28s ease;
     }
   }
 
   @media (min-width: 1536px) {
     .lg\:has-sidebar .page-content {
-      max-width: min(64rem, calc(100vw - 280px - 4rem));
+      max-width: min(64rem, calc(100vw - var(--sidebar-w) - 4rem));
     }
     .lg\:has-sidebar .app-input-bar {
       max-width: 60rem;
@@ -320,9 +328,10 @@
 
   @media (min-width: 1024px) {
     .is-welcome.lg\:has-sidebar .app-input-bar {
-      margin-left: calc(280px + max(0px, (100vw - 280px - 48rem) / 2));
+      margin-left: calc(var(--sidebar-w) + max(0px, (100vw - var(--sidebar-w) - 48rem) / 2));
       margin-right: auto;
-      max-width: min(48rem, calc(100vw - 280px - 3rem));
+      max-width: min(48rem, calc(100vw - var(--sidebar-w) - 1rem));
+      transition: margin-left 0.28s ease, max-width 0.28s ease;
     }
   }
 
