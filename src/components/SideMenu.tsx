@@ -257,6 +257,79 @@ const SideMenu: React.FC<SideMenuProps> = ({
     </>
   );
 
+  if (pinned && collapsed) {
+    return (
+      <aside
+        className="hidden lg:flex fixed left-0 top-0 bottom-0 z-30 w-16 flex-col items-center overflow-hidden border-r border-border/50"
+        style={{ background: panelBg }}
+      >
+        <div className="pt-4 pb-2 flex justify-center">
+          <img src={minimindLogo} alt="MiniMind" className="w-6 h-6" width={24} height={24} />
+        </div>
+
+        {onNewChat && (
+          <motion.button
+            className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-muted/60 transition-colors text-foreground"
+            onClick={() => { onNewChat(); onClose(); }}
+            whileTap={{ scale: 0.95 }}
+            aria-label="New chat"
+            title="Start new chat"
+          >
+            <SquarePen className="w-5 h-5" />
+          </motion.button>
+        )}
+
+        <motion.button
+          className={`w-10 h-10 flex items-center justify-center rounded-xl transition-colors ${
+            currentPage === 'explore' ? 'bg-primary/10 text-primary' : 'hover:bg-muted/60 text-foreground'
+          }`}
+          onClick={() => { onNavigate('explore'); onClose(); }}
+          whileTap={{ scale: 0.95 }}
+          aria-label="Explore"
+          title="Explore"
+        >
+          <Compass className="w-5 h-5" />
+        </motion.button>
+
+        <div className="flex-1" />
+
+        <motion.button
+          className={`w-10 h-10 flex items-center justify-center rounded-xl transition-colors ${
+            currentPage === 'account' ? 'bg-primary/10 text-primary' : 'hover:bg-muted/60 text-foreground'
+          }`}
+          onClick={() => { onNavigate('account'); onClose(); }}
+          whileTap={{ scale: 0.95 }}
+          aria-label="Account"
+          title="Account"
+        >
+          <User className="w-5 h-5" />
+        </motion.button>
+
+        <motion.button
+          className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-muted/60 text-muted-foreground transition-colors"
+          onClick={onToggleTheme}
+          whileTap={{ scale: 0.95 }}
+          aria-label="Toggle theme"
+          title={theme === 'light' ? 'Dark mode' : 'Light mode'}
+        >
+          {theme === 'light' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
+        </motion.button>
+
+        {onToggleCollapse && (
+          <motion.button
+            className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-muted/60 text-muted-foreground transition-colors mb-2"
+            onClick={onToggleCollapse}
+            whileTap={{ scale: 0.95 }}
+            aria-label="Expand sidebar"
+            title="Expand sidebar"
+          >
+            <PanelLeftOpen className="w-5 h-5" />
+          </motion.button>
+        )}
+      </aside>
+    );
+  }
+
   if (pinned) {
     return (
       <aside
