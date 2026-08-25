@@ -76,9 +76,11 @@ const ReferralSection: React.FC = () => {
     if (!code) return;
     setApplying(true);
     try {
-      const { data: result, error } = await supabase.rpc('apply_referral_code', { p_code: code });
+      const { data: result, error } = await supabase.functions.invoke('apply-referral', {
+        body: { code },
+      });
       if (error) throw error;
-      
+
       const res = result as any;
       if (res.success) {
         toast.success(`🎉 +${res.reward_credits} credits! Welcome aboard!`);

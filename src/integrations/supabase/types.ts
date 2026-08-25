@@ -758,7 +758,10 @@ export type Database = {
       }
     }
     Functions: {
-      apply_referral_code: { Args: { p_code: string }; Returns: Json }
+      apply_referral_for_user: {
+        Args: { p_code: string; p_user_id: string }
+        Returns: Json
+      }
       deduct_user_credit: {
         Args: { p_cost: number; p_user_id: string }
         Returns: Json
