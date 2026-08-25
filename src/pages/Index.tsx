@@ -121,6 +121,15 @@ const Index = () => {
   }, []);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const isDesktop = useIsDesktop();
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(() => localStorage.getItem('minimind-sidebar-collapsed') === 'true');
+
+  const toggleSidebarCollapse = useCallback(() => {
+    setIsSidebarCollapsed(prev => {
+      const next = !prev;
+      localStorage.setItem('minimind-sidebar-collapsed', String(next));
+      return next;
+    });
+  }, []);
 
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const [selectedLanguage, setSelectedLanguage] = useState<LanguageKey>('en');
