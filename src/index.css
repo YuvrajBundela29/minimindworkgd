@@ -328,9 +328,10 @@
 
   @media (min-width: 1024px) {
     .is-welcome.lg\:has-sidebar .app-input-bar {
-      margin-left: calc(280px + max(0px, (100vw - 280px - 48rem) / 2));
+      margin-left: calc(var(--sidebar-w) + max(0px, (100vw - var(--sidebar-w) - 48rem) / 2));
       margin-right: auto;
-      max-width: min(48rem, calc(100vw - 280px - 3rem));
+      max-width: min(48rem, calc(100vw - var(--sidebar-w) - 1rem));
+      transition: margin-left 0.28s ease, max-width 0.28s ease;
     }
   }
 
