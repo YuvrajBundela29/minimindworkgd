@@ -21,8 +21,6 @@ interface BottomInputBarProps {
   placeholder?: string;
   isLoading?: boolean;
   isRefining?: boolean;
-  /** 'fixed' docks the composer to the bottom (active chat), 'centered' renders it inline (empty state) */
-  variant?: 'fixed' | 'centered';
 }
 
 const SUPPORTED_TYPES: Record<string, { label: string }> = {
@@ -44,7 +42,6 @@ const BottomInputBar: React.FC<BottomInputBarProps> = ({
   placeholder = "Ask anything...",
   isLoading = false,
   isRefining = false,
-  variant = 'fixed',
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -137,7 +134,7 @@ const BottomInputBar: React.FC<BottomInputBarProps> = ({
   const hasContent = value.trim() || attachedFile;
 
   return (
-    <div className={variant === 'centered' ? 'app-input-centered' : 'app-input-bar'}>
+    <div className="app-input-bar">
       <div className="app-input-inner">
         {/* Attached File Preview */}
         <AnimatePresence>
