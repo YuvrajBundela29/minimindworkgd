@@ -27,6 +27,9 @@ interface SideMenuProps {
   onLoadHistoryItem?: (item: HistoryEntry) => void;
   /** Rendered as a permanent sidebar (laptop/desktop) instead of an overlay drawer */
   pinned?: boolean;
+  /** When pinned, collapse to a narrow icon-only strip */
+  collapsed?: boolean;
+  onToggleCollapse?: () => void;
 }
 
 const SideMenu: React.FC<SideMenuProps> = ({
