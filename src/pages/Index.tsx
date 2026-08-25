@@ -970,7 +970,7 @@ const Index = () => {
       <main className={`page-content px-4 custom-scrollbar ${isLandingState ? 'page-content--landing' : ''}`}>
         <AnimatePresence mode="wait">
           {currentPage === 'home' && (
-            <motion.div key="home" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className={isLandingState ? 'h-full' : 'space-y-4'}>
+            <motion.div key="home" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className={isLandingState ? 'h-full' : 'grid grid-cols-1 lg:grid-cols-2 gap-4'}>
               {/* Hero Empty State with centered composer (ChatGPT landing) */}
               {isLandingState && (
                 <HeroEmptyState
