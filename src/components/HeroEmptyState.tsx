@@ -1,105 +1,75 @@
 import React from 'react';
-import { Sparkles, ChevronRight } from 'lucide-react';
+import { motion } from 'framer-motion';
+import minimindLogo from '@/assets/minimind-logo.png';
 
 interface HeroEmptyStateProps {
   onPromptClick: (prompt: string) => void;
 }
 
 const SUGGESTED_PROMPTS = [
-  {
-    emoji: '🧬',
-    text: 'How does DNA replicate itself before cell division?',
-    tag: 'Biology',
-    tagColor: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300',
-  },
-  {
-    emoji: '⚡',
-    text: 'Why does E = mc² matter and what does it really mean?',
-    tag: 'Physics',
-    tagColor: 'bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300',
-  },
-  {
-    emoji: '🧮',
-    text: 'What is calculus and why was it invented?',
-    tag: 'Mathematics',
-    tagColor: 'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300',
-  },
-  {
-    emoji: '⚗️',
-    text: 'Why do some chemical reactions release heat while others absorb it?',
-    tag: 'Chemistry',
-    tagColor: 'bg-purple-100 text-purple-700 dark:bg-purple-900/50 dark:text-purple-300',
-  },
-  {
-    emoji: '🌍',
-    text: 'How do tectonic plates shape Earth\'s surface over millions of years?',
-    tag: 'Geography',
-    tagColor: 'bg-teal-100 text-teal-700 dark:bg-teal-900/50 dark:text-teal-300',
-  },
-  {
-    emoji: '🤖',
-    text: 'How does artificial intelligence actually learn from data?',
-    tag: 'Technology',
-    tagColor: 'bg-rose-100 text-rose-700 dark:bg-rose-900/50 dark:text-rose-300',
-  },
+  { emoji: '🧬', text: 'How does DNA replicate itself before cell division?', tag: 'Biology' },
+  { emoji: '⚡', text: 'Why does E = mc² matter and what does it really mean?', tag: 'Physics' },
+  { emoji: '🧮', text: 'What is calculus and why was it invented?', tag: 'Maths' },
+  { emoji: '⚗️', text: 'Why do some reactions release heat and others absorb it?', tag: 'Chemistry' },
+  { emoji: '🌍', text: 'How do tectonic plates shape Earth over millions of years?', tag: 'Geography' },
+  { emoji: '🤖', text: 'How does artificial intelligence actually learn from data?', tag: 'Technology' },
 ];
 
 const HeroEmptyState: React.FC<HeroEmptyStateProps> = ({ onPromptClick }) => {
   return (
-    <div className="flex flex-col items-center justify-center py-10 md:py-16 lg:py-20 animate-in fade-in duration-300 max-w-2xl mx-auto w-full">
-      {/* Hero Text */}
-      <div className="text-center mb-8 animate-in slide-in-from-bottom-4 duration-500">
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/8 border border-primary/15 mb-5">
-          <Sparkles className="w-3.5 h-3.5 text-primary" />
-          <span className="text-xs font-medium text-primary tracking-wide">4 AI Tutors • One Question</span>
-        </div>
+    <div className="w-full max-w-3xl mx-auto flex flex-col items-center text-center pt-6 pb-2">
+      {/* Brand */}
+      <motion.div
+        className="flex items-center justify-center gap-2.5 mb-3"
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+      >
+        <img src={minimindLogo} alt="MiniMind" className="w-9 h-9 sm:w-11 sm:h-11" width={44} height={44} />
+        <span className="logo-text-premium text-2xl sm:text-3xl">MiniMind</span>
+      </motion.div>
 
-        <h1 className="text-2xl sm:text-3xl md:text-4xl font-heading font-bold text-foreground mb-3 leading-tight">
-          What do you want to
-          <br />
-          <span className="gradient-text">understand today?</span>
-        </h1>
+      <motion.h1
+        className="text-lg sm:text-2xl font-heading font-semibold text-foreground leading-snug mb-1.5"
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.05 }}
+      >
+        What do you want to <span className="gradient-text">understand today?</span>
+      </motion.h1>
 
-        <p className="text-muted-foreground text-sm sm:text-base max-w-md mx-auto leading-relaxed">
-          Ask any question — get 4 expert explanations from Beginner to Mastery level, tailored to how you learn.
-        </p>
+      <motion.p
+        className="text-xs sm:text-sm text-muted-foreground max-w-md mb-6"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.4, delay: 0.1 }}
+      >
+        One question — four explanations, from playful Beginner to exam-ready Mastery.
+      </motion.p>
+
+      {/* Suggestion grid */}
+      <div className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-2.5 px-1">
+        {SUGGESTED_PROMPTS.map((prompt, i) => (
+          <motion.button
+            key={prompt.text}
+            onClick={() => onPromptClick(prompt.text)}
+            className="group flex flex-col items-start gap-1.5 p-3 sm:p-3.5 rounded-2xl border border-border/60 bg-card/70 hover:bg-card hover:border-primary/30 hover:shadow-sm transition-all text-left min-h-[44px]"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.35, delay: 0.12 + i * 0.04 }}
+            whileTap={{ scale: 0.98 }}
+            aria-label={`Ask: ${prompt.text}`}
+          >
+            <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              <span className="text-base leading-none" role="img" aria-hidden="true">{prompt.emoji}</span>
+              {prompt.tag}
+            </span>
+            <span className="text-[13px] sm:text-sm font-medium text-foreground leading-snug group-hover:text-primary transition-colors">
+              {prompt.text}
+            </span>
+          </motion.button>
+        ))}
       </div>
-
-      {/* Prompt Grid */}
-      <div className="w-full animate-in slide-in-from-bottom-6 duration-700 delay-150">
-        <p className="text-xs font-medium text-muted-foreground mb-3 text-center tracking-wide uppercase">
-          Try asking
-        </p>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 px-1">
-          {SUGGESTED_PROMPTS.map((prompt) => (
-            <button
-              key={prompt.text}
-              onClick={() => onPromptClick(prompt.text)}
-              className="group flex items-center gap-3 px-4 py-3 rounded-xl bg-card border border-border/50 hover:border-primary/30 hover:shadow-md transition-all duration-200 text-left active:scale-[0.98]"
-              aria-label={`Ask: ${prompt.text}`}
-            >
-              <span className="text-xl flex-shrink-0" role="img" aria-hidden="true">
-                {prompt.emoji}
-              </span>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground line-clamp-2 group-hover:text-primary transition-colors">
-                  {prompt.text}
-                </p>
-                <span className={`inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full mt-1 ${prompt.tagColor}`}>
-                  {prompt.tag}
-                </span>
-              </div>
-              <ChevronRight className="w-4 h-4 text-muted-foreground/40 group-hover:text-primary group-hover:translate-x-0.5 transition-all flex-shrink-0" />
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Trust signal */}
-      <p className="text-[10px] text-muted-foreground/50 mt-6 text-center tracking-wide">
-        Trusted by 10,000+ students • Beginner → Thinker → Story → Mastery
-      </p>
     </div>
   );
 };

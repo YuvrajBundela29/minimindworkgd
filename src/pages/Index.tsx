@@ -947,8 +947,11 @@ const Index = () => {
     return <EarlyAccessGate onSignIn={() => setCurrentPage('auth')} />;
   }
 
+  const isWelcomeState = currentPage === 'home' && !hasAskedQuestion && !isAnyLoading;
+
   return (
-    <div className="app-container lg:has-sidebar">
+    <div className={`app-container lg:has-sidebar${isWelcomeState ? ' is-welcome' : ''}`}>
+
       <MobileHeader onMenuClick={() => setIsMenuOpen(true)} onProfileClick={() => user ? setCurrentPage('profile') : setCurrentPage('auth')} currentLens={purposeLens} onNewChat={handleNewChat} hasActiveChat={hasAskedQuestion} onNavigateToSubscription={() => setCurrentPage('subscription')} onNavigateToShop={() => setCurrentPage('shop')} />
       <SideMenu pinned={isDesktop} isOpen={isMenuOpen && !isDesktop} onClose={() => setIsMenuOpen(false)} currentPage={currentPage} onNavigate={(page: string) => setCurrentPage(page as typeof currentPage)} theme={theme} onToggleTheme={toggleTheme} onShowGuide={() => setShowOnboarding(true)} onNewChat={handleNewChat} history={history.map(h => ({ id: h.id, question: h.question, timestamp: h.timestamp }))} onLoadHistoryItem={(item) => { const found = history.find(h => h.id === item.id); if (found) handleLoadHistory(found); }} />
 
@@ -1131,7 +1134,9 @@ const Index = () => {
       
       <QuestionLimitBanner />
       
-      {currentPage === 'home' && <BottomInputBar value={question} onChange={setQuestion} onSubmit={handleSubmit} onVoiceInput={handleVoiceInput} onRefinePrompt={handleRefinePrompt} placeholder="Ask anything... MiniMind explains it 4 ways!" isLoading={isAnyLoading} isRefining={isRefining} />}
+      {currentPage === 'home' && <BottomInputBar value={question} onChange={setQuestion} onSubmit={handleSubmit} onVoiceInput={handleVoiceInput} onRefinePrompt={handleRefinePrompt} placeholder={isWelcomeState ? "Ask anything — MiniMind explains it 4 ways" : "Ask a follow-up..."} isLoading={isAnyLoading} isRefining={isRefining} />}
+
+      {isWelcomeState && <div className="welcome-spacer" aria-hidden="true" />}
       
       {fullscreenMode && (
         <Suspense fallback={<PageLoadingFallback />}>
