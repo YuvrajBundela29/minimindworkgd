@@ -288,6 +288,45 @@
     }
   }
 
+  /* ============================================
+     WELCOME STATE — ChatGPT-style centered composer
+     Applies to phone, tablet and laptop alike.
+     ============================================ */
+  .is-welcome .page-content {
+    @apply flex flex-col justify-end;
+    padding-bottom: 0;
+    overflow: visible;
+  }
+
+  .is-welcome .app-input-bar {
+    position: static;
+    left: auto;
+    right: auto;
+    transform: none;
+    background: transparent;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border-radius: 0;
+    width: 100%;
+    max-width: 44rem;
+    margin: 0 auto;
+    padding: 8px 14px 0;
+  }
+
+  .is-welcome .welcome-spacer {
+    flex: 1 1 auto;
+    min-height: 24px;
+  }
+
+  @media (min-width: 1024px) {
+    .is-welcome.lg\:has-sidebar .app-input-bar {
+      margin-left: 280px;
+      max-width: min(48rem, calc(100vw - 280px - 3rem));
+      padding-left: max(0px, calc((100vw - 280px - 48rem) / 2));
+      padding-right: max(0px, calc((100vw - 280px - 48rem) / 2));
+    }
+  }
+
 
   .app-input-inner {
     @apply w-full;
